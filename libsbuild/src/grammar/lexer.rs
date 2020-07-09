@@ -1,5 +1,7 @@
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
+use std::fmt::{Display, Formatter, Debug};
+
 #[derive(Clone, Debug)]
 pub enum Tok {
     Newline,
@@ -26,9 +28,21 @@ pub enum Tok {
     Dot,
 }
 
+impl Display for Tok {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        <Self as Debug>::fmt(self, f)
+    }
+}
+
 #[derive(Debug)]
 pub enum LexicalError {
     UnrecognizedToken { location: usize }
+}
+
+impl Display for LexicalError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        <Self as Debug>::fmt(self, f)
+    }
 }
 
 use std::str::CharIndices;

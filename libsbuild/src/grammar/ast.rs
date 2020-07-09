@@ -139,3 +139,11 @@ pub enum AstStatement {
     MethodCall(AstMethodCall),
     Assignment(AstAssignment),
 }
+
+pub struct AstProgram {
+    statements: Vec<AstStatement>,
+}
+
+impl AstProgram {
+    pub fn new(statements: Vec<AstStatement>) -> AstProgram { AstProgram { statements } }
+}
