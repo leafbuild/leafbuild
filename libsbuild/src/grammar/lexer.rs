@@ -14,6 +14,8 @@ pub enum Tok {
 
     POPEN,
     PCLOSE,
+    Colon,
+    Comma,
 }
 
 #[derive(Debug)]
@@ -52,47 +54,69 @@ impl<'input> Lexer<'input> {
     }
 
     fn parse_number(&mut self, initial_position: usize, initial_char: char) -> Result<(usize, Tok, usize), LexicalError> {
-        let result: String;
-        let mut next_position: usize = initial_position + 1;
         match self.chars.peek() {
-            None => Ok((initial_position, Tok::Number((initial_char as u8 - b'0') as i32), initial_position + 1)),
+            None => Ok((initial_position, Tok::Number(Self::decdigit_value(initial_char)), initial_position + 1)),
             Some((i, chr)) => {
                 if initial_char == '0' {
                     if *chr == 'x' {
                         // parse as hex
                         self.chars.next().unwrap(); // take the 'x' out of the stream
                         let (mut num, mut end_position) = (0, initial_position + 1);
-                        while let Some((pos, character)) = self.chars.next() {
-                            end_position = pos;
-                            if character.is_ascii_hexdigit() {
-                                num = num * 16 + Self::hexdigit_value(character);
-                            } else {
-                                break;
-                            }
+                        loop {
+                            match self.chars.peek() {
+                                Some((pos, character))  if character.is_ascii_hexdigit() => {
+                                    num = num * 16 + Self::hexdigit_value(*character);
+                                    self.chars.next();
+                                }
+                                None => {
+                                    end_position = self.input.len();
+                                    break;
+                                }
+                                Some((pos, _)) => {
+                                    end_position = *pos;
+                                    break;
+                                }
+                            };
                         }
                         Ok((initial_position, Tok::Number(num), end_position))
                     } else {
                         // parse as oct
                         let (mut num, mut end_position) = (0, initial_position + 1);
-                        while let Some((pos, character)) = self.chars.next() {
-                            end_position = pos;
-                            if character.is_digit(8) {
-                                num = num * 8 + Self::octdigit_value(character);
-                            } else {
-                                break;
-                            }
+                        loop {
+                            match self.chars.peek() {
+                                Some((pos, character))  if character.is_digit(8) => {
+                                    num = num * 8 + Self::octdigit_value(*character);
+                                    self.chars.next();
+                                }
+                                None => {
+                                    end_position = self.input.len();
+                                    break;
+                                }
+                                Some((pos, _)) => {
+                                    end_position = *pos;
+                                    break;
+                                }
+                            };
                         }
                         Ok((initial_position, Tok::Number(num), end_position))
                     }
                 } else {
                     let (mut num, mut end_position) = (0, initial_position + 1);
-                    while let Some((pos, character)) = self.chars.next() {
-                        end_position = pos;
-                        if character.is_ascii_digit() {
-                            num = num * 10 + Self::decdigit_value(character);
-                        } else {
-                            break;
-                        }
+                    loop {
+                        match self.chars.peek() {
+                            Some((pos, character))  if character.is_ascii_digit() => {
+                                num = num * 10 + Self::decdigit_value(*character);
+                                self.chars.next();
+                            }
+                            None => {
+                                end_position = self.input.len();
+                                break;
+                            }
+                            Some((pos, _)) => {
+                                end_position = *pos;
+                                break;
+                            }
+                        };
                     }
                     Ok((initial_position, Tok::Number(num), end_position))
                 }
@@ -127,6 +151,15 @@ impl<'input> Iterator for Lexer<'input> {
             match self.chars.next() {
                 Some((i, '\n')) => return Some(Ok((i, Tok::Newline, i + 1))),
                 Some((_, chr)) if chr.is_whitespace() => continue,
+                Some((i, ':')) => return Some(Ok((i, Tok::Colon, i + 1))),
+                Some((i, ',')) => return Some(Ok((i, Tok::Comma, i + 1))),
+                Some((i, '(')) => return Some(Ok((i, Tok::POPEN, i + 1))),
+                Some((i, ')')) => return Some(Ok((i, Tok::PCLOSE, i + 1))),
+                Some((i, '+')) => return Some(Ok((i, Tok::Add, i + 1))),
+                Some((i, '-')) => return Some(Ok((i, Tok::Sub, i + 1))),
+                Some((i, '*')) => return Some(Ok((i, Tok::Mul, i + 1))),
+                Some((i, '/')) => return Some(Ok((i, Tok::Div, i + 1))),
+                Some((i, '%')) => return Some(Ok((i, Tok::Mod, i + 1))),
                 Some((i, chr)) if chr.is_ascii_alphabetic() => return Some(self.parse_identifier(i, chr)),
                 Some((i, chr)) if chr.is_ascii_digit() => return Some(self.parse_number(i, chr)),
 

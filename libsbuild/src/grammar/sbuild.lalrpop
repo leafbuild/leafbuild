@@ -3,14 +3,50 @@ use crate::{
 	grammar::{
 		lexer,
 		ast::{
-			AtomT,
+			Atom,
 			Expr,
 			Opcode,
+			AstFuncCall,
+			AstFuncCallArgs,
+			AstPositionalArg,
+			AstNamedArg,
 		},
 	},
 };
 
 grammar;
+
+pub Program = <Statement*>;
+Statement = {
+	<FuncCall>,
+};
+
+FuncCall: AstFuncCall = {
+	<name:IdExpression> "(" <args:FuncArgs> ")" => AstFuncCall::new(name, args)
+};
+
+pub FuncArgs:AstFuncCallArgs = {
+	<pos_args:PositionalFuncArgs> "," <named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new(pos_args,named_args),
+	<pos_args:PositionalFuncArgs> ","? => AstFuncCallArgs::new_only_positional(pos_args),
+	<named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new_only_named(named_args),
+	() => AstFuncCallArgs::empty(),
+};
+
+#[inline]
+PositionalFuncArgs: Vec<AstPositionalArg> = {
+	<arg1:PositionalFuncArg> <rest:("," <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
+};
+
+pub PositionalFuncArg = { Expr };
+
+#[inline]
+NamedFuncArgs: Vec<AstNamedArg> = {
+	<arg1:NamedFuncArg> <rest:("," <NamedFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
+};
+
+pub NamedFuncArg: AstNamedArg = {
+	<name:IdExpression> ":" <value:Expr> => AstNamedArg::from((name, value))
+};
 
 pub Expr: Box<Expr> = { // (1)
     Expr ExprOp Factor => Box::new(Expr::Op(<>)), // (2)
@@ -33,10 +69,11 @@ FactorOp: Opcode = {
 };
 
 Term: Box<Expr> = {
-    "num" => Box::new(Expr::Atom(AtomT::Number(<>))),
+    "num" => Box::new(Expr::Atom(Atom::Number(<>))),
     "(" <Expr> ")"
 };
 
+pub IdExpression = { "id" }
 
 extern {
     type Location = usize;
@@ -52,5 +89,8 @@ extern {
         "(" => lexer::Tok::POPEN,
         ")" => lexer::Tok::PCLOSE,
         "num" => lexer::Tok::Number(<i32>),
+        "id" => lexer::Tok::Identifier(<String>),
+        ":" => lexer::Tok::Colon,
+        "," => lexer::Tok::Comma,
     }
 }

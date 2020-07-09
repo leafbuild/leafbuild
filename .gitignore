@@ -153,3 +153,5 @@ fabric.properties
 .idea/discord.xml
 .idea/dictionaries/
 
+# LALRPOP-generated
+/libsbuild/src/grammar/sbuild.rs
