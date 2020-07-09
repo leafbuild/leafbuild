@@ -12,10 +12,18 @@ pub enum Tok {
     Div,
     Mod,
 
+    AddEq,
+    SubEq,
+    MulEq,
+    DivEq,
+    ModEq,
+    Eq,
+
     POPEN,
     PCLOSE,
     Colon,
     Comma,
+    Dot,
 }
 
 #[derive(Debug)]
@@ -61,7 +69,8 @@ impl<'input> Lexer<'input> {
                     if *chr == 'x' {
                         // parse as hex
                         self.chars.next().unwrap(); // take the 'x' out of the stream
-                        let (mut num, mut end_position) = (0, initial_position + 1);
+                        let mut num = 0;
+                        let end_position;
                         loop {
                             match self.chars.peek() {
                                 Some((pos, character))  if character.is_ascii_hexdigit() => {
@@ -81,7 +90,8 @@ impl<'input> Lexer<'input> {
                         Ok((initial_position, Tok::Number(num), end_position))
                     } else {
                         // parse as oct
-                        let (mut num, mut end_position) = (0, initial_position + 1);
+                        let mut num = 0;
+                        let end_position;
                         loop {
                             match self.chars.peek() {
                                 Some((pos, character))  if character.is_digit(8) => {
@@ -101,7 +111,8 @@ impl<'input> Lexer<'input> {
                         Ok((initial_position, Tok::Number(num), end_position))
                     }
                 } else {
-                    let (mut num, mut end_position) = (0, initial_position + 1);
+                    let mut num = 0;
+                    let end_position;
                     loop {
                         match self.chars.peek() {
                             Some((pos, character))  if character.is_ascii_digit() => {
@@ -153,13 +164,45 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((_, chr)) if chr.is_whitespace() => continue,
                 Some((i, ':')) => return Some(Ok((i, Tok::Colon, i + 1))),
                 Some((i, ',')) => return Some(Ok((i, Tok::Comma, i + 1))),
+                Some((i, '.')) => return Some(Ok((i, Tok::Dot, i + 1))),
                 Some((i, '(')) => return Some(Ok((i, Tok::POPEN, i + 1))),
                 Some((i, ')')) => return Some(Ok((i, Tok::PCLOSE, i + 1))),
-                Some((i, '+')) => return Some(Ok((i, Tok::Add, i + 1))),
-                Some((i, '-')) => return Some(Ok((i, Tok::Sub, i + 1))),
-                Some((i, '*')) => return Some(Ok((i, Tok::Mul, i + 1))),
-                Some((i, '/')) => return Some(Ok((i, Tok::Div, i + 1))),
-                Some((i, '%')) => return Some(Ok((i, Tok::Mod, i + 1))),
+                Some((i, '+')) => return match self.chars.peek() {
+                    Some((_, '=')) => {
+                        self.chars.next();
+                        Some(Ok((i, Tok::AddEq, i + 2)))
+                    }
+                    _ => Some(Ok((i, Tok::Add, i + 1)))
+                },
+                Some((i, '-')) => return match self.chars.peek() {
+                    Some((_, '=')) => {
+                        self.chars.next();
+                        Some(Ok((i, Tok::SubEq, i + 2)))
+                    }
+                    _ => Some(Ok((i, Tok::Sub, i + 1)))
+                },
+                Some((i, '*')) => return match self.chars.peek() {
+                    Some((_, '=')) => {
+                        self.chars.next();
+                        Some(Ok((i, Tok::MulEq, i + 2)))
+                    }
+                    _ => Some(Ok((i, Tok::Mul, i + 1)))
+                },
+                Some((i, '/')) => return match self.chars.peek() {
+                    Some((_, '=')) => {
+                        self.chars.next();
+                        Some(Ok((i, Tok::DivEq, i + 2)))
+                    }
+                    _ => Some(Ok((i, Tok::Div, i + 1)))
+                },
+                Some((i, '%')) => return match self.chars.peek() {
+                    Some((_, '=')) => {
+                        self.chars.next();
+                        Some(Ok((i, Tok::ModEq, i + 2)))
+                    }
+                    _ => Some(Ok((i, Tok::Mod, i + 1)))
+                },
+                Some((i, '=')) => return Some(Ok((i, Tok::Eq, i + 1))),
                 Some((i, chr)) if chr.is_ascii_alphabetic() => return Some(self.parse_identifier(i, chr)),
                 Some((i, chr)) if chr.is_ascii_digit() => return Some(self.parse_number(i, chr)),
 

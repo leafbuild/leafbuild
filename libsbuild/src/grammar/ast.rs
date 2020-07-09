@@ -11,6 +11,8 @@ pub enum Atom {
 pub enum Expr {
     Atom(Atom),
     Op(Box<Expr>, Opcode, Box<Expr>),
+    FuncCall(AstFuncCall),
+    MethodCall(AstMethodCall),
 }
 
 pub enum Opcode {
@@ -18,6 +20,7 @@ pub enum Opcode {
     Div,
     Add,
     Sub,
+    Mod,
 }
 
 pub struct AstFuncCall {
@@ -51,17 +54,11 @@ impl AstFuncCallArgs {
         }
     }
 
-    pub fn new_only_positional(positional_args: Vec<AstPositionalArg>) -> AstFuncCallArgs {
-        Self::new(positional_args, vec![])
-    }
+    pub fn new_only_positional(positional_args: Vec<AstPositionalArg>) -> AstFuncCallArgs { Self::new(positional_args, vec![]) }
 
-    pub fn new_only_named(named_args: Vec<AstNamedArg>) -> AstFuncCallArgs {
-        Self::new(vec![], named_args)
-    }
+    pub fn new_only_named(named_args: Vec<AstNamedArg>) -> AstFuncCallArgs { Self::new(vec![], named_args) }
 
-    pub fn empty() -> AstFuncCallArgs {
-        Self::new(vec![], vec![])
-    }
+    pub fn empty() -> AstFuncCallArgs { Self::new(vec![], vec![]) }
 
     pub fn get_positional_args(&self) -> &Vec<AstPositionalArg> { &self.positional_args }
     pub fn get_named_args(&self) -> &Vec<AstNamedArg> { &self.named_args }
@@ -96,4 +93,49 @@ impl From<(String, Box<Expr>)> for AstNamedArg {
             value,
         }
     }
+}
+
+pub struct AstMethodCall {
+    base: Box<Expr>,
+    call: AstFuncCall,
+}
+
+impl AstMethodCall {
+    pub fn new(base: Box<Expr>, call: AstFuncCall) -> AstMethodCall {
+        AstMethodCall {
+            base,
+            call,
+        }
+    }
+}
+
+pub struct AstAssignment {
+    name: String,
+    op: AstAtrOp,
+    value: Box<Expr>,
+}
+
+impl AstAssignment {
+    pub fn new(name: String, op: AstAtrOp, value: Box<Expr>) -> AstAssignment {
+        AstAssignment {
+            name,
+            op,
+            value,
+        }
+    }
+}
+
+pub enum AstAtrOp {
+    Atr,
+    AddAtr,
+    SubAtr,
+    MulAtr,
+    DivAtr,
+    ModAtr,
+}
+
+pub enum AstStatement {
+    FuncCall(AstFuncCall),
+    MethodCall(AstMethodCall),
+    Assignment(AstAssignment),
 }

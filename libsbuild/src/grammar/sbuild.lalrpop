@@ -10,6 +10,10 @@ use crate::{
 			AstFuncCallArgs,
 			AstPositionalArg,
 			AstNamedArg,
+			AstMethodCall,
+			AstStatement,
+			AstAssignment,
+			AstAtrOp,
 		},
 	},
 };
@@ -17,8 +21,10 @@ use crate::{
 grammar;
 
 pub Program = <Statement*>;
-Statement = {
-	<FuncCall>,
+Statement: AstStatement = {
+	<FuncCall> => AstStatement::FuncCall(<>),
+	<MethodCall> => AstStatement::MethodCall(<>),
+	<Assignment> => AstStatement::Assignment(<>),
 };
 
 FuncCall: AstFuncCall = {
@@ -66,14 +72,42 @@ Factor: Box<Expr> = {
 FactorOp: Opcode = {
     "*" => Opcode::Mul,
     "/" => Opcode::Div,
+    "%" => Opcode::Mod,
 };
 
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
-    "(" <Expr> ")"
+    "(" <Expr> ")",
+    <FuncCall> => Box::new(Expr::FuncCall(<>)),
+    <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
+    <MethodCall> => Box::new(Expr::MethodCall(<>)),
 };
 
-pub IdExpression = { "id" }
+MethodCallBase: Box<Expr> = {
+	"num" => Box::new(Expr::Atom(Atom::Number(<>))),
+	<IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
+	<MethodCall> => Box::new(Expr::MethodCall(<>)),
+	<FuncCall> => Box::new(Expr::FuncCall(<>)),
+};
+
+MethodCall: AstMethodCall = {
+	<base: MethodCallBase> "." <call: FuncCall> => AstMethodCall::new(base, call),
+};
+
+Assignment: AstAssignment = {
+	<var_name: IdExpression> <op: AtrOp> <val: Expr> => AstAssignment::new(var_name, op, val),
+}
+
+AtrOp: AstAtrOp = {
+	"=" => AstAtrOp::Atr,
+	"+=" => AstAtrOp::AddAtr,
+	"-=" => AstAtrOp::SubAtr,
+	"*=" => AstAtrOp::MulAtr,
+	"/=" => AstAtrOp::DivAtr,
+	"%=" => AstAtrOp::ModAtr,
+}
+
+pub IdExpression = { "id" };
 
 extern {
     type Location = usize;
@@ -81,6 +115,12 @@ extern {
 
     enum lexer::Tok {
         "\n" => lexer::Tok::Newline,
+        "+=" => lexer::Tok::AddEq,
+        "-=" => lexer::Tok::SubEq,
+        "*=" => lexer::Tok::MulEq,
+        "/=" => lexer::Tok::DivEq,
+        "%=" => lexer::Tok::ModEq,
+        "=" => lexer::Tok::Eq,
         "+" => lexer::Tok::Add,
         "-" => lexer::Tok::Sub,
         "*" => lexer::Tok::Mul,
@@ -92,5 +132,6 @@ extern {
         "id" => lexer::Tok::Identifier(<String>),
         ":" => lexer::Tok::Colon,
         "," => lexer::Tok::Comma,
+        "." => lexer::Tok::Dot,
     }
 }

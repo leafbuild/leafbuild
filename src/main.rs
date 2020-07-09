@@ -1,5 +1,5 @@
 extern crate libsbuild;
 
 fn main() {
-    libsbuild::grammar::parse("a(b:2+2-3)");
+    libsbuild::grammar::parse("a(2,b:2+2-3).c(2,b:a+c)");
 }
