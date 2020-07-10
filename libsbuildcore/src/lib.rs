@@ -1,6 +1,6 @@
 extern crate itertools;
 extern crate toml;
 
-mod compilers;
+pub mod compilers;
 
-mod generators;
+pub mod generators;

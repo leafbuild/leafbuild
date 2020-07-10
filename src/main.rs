@@ -1,5 +1,12 @@
 extern crate libsbuild;
+extern crate libsbuildcore;
+
+use libsbuildcore::generators::{
+    *,
+    ninja::*,
+};
 
 fn main() {
-    libsbuild::grammar::parse("a(2,b:2+2-3).c(2+bcd,b:a+c)").unwrap();
+    let gen = NinjaGen::new();
+    println!("{}", gen.new_rule("cc".to_string(), NinjaCommand::new("cc $in".to_string())).for_build_system());
 }
