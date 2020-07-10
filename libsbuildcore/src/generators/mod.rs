@@ -7,6 +7,9 @@ pub trait ToBuildSystemSyntax {
 }
 
 pub trait Rule: ToBuildSystemSyntax {
+    type ArgType: RuleArg + Sized;
+    type OptType: RuleOpt + Sized;
+    type RefType: RuleRef + Sized;
     fn get_name(&self) -> &String;
 }
 
@@ -19,21 +22,23 @@ pub trait RuleOpt: ToBuildSystemSyntax {
     fn get_arg_value(&self) -> &String;
 }
 
-pub trait Target<'buildsys, TargetRule, TargetRuleArg, TargetRuleOpt>: ToBuildSystemSyntax
-    where TargetRule: Rule + Sized,
-          TargetRuleArg: RuleArg + Sized,
-          TargetRuleOpt: RuleOpt + Sized {
-    fn new_from(name: String, rule: &'buildsys TargetRule, rule_args: Vec<TargetRuleArg>, rule_opts: Vec<TargetRuleOpt>) -> Self;
+pub trait RuleRef {}
+
+pub trait Target<'buildsys, TargetRule>: ToBuildSystemSyntax
+    where TargetRule: Rule + Sized {
+    fn new_from(name: String, rule: &'buildsys TargetRule::RefType, rule_args: Vec<TargetRule::ArgType>, rule_opts: Vec<TargetRule::OptType>) -> Self;
     fn get_name(&self) -> &String;
-    fn get_rule(&self) -> &TargetRule;
-    fn get_args(&self) -> &Vec<TargetRuleArg>;
-    fn get_opts(&self) -> &Vec<TargetRuleOpt>;
+    fn get_rule(&self) -> &TargetRule::RefType;
+    fn get_args(&self) -> &Vec<TargetRule::ArgType>;
+    fn get_opts(&self) -> &Vec<TargetRule::OptType>;
 }
 
-pub trait Generator<'buildsys, RuleType, CommandType>: ToBuildSystemSyntax
-    where RuleType: Rule + Sized {
+pub trait Generator<'buildsys, RuleType, TargetType, CommandType>: ToBuildSystemSyntax
+    where RuleType: Rule + Sized,
+          TargetType: Target<'buildsys, RuleType> + Sized {
     fn new() -> Self;
-    fn new_rule(&self, unique_name: String, command: CommandType) -> RuleType;
+    fn new_rule(&mut self, unique_name: String, command: CommandType) -> RuleType::RefType;
+    fn new_target(&mut self, name: String, rule: &'buildsys RuleType::RefType, args: Vec<RuleType::ArgType>, opts: Vec<RuleType::OptType>) -> &TargetType;
 
     fn filename(&self) -> String;
     fn write_to(&self, file: File) -> std::io::Result<()>;
@@ -43,6 +48,3 @@ pub trait Generator<'buildsys, RuleType, CommandType>: ToBuildSystemSyntax
 pub mod unix_makefiles;
 #[path = "ninja/gen.rs"]
 pub mod ninja;
-#[cfg(target_os = "windows")]
-#[path = "windows_nmake/gen.rs"]
-pub mod windows_nmake;
