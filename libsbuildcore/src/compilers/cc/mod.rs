@@ -18,11 +18,3 @@ impl CCompiler for Clang {}
 struct GCC {}
 
 impl CCompiler for GCC {}
-
-/// The MSVC C compiler
-/// Available only in windows
-#[cfg(target_os = "windows")]
-struct MSVC {}
-
-#[cfg(target_os = "windows")]
-impl CCompiler for MSVC {}

@@ -22,10 +22,3 @@ impl CXXCompiler for Clang {}
 struct GCC {}
 
 impl CXXCompiler for GCC {}
-
-/// The msvc compiler
-#[cfg(target_os = "windows")]
-struct MSVC {}
-
-#[cfg(target_os = "windows")]
-impl CXXCompiler for MSVC {}

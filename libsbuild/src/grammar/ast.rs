@@ -146,4 +146,5 @@ pub struct AstProgram {
 
 impl AstProgram {
     pub fn new(statements: Vec<AstStatement>) -> AstProgram { AstProgram { statements } }
+    pub fn get_statements(&self) -> &Vec<AstStatement> { &self.statements }
 }
