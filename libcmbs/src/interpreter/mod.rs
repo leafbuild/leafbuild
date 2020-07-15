@@ -1,6 +1,6 @@
 mod ops;
 
-use libsbuildcore::utils::Stack;
+use libcmbscore::utils::Stack;
 use std::collections::HashMap;
 use crate::grammar::ast::AstProgram;
 

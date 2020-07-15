@@ -1,7 +1,7 @@
-extern crate libsbuild;
-extern crate libsbuildcore;
+extern crate libcmbs;
+extern crate libcmbscore;
 
-use libsbuildcore::generators::{
+use libcmbscore::generators::{
     *,
     ninja::*,
 };
