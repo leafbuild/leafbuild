@@ -123,6 +123,10 @@ impl AstAssignment {
             value,
         }
     }
+
+    pub fn get_name(&self) -> &String { &self.name }
+    pub fn get_op(&self) -> &AstAtrOp { &self.op }
+    pub fn get_value(&self) -> &Box<Expr> { &self.value }
 }
 
 pub enum AstAtrOp {

@@ -1,6 +1,6 @@
-use crate::interpreter::{ValType, Value};
+use crate::interpreter::{Value, ValueTypeMarker};
 
-pub trait OpPlus<T, Result>
-    where T: ValType, Result: ValType {
+pub(crate) trait OpPlus<T, Result>
+    where T: ValueTypeMarker, Result: ValueTypeMarker {
     fn plus(val: Value<T>) -> Value<Result>;
 }

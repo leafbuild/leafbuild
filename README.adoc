@@ -1,6 +1,6 @@
-= `SBuild`
+= `CMBS`
 
 image::https://github.com/NonNullDinu/sbuild/workflows/Build-Rust/badge.svg[]
 
-`sbuild` is a meta-build-system for C/C++, like https://gitlab.kitware.com/cmake/cmake[cmake]
+`cmbs` is a meta-build-system for C/C++, like https://gitlab.kitware.com/cmake/cmake[cmake]
 and https://github.com/mesonbuild/meson[meson], focused on speed.
