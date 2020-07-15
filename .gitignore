@@ -154,3 +154,10 @@ fabric.properties
 .idea/dictionaries/
 
 /testenv
+
+/.idea/.gitignore
+/.idea/codeStyles/codeStyleConfig.xml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/vcs.xml
+/.idea/*.iml
