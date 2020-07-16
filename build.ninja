@@ -1,0 +1,3 @@
+rule cc
+  command = cc $in -o $out
+build main: cc main.c

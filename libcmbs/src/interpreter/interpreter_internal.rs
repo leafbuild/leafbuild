@@ -13,5 +13,9 @@ fn run_func_call_in_env_frame(handle: &Handle, call: &AstFuncCall, env_frame: &m
 }
 
 fn eval_func_call(call: &AstFuncCall, env_frame: &mut EnvFrame, func_call_poll: &FuncCallPool) -> Value<Box<dyn ValueTypeMarker>> {
-    Value::new(Box::new(0))
+    (
+        func_call_poll.executors.iter().find(
+            |executor| { executor.name == *call.get_name() }
+        ).unwrap().func
+    )(call.get_args(), env_frame)
 }

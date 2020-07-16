@@ -22,6 +22,13 @@ pub(crate) struct EnvFrameReturns {
     exe_decls: Vec<EnvExeDecl>,
 }
 
+impl EnvFrameReturns {
+    pub(crate) fn empty() -> Self { Self { lib_decls: vec![], exe_decls: vec![] } }
+    fn push_to(self, handle: &mut Handle) {
+        handle.push_env_frame_returns(self)
+    }
+}
+
 struct EnvLibDecl {
     name: String,
     type_: EnvLibType,
@@ -62,12 +69,22 @@ impl<T> Value<T> where T: ValueTypeMarker {
     pub fn get_value(&self) -> &T { &self.value }
 }
 
-pub(crate) fn interpret(program: &AstProgram) -> EnvFrameReturns {
+pub(crate) fn interpret(program: &AstProgram, handle: &mut Handle) -> EnvFrameReturns {
     let statements = program.get_statements();
-    EnvFrameReturns {
-        lib_decls: vec![],
-        exe_decls: vec![],
-    }
+    let mut frame = EnvFrame {
+        variables: HashMap::new(),
+        env_frame_returns: EnvFrameReturns::empty(),
+    };
+
+    statements.iter().for_each(|statement| {
+        run_in_env_frame(handle, statement, &mut frame);
+    });
+
+    frame.env_frame_returns
+}
+
+pub fn interpret_wrapper(program: &AstProgram, handle: &mut Handle) {
+    interpret(program, handle).push_to(handle);
 }
 
 pub(crate) struct FuncCallPool {
@@ -81,14 +98,16 @@ impl FuncCallPool {
 }
 
 pub(crate) struct FuncCallExecutor {
-    func: Box<dyn Fn(AstFuncCallArgs, &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>>>,
+    name: String,
+    func: Box<dyn Fn(&AstFuncCallArgs, &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>>>,
 }
 
 impl FuncCallExecutor {
-    pub(crate) fn new<F>(func: F) -> FuncCallExecutor
-        where F: 'static + Fn(AstFuncCallArgs, &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
+    pub(crate) fn new<F>(name: String, func: F) -> FuncCallExecutor
+        where F: 'static + Fn(&AstFuncCallArgs, &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
         Self {
-            func: Box::new(func)
+            name,
+            func: Box::new(func),
         }
     }
 }

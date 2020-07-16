@@ -5,9 +5,14 @@ use libcmbscore::generators::{
     *,
     ninja::*,
 };
+
+use libcmbs::{handle::Handle, grammar, interpreter};
 use std::fs::File;
 
 fn main() {
+    let mut handle = Handle::new();
+    let program = grammar::parse("f()").unwrap();
+    interpreter::interpret_wrapper(&program, &mut handle);
     let mut gen = NinjaGen::new();
     let rl = gen.new_rule("cc".to_string(), NinjaCommand::new("cc $in -o $out".to_string()));
     gen.new_target("main".to_string(), &rl, vec![NinjaRuleArg::new("main.c".to_string())], vec![]);
