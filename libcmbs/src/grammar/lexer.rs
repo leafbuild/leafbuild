@@ -1,6 +1,6 @@
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
-use std::fmt::{Display, Formatter, Debug};
+use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Clone, Debug)]
 pub enum Tok {
@@ -36,7 +36,7 @@ impl Display for Tok {
 
 #[derive(Debug)]
 pub enum LexicalError {
-    UnrecognizedToken { location: usize }
+    UnrecognizedToken { location: usize },
 }
 
 impl Display for LexicalError {
@@ -45,16 +45,15 @@ impl Display for LexicalError {
     }
 }
 
-use std::str::CharIndices;
 use itertools::Itertools;
 use std::borrow::Borrow;
 use std::iter::Peekable;
+use std::str::CharIndices;
 
 pub struct Lexer<'input> {
     chars: Peekable<CharIndices<'input>>,
     input: &'input str,
 }
-
 
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
@@ -64,20 +63,38 @@ impl<'input> Lexer<'input> {
         }
     }
 
-    fn parse_identifier(&mut self, initial_position: usize, initial_letter: char) -> Result<(usize, Tok, usize), LexicalError> {
+    fn parse_identifier(
+        &mut self,
+        initial_position: usize,
+        initial_letter: char,
+    ) -> Result<(usize, Tok, usize), LexicalError> {
         let result: String;
         let mut next_position: usize = initial_position + 1;
-        result = format!("{}{}", initial_letter,
-                         self.chars.peeking_take_while(|(pos, chr)| -> bool {
-                             next_position = *pos;
-                             chr.is_ascii_alphanumeric()
-                         }).map(|(_pos, chr)| chr).collect::<String>());
+        result = format!(
+            "{}{}",
+            initial_letter,
+            self.chars
+                .peeking_take_while(|(pos, chr)| -> bool {
+                    next_position = *pos;
+                    chr.is_ascii_alphanumeric() || *chr == '_'
+                })
+                .map(|(_pos, chr)| chr)
+                .collect::<String>()
+        );
         Ok((initial_position, Tok::Identifier(result), next_position))
     }
 
-    fn parse_number(&mut self, initial_position: usize, initial_char: char) -> Result<(usize, Tok, usize), LexicalError> {
+    fn parse_number(
+        &mut self,
+        initial_position: usize,
+        initial_char: char,
+    ) -> Result<(usize, Tok, usize), LexicalError> {
         match self.chars.peek() {
-            None => Ok((initial_position, Tok::Number(Self::decdigit_value(initial_char)), initial_position + 1)),
+            None => Ok((
+                initial_position,
+                Tok::Number(Self::decdigit_value(initial_char)),
+                initial_position + 1,
+            )),
             Some((i, chr)) => {
                 if initial_char == '0' {
                     if *chr == 'x' {
@@ -87,7 +104,7 @@ impl<'input> Lexer<'input> {
                         let end_position;
                         loop {
                             match self.chars.peek() {
-                                Some((pos, character))  if character.is_ascii_hexdigit() => {
+                                Some((pos, character)) if character.is_ascii_hexdigit() => {
                                     num = num * 16 + Self::hexdigit_value(*character);
                                     self.chars.next();
                                 }
@@ -108,7 +125,7 @@ impl<'input> Lexer<'input> {
                         let end_position;
                         loop {
                             match self.chars.peek() {
-                                Some((pos, character))  if character.is_digit(8) => {
+                                Some((pos, character)) if character.is_digit(8) => {
                                     num = num * 8 + Self::octdigit_value(*character);
                                     self.chars.next();
                                 }
@@ -125,11 +142,11 @@ impl<'input> Lexer<'input> {
                         Ok((initial_position, Tok::Number(num), end_position))
                     }
                 } else {
-                    let mut num = 0;
+                    let mut num = Self::decdigit_value(initial_char);
                     let end_position;
                     loop {
                         match self.chars.peek() {
-                            Some((pos, character))  if character.is_ascii_digit() => {
+                            Some((pos, character)) if character.is_ascii_digit() => {
                                 num = num * 10 + Self::decdigit_value(*character);
                                 self.chars.next();
                             }
@@ -163,7 +180,7 @@ impl<'input> Lexer<'input> {
             b'0'..=b'9' => chr - b'0',
             b'a'..=b'f' => chr - b'a',
             b'A'..=b'F' => chr - b'A',
-            _ => 0
+            _ => 0,
         }) as i32
     }
 }
@@ -181,43 +198,55 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((i, '.')) => return Some(Ok((i, Tok::Dot, i + 1))),
                 Some((i, '(')) => return Some(Ok((i, Tok::POPEN, i + 1))),
                 Some((i, ')')) => return Some(Ok((i, Tok::PCLOSE, i + 1))),
-                Some((i, '+')) => return match self.chars.peek() {
-                    Some((_, '=')) => {
-                        self.chars.next();
-                        Some(Ok((i, Tok::AddEq, i + 2)))
+                Some((i, '+')) => {
+                    return match self.chars.peek() {
+                        Some((_, '=')) => {
+                            self.chars.next();
+                            Some(Ok((i, Tok::AddEq, i + 2)))
+                        }
+                        _ => Some(Ok((i, Tok::Add, i + 1))),
                     }
-                    _ => Some(Ok((i, Tok::Add, i + 1)))
-                },
-                Some((i, '-')) => return match self.chars.peek() {
-                    Some((_, '=')) => {
-                        self.chars.next();
-                        Some(Ok((i, Tok::SubEq, i + 2)))
+                }
+                Some((i, '-')) => {
+                    return match self.chars.peek() {
+                        Some((_, '=')) => {
+                            self.chars.next();
+                            Some(Ok((i, Tok::SubEq, i + 2)))
+                        }
+                        _ => Some(Ok((i, Tok::Sub, i + 1))),
                     }
-                    _ => Some(Ok((i, Tok::Sub, i + 1)))
-                },
-                Some((i, '*')) => return match self.chars.peek() {
-                    Some((_, '=')) => {
-                        self.chars.next();
-                        Some(Ok((i, Tok::MulEq, i + 2)))
+                }
+                Some((i, '*')) => {
+                    return match self.chars.peek() {
+                        Some((_, '=')) => {
+                            self.chars.next();
+                            Some(Ok((i, Tok::MulEq, i + 2)))
+                        }
+                        _ => Some(Ok((i, Tok::Mul, i + 1))),
                     }
-                    _ => Some(Ok((i, Tok::Mul, i + 1)))
-                },
-                Some((i, '/')) => return match self.chars.peek() {
-                    Some((_, '=')) => {
-                        self.chars.next();
-                        Some(Ok((i, Tok::DivEq, i + 2)))
+                }
+                Some((i, '/')) => {
+                    return match self.chars.peek() {
+                        Some((_, '=')) => {
+                            self.chars.next();
+                            Some(Ok((i, Tok::DivEq, i + 2)))
+                        }
+                        _ => Some(Ok((i, Tok::Div, i + 1))),
                     }
-                    _ => Some(Ok((i, Tok::Div, i + 1)))
-                },
-                Some((i, '%')) => return match self.chars.peek() {
-                    Some((_, '=')) => {
-                        self.chars.next();
-                        Some(Ok((i, Tok::ModEq, i + 2)))
+                }
+                Some((i, '%')) => {
+                    return match self.chars.peek() {
+                        Some((_, '=')) => {
+                            self.chars.next();
+                            Some(Ok((i, Tok::ModEq, i + 2)))
+                        }
+                        _ => Some(Ok((i, Tok::Mod, i + 1))),
                     }
-                    _ => Some(Ok((i, Tok::Mod, i + 1)))
-                },
+                }
                 Some((i, '=')) => return Some(Ok((i, Tok::Eq, i + 1))),
-                Some((i, chr)) if chr.is_ascii_alphabetic() => return Some(self.parse_identifier(i, chr)),
+                Some((i, chr)) if chr.is_ascii_alphabetic() || chr == '_' => {
+                    return Some(self.parse_identifier(i, chr))
+                }
                 Some((i, chr)) if chr.is_ascii_digit() => return Some(self.parse_number(i, chr)),
 
                 None => return None, // End of file

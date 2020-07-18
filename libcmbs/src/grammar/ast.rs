@@ -30,11 +30,15 @@ impl Expr {
                 .get_value_for_variable(&id.clone())
                 .get_value()
                 .clone_to_value(),
-            Expr::Op(left, opcode, right) => Value::new(Box::new(0)), // will implement later
             Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
             Expr::MethodCall(call_expr) => {
                 interpreter::method_call_result(&*call_expr.base, &(*call_expr).call, frame)
             }
+            Expr::Op(left, opcode, right) => {
+                let ls = left.compute_value_in_env(frame);
+                let rs = right.compute_value_in_env(frame);
+                opcode.compute_result_for(ls, rs)
+            } // will implement later
         }
     }
 }
@@ -45,6 +49,22 @@ pub enum Opcode {
     Add,
     Sub,
     Mod,
+}
+
+impl Opcode {
+    pub(crate) fn compute_result_for(
+        &self,
+        ls: Value<Box<dyn ValueTypeMarker>>,
+        rs: Value<Box<dyn ValueTypeMarker>>,
+    ) -> Value<Box<dyn ValueTypeMarker>> {
+        match self {
+            Opcode::Add => interpreter::ops::op_add(ls, rs),
+            Opcode::Sub => interpreter::ops::op_sub(ls, rs),
+            Opcode::Mul => interpreter::ops::op_mul(ls, rs),
+            Opcode::Div => interpreter::ops::op_div(ls, rs),
+            Opcode::Mod => interpreter::ops::op_mod(ls, rs),
+        }
+    }
 }
 
 pub struct AstFuncCall {
@@ -147,6 +167,14 @@ pub struct AstMethodCall {
 impl AstMethodCall {
     pub fn new(base: Box<Expr>, call: AstFuncCall) -> AstMethodCall {
         AstMethodCall { base, call }
+    }
+
+    pub(crate) fn get_base_expr(&self) -> &Box<Expr> {
+        &self.base
+    }
+
+    pub(crate) fn get_call(&self) -> &AstFuncCall {
+        &self.call
     }
 }
 

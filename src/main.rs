@@ -8,7 +8,7 @@ use std::fs::File;
 
 fn main() {
     let mut handle = Handle::new();
-    let program = grammar::parse("print(f(), f())").unwrap();
+    let program = grammar::parse("print(f().to_string(), (f() % 1 + 3 * 65))").unwrap();
     interpreter::interpret_wrapper(&program, &mut handle);
     let mut gen = NinjaGen::new();
     let rl = gen.new_rule(

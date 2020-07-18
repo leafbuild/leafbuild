@@ -1,4 +1,4 @@
-mod ops;
+pub(crate) mod ops;
 mod types;
 
 use crate::{
@@ -85,6 +85,10 @@ where
 pub(crate) trait ValueTypeMarker {
     fn stringify(&self) -> String;
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>>;
+    fn get_type_id(&self) -> types::TypeId;
+    fn get_func_call_pool(&self) -> FuncCallPool {
+        get_func_call_pool_for_typeid(self.get_type_id())
+    }
 }
 
 impl<T> ValueTypeMarker for Box<T>
@@ -97,6 +101,10 @@ where
 
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>> {
         self.deref().clone_to_value()
+    }
+
+    fn get_type_id(&self) -> types::TypeId {
+        self.deref().get_type_id()
     }
 }
 
@@ -152,13 +160,24 @@ impl FuncCallPool {
 
 pub(crate) struct FuncCallExecutor {
     name: String,
-    func: Box<dyn Fn(&AstFuncCallArgs, &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>>>,
+    func: Box<
+        dyn Fn(
+            &AstFuncCallArgs,
+            &mut EnvFrame,
+            Option<&Value<Box<dyn ValueTypeMarker>>>,
+        ) -> Value<Box<dyn ValueTypeMarker>>,
+    >,
 }
 
 impl FuncCallExecutor {
     pub(crate) fn new<F>(name: String, func: F) -> FuncCallExecutor
     where
-        F: 'static + Fn(&AstFuncCallArgs, &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>>,
+        F: 'static
+            + Fn(
+                &AstFuncCallArgs,
+                &mut EnvFrame,
+                Option<&Value<Box<dyn ValueTypeMarker>>>,
+            ) -> Value<Box<dyn ValueTypeMarker>>,
     {
         Self {
             name,
@@ -171,7 +190,7 @@ pub(crate) fn func_call_result(
     call: &AstFuncCall,
     frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    eval_func_call(call, frame, &get_global_functions())
+    eval_call(call, frame, &get_global_functions(), None)
 }
 
 pub(crate) fn method_call_result(
@@ -179,7 +198,14 @@ pub(crate) fn method_call_result(
     call: &AstFuncCall,
     frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    Value::new(Box::new(0))
+    let value = base.compute_value_in_env(frame);
+    println!("Calling a method on {}", value.stringify());
+    eval_call(
+        call,
+        frame,
+        &value.get_value().get_func_call_pool(),
+        Some(&value),
+    )
 }
 
 include!("interpreter_internal.rs");
