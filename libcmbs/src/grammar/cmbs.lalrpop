@@ -14,6 +14,7 @@ use crate::{
 			AstStatement,
 			AstAssignment,
 			AstAtrOp,
+			AstPropertyAccess,
 		},
 	},
 };
@@ -22,9 +23,9 @@ grammar;
 
 pub Program = <Statement*>;
 Statement: AstStatement = {
-	<FuncCall> => AstStatement::FuncCall(<>),
-	<MethodCall> => AstStatement::MethodCall(<>),
-	<Assignment> => AstStatement::Assignment(<>),
+    <MethodCall> "\n" => AstStatement::MethodCall(<>),
+	<FuncCall> "\n" => AstStatement::FuncCall(<>),
+	<Assignment> "\n" => AstStatement::Assignment(<>),
 };
 
 FuncCall: AstFuncCall = {
@@ -78,20 +79,18 @@ FactorOp: Opcode = {
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
     "(" <Expr> ")",
+    <MethodCall> => Box::new(Expr::MethodCall(<>)),
+    <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
     <FuncCall> => Box::new(Expr::FuncCall(<>)),
     <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
-    <MethodCall> => Box::new(Expr::MethodCall(<>)),
 };
 
-MethodCallBase: Box<Expr> = {
-	"num" => Box::new(Expr::Atom(Atom::Number(<>))),
-	<IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
-	<MethodCall> => Box::new(Expr::MethodCall(<>)),
-	<FuncCall> => Box::new(Expr::FuncCall(<>)),
+PropertyAccess: AstPropertyAccess = {
+    <t:Term> "." <prop_name:IdExpression> => AstPropertyAccess::new(t, prop_name)
 };
 
 MethodCall: AstMethodCall = {
-	<base: MethodCallBase> "." <call: FuncCall> => AstMethodCall::new(base, call),
+	<property_access:PropertyAccess> "(" <args:FuncArgs> ")" => AstMethodCall::new(property_access, args),
 };
 
 Assignment: AstAssignment = {

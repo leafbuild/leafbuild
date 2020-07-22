@@ -59,6 +59,8 @@ impl ValueTypeMarker for u64 {
 pub(crate) fn get_num_call_pool() -> FuncCallPool {
     FuncCallPool::new(vec![FuncCallExecutor::new(
         "to_string".to_string(),
-        |args, frame, base| Value::new(Box::new(base.unwrap().get_value().deref().stringify())),
+        |args, frame, base: Option<&Value<Box<dyn ValueTypeMarker>>>| {
+            Value::new(Box::new(base.unwrap().get_value().deref().stringify()))
+        },
     )])
 }

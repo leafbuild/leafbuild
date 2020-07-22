@@ -1,6 +1,7 @@
 pub(crate) mod ops;
 mod types;
 
+use crate::grammar::ast::{AstAssignment, AstPropertyAccess};
 use crate::{
     grammar::ast::{AstFuncCall, AstFuncCallArgs, AstProgram, AstStatement, Expr},
     handle::Handle,
@@ -20,7 +21,7 @@ pub(crate) struct EnvFrame {
 }
 
 impl EnvFrame {
-    pub(crate) fn get_value_for_variable(&self, id: &String) -> &Value<Box<dyn ValueTypeMarker>> {
+    pub(crate) fn get_value_for_variable(&self, id: &str) -> &Value<Box<dyn ValueTypeMarker>> {
         self.variables
             .iter()
             .find(|&(var_name, _)| var_name == id)
@@ -77,6 +78,9 @@ impl<T> Variable<T>
 where
     T: ValueTypeMarker + Sized,
 {
+    pub(crate) fn new(name: String, value: Value<T>) -> Self {
+        Self { name, value }
+    }
     pub(crate) fn get_value(&self) -> &Value<T> {
         &self.value
     }
@@ -158,15 +162,15 @@ impl FuncCallPool {
     }
 }
 
+type ExecutorClosure = dyn Fn(
+    &AstFuncCallArgs,
+    &mut EnvFrame,
+    Option<&Value<Box<dyn ValueTypeMarker>>>,
+) -> Value<Box<dyn ValueTypeMarker>>;
+
 pub(crate) struct FuncCallExecutor {
     name: String,
-    func: Box<
-        dyn Fn(
-            &AstFuncCallArgs,
-            &mut EnvFrame,
-            Option<&Value<Box<dyn ValueTypeMarker>>>,
-        ) -> Value<Box<dyn ValueTypeMarker>>,
-    >,
+    func: Box<ExecutorClosure>,
 }
 
 impl FuncCallExecutor {
@@ -190,22 +194,32 @@ pub(crate) fn func_call_result(
     call: &AstFuncCall,
     frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    eval_call(call, frame, &get_global_functions(), None)
+    eval_call(
+        call.get_name(),
+        call.get_args(),
+        frame,
+        &get_global_functions(),
+        None,
+    )
 }
 
 pub(crate) fn method_call_result(
-    base: &Expr,
-    call: &AstFuncCall,
+    method_property: &AstPropertyAccess,
+    call_args: &AstFuncCallArgs,
     frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    let value = base.compute_value_in_env(frame);
-    println!("Calling a method on {}", value.stringify());
+    let value = method_property.get_base().compute_value_in_env(frame);
     eval_call(
-        call,
+        method_property.get_property_name(),
+        call_args,
         frame,
         &value.get_value().get_func_call_pool(),
         Some(&value),
     )
+}
+
+pub(crate) fn property_access(property: &AstPropertyAccess) -> Value<Box<dyn ValueTypeMarker>> {
+    Value::new(Box::new(0))
 }
 
 include!("interpreter_internal.rs");

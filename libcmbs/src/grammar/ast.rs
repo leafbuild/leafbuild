@@ -16,6 +16,28 @@ pub enum Expr {
     Op(Box<Expr>, Opcode, Box<Expr>),
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
+    PropertyAccess(AstPropertyAccess),
+}
+
+pub struct AstPropertyAccess {
+    base: Box<Expr>,
+    property_name: String,
+}
+
+impl AstPropertyAccess {
+    pub fn new(base: Box<Expr>, property_name: String) -> Self {
+        Self {
+            base,
+            property_name,
+        }
+    }
+    pub(crate) fn get_base(&self) -> &Box<Expr> {
+        &self.base
+    }
+
+    pub(crate) fn get_property_name(&self) -> &String {
+        &self.property_name
+    }
 }
 
 impl Expr {
@@ -32,13 +54,14 @@ impl Expr {
                 .clone_to_value(),
             Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
             Expr::MethodCall(call_expr) => {
-                interpreter::method_call_result(&*call_expr.base, &(*call_expr).call, frame)
+                interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
             }
             Expr::Op(left, opcode, right) => {
                 let ls = left.compute_value_in_env(frame);
                 let rs = right.compute_value_in_env(frame);
                 opcode.compute_result_for(ls, rs)
             } // will implement later
+            Expr::PropertyAccess(access) => interpreter::property_access(access),
         }
     }
 }
@@ -160,21 +183,27 @@ impl From<(String, Box<Expr>)> for AstNamedArg {
 }
 
 pub struct AstMethodCall {
-    base: Box<Expr>,
-    call: AstFuncCall,
+    method_property: AstPropertyAccess,
+    args: AstFuncCallArgs,
 }
 
 impl AstMethodCall {
-    pub fn new(base: Box<Expr>, call: AstFuncCall) -> AstMethodCall {
-        AstMethodCall { base, call }
+    pub fn new(method_property: AstPropertyAccess, args: AstFuncCallArgs) -> AstMethodCall {
+        AstMethodCall {
+            method_property,
+            args,
+        }
     }
 
     pub(crate) fn get_base_expr(&self) -> &Box<Expr> {
-        &self.base
+        &self.method_property.base
     }
 
-    pub(crate) fn get_call(&self) -> &AstFuncCall {
-        &self.call
+    pub(crate) fn get_name(&self) -> &String {
+        &self.method_property.property_name
+    }
+    pub(crate) fn get_args(&self) -> &AstFuncCallArgs {
+        &self.args
     }
 }
 
