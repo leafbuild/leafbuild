@@ -46,7 +46,6 @@ impl Display for LexicalError {
 }
 
 use itertools::Itertools;
-use std::borrow::Borrow;
 use std::iter::Peekable;
 use std::str::CharIndices;
 
@@ -95,7 +94,7 @@ impl<'input> Lexer<'input> {
                 Tok::Number(Self::decdigit_value(initial_char)),
                 initial_position + 1,
             )),
-            Some((i, chr)) => {
+            Some((_i, chr)) => {
                 if initial_char == '0' {
                     if *chr == 'x' {
                         // parse as hex
@@ -104,7 +103,7 @@ impl<'input> Lexer<'input> {
                         let end_position;
                         loop {
                             match self.chars.peek() {
-                                Some((pos, character)) if character.is_ascii_hexdigit() => {
+                                Some((_pos, character)) if character.is_ascii_hexdigit() => {
                                     num = num * 16 + Self::hexdigit_value(*character);
                                     self.chars.next();
                                 }
@@ -125,7 +124,7 @@ impl<'input> Lexer<'input> {
                         let end_position;
                         loop {
                             match self.chars.peek() {
-                                Some((pos, character)) if character.is_digit(8) => {
+                                Some((_pos, character)) if character.is_digit(8) => {
                                     num = num * 8 + Self::octdigit_value(*character);
                                     self.chars.next();
                                 }
@@ -146,7 +145,7 @@ impl<'input> Lexer<'input> {
                     let end_position;
                     loop {
                         match self.chars.peek() {
-                            Some((pos, character)) if character.is_ascii_digit() => {
+                            Some((_pos, character)) if character.is_ascii_digit() => {
                                 num = num * 10 + Self::decdigit_value(*character);
                                 self.chars.next();
                             }

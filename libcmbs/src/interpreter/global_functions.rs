@@ -1,6 +1,6 @@
 pub(crate) fn get_global_functions() -> FuncCallPool {
     FuncCallPool::new(vec![
-        FuncCallExecutor::new("f".to_string(), |args, frame, _| {
+        FuncCallExecutor::new("f".to_string(), |_args, _frame, _| {
             println!("Called f!");
             Value::new(Box::new(0))
         }),
@@ -12,7 +12,7 @@ pub(crate) fn get_global_functions() -> FuncCallPool {
                     format!(
                         "{}: {}",
                         arg.get_name(),
-                        arg.get_value().compute_value_in_env(frame).stringify()
+                        arg.get_value().eval_in_env(frame).stringify()
                     )
                 })
                 .collect();
@@ -20,7 +20,7 @@ pub(crate) fn get_global_functions() -> FuncCallPool {
                 "-- {}",
                 args.get_positional_args()
                     .iter()
-                    .map(|arg| { arg.get_value().compute_value_in_env(frame).stringify() })
+                    .map(|arg| { arg.get_value().eval_in_env(frame).stringify() })
                     .chain(named_iter)
                     .join(", ")
             );
@@ -29,12 +29,12 @@ pub(crate) fn get_global_functions() -> FuncCallPool {
     ])
 }
 
-pub(crate) fn get_func_call_pool_for_typeid(typeid: types::TypeId) -> FuncCallPool {
+pub(crate) fn get_func_call_pool_for_typeid(typeid: types::TypeIdAndValue) -> FuncCallPool {
     match typeid {
-        types::TypeId::I32(_)
-        | types::TypeId::I64(_)
-        | types::TypeId::U32(_)
-        | types::TypeId::U64(_) => types::get_num_call_pool(),
-        types::TypeId::String(_) => types::get_string_call_pool(),
+        types::TypeIdAndValue::I32(_)
+        | types::TypeIdAndValue::I64(_)
+        | types::TypeIdAndValue::U32(_)
+        | types::TypeIdAndValue::U64(_) => types::get_num_call_pool(),
+        types::TypeIdAndValue::String(_) => types::get_string_call_pool(),
     }
 }

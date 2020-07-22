@@ -7,6 +7,6 @@ mod cc;
 mod cxx;
 
 pub(crate) trait Compiler {
-    fn can_consume(filename: &String) -> bool;
-    fn can_compile(filename: &String) -> bool;
+    fn can_consume(filename: &str) -> bool;
+    fn can_compile(filename: &str) -> bool;
 }

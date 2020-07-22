@@ -7,7 +7,11 @@ impl ValueTypeMarker for String {
     }
 
     fn get_type_id(&self) -> TypeId {
-        TypeId::String(self)
+        TypeId::String
+    }
+
+    fn get_type_id_and_value(&self) -> TypeIdAndValue {
+        TypeIdAndValue::String(self)
     }
 }
 
@@ -15,6 +19,15 @@ impl ValueTypeMarker for String {
 pub(crate) fn get_string_call_pool() -> FuncCallPool {
     FuncCallPool::new(vec![FuncCallExecutor::new(
         "to_string".to_string(),
-        |args, frame, base| Value::new(Box::new(base.unwrap().get_value().deref().stringify())),
+        |_args, _frame, base| Value::new(Box::new(base.unwrap().get_value().deref().stringify())),
     )])
+}
+
+pub(crate) fn resolve_str_property_access(
+    _string: &Value<Box<dyn ValueTypeMarker>>,
+    property_name: &str,
+) -> Value<Box<dyn ValueTypeMarker>> {
+    match property_name as &str {
+        _ => panic!("Unknown property on string: {}", property_name),
+    }
 }

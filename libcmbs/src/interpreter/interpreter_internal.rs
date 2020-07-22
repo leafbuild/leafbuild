@@ -4,7 +4,7 @@ fn run_in_env_frame(statement: &AstStatement, env_frame: &mut EnvFrame) {
             run_func_call_in_env_frame(call, env_frame);
         }
         AstStatement::MethodCall(call) => run_method_call_in_env_frame(
-            &call.get_base_expr().compute_value_in_env(env_frame),
+            &call.get_base_expr().eval_in_env(env_frame),
             call.get_name(),
             call.get_args(),
             env_frame,
@@ -55,7 +55,7 @@ fn eval_call(
 }
 
 fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFrame) {
-    let value = assignment.get_value().compute_value_in_env(env_frame);
+    let value = assignment.get_value().eval_in_env(env_frame);
     let var = Variable::new(assignment.get_name().clone(), value);
     env_frame
         .variables

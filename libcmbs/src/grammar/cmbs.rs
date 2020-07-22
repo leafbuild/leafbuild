@@ -1,6 +1,5 @@
 // auto-generated: "lalrpop 0.19.0"
-// sha256: 56a6e127e65be59b8515bde284cd90151cab544b9c5ed8f9714f16ca698b18
-use std::str::FromStr;
+// sha256: 32588ca4d379479debae6cb659a7d7559b9235759ec7e1d3b58c087751b872e
 use crate::{
 	grammar::{
 		lexer,
@@ -29,7 +28,6 @@ use self::__lalrpop_util::state_machine as __state_machine;
 mod __parse__Expr {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::{
 	grammar::{
 		lexer,
@@ -2263,7 +2261,6 @@ pub use self::__parse__Expr::ExprParser;
 mod __parse__FuncArgs {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::{
 	grammar::{
 		lexer,
@@ -4497,7 +4494,6 @@ pub use self::__parse__FuncArgs::FuncArgsParser;
 mod __parse__IdExpression {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::{
 	grammar::{
 		lexer,
@@ -6477,7 +6473,6 @@ pub use self::__parse__IdExpression::IdExpressionParser;
 mod __parse__NamedFuncArg {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::{
 	grammar::{
 		lexer,
@@ -8711,7 +8706,6 @@ pub use self::__parse__NamedFuncArg::NamedFuncArgParser;
 mod __parse__PositionalFuncArg {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::{
 	grammar::{
 		lexer,
@@ -10945,7 +10939,6 @@ pub use self::__parse__PositionalFuncArg::PositionalFuncArgParser;
 mod __parse__Program {
     #![allow(non_snake_case, non_camel_case_types, unused_mut, unused_variables, unused_imports, unused_parens)]
 
-    use std::str::FromStr;
     use crate::{
 	grammar::{
 		lexer,

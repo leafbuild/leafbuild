@@ -152,6 +152,7 @@ fabric.properties
 # Others
 .idea/discord.xml
 .idea/dictionaries/
+.idea/codestream.xml
 
 /testenv
 

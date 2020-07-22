@@ -13,6 +13,5 @@ itertools = "0.9"
 libcmbscore = { path = "../libcmbscore" }
 lalrpop-util = "0.19"
 regex = "1"
-lazy_static = "1.4"
 [build-dependencies]
 lalrpop = "0.19"

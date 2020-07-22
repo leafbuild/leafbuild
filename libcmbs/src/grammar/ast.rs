@@ -1,5 +1,3 @@
-use crate::grammar::lexer::Tok;
-use crate::handle::Handle;
 use crate::{
     interpreter,
     interpreter::{EnvFrame, Value, ValueTypeMarker},
@@ -31,7 +29,7 @@ impl AstPropertyAccess {
             property_name,
         }
     }
-    pub(crate) fn get_base(&self) -> &Box<Expr> {
+    pub(crate) fn get_base(&self) -> &Expr {
         &self.base
     }
 
@@ -41,10 +39,7 @@ impl AstPropertyAccess {
 }
 
 impl Expr {
-    pub(crate) fn compute_value_in_env(
-        &self,
-        frame: &mut EnvFrame,
-    ) -> Value<Box<dyn ValueTypeMarker>> {
+    pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
             Expr::Atom(Atom::Number(num)) => Value::new(Box::new(*num)),
             Expr::Atom(Atom::Str(str)) => Value::new(Box::new(str.clone())),
@@ -57,11 +52,11 @@ impl Expr {
                 interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
             }
             Expr::Op(left, opcode, right) => {
-                let ls = left.compute_value_in_env(frame);
-                let rs = right.compute_value_in_env(frame);
+                let ls = left.eval_in_env(frame);
+                let rs = right.eval_in_env(frame);
                 opcode.compute_result_for(ls, rs)
             } // will implement later
-            Expr::PropertyAccess(access) => interpreter::property_access(access),
+            Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
         }
     }
 }
@@ -173,7 +168,7 @@ impl AstNamedArg {
     pub fn get_name(&self) -> &String {
         &self.name
     }
-    pub fn get_value(&self) -> &Box<Expr> {
+    pub fn get_value(&self) -> &Expr {
         &self.value
     }
 }
@@ -198,7 +193,7 @@ impl AstMethodCall {
         }
     }
 
-    pub(crate) fn get_base_expr(&self) -> &Box<Expr> {
+    pub(crate) fn get_base_expr(&self) -> &Expr {
         &self.method_property.base
     }
 
@@ -227,7 +222,7 @@ impl AstAssignment {
     pub fn get_op(&self) -> &AstAtrOp {
         &self.op
     }
-    pub fn get_value(&self) -> &Box<Expr> {
+    pub fn get_value(&self) -> &Expr {
         &self.value
     }
 }
