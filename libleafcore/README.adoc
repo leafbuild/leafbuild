@@ -1,3 +1,3 @@
-= libcmbscore
+= libleafcore
 
 The core of the meta-build system; can be used for other C/C++ build systems as well.

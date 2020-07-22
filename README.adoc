@@ -1,6 +1,6 @@
-= `CMBS`
+= The Leaf Build system
 
-image::https://github.com/NonNullDinu/sbuild/workflows/Build-Rust/badge.svg[]
+image::https://github.com/NonNullDinu/leafbuild/workflows/Build-Rust/badge.svg[]
 
-`cmbs` is a meta-build-system for C/C++, like https://gitlab.kitware.com/cmake/cmake[cmake]
+`leafbuild` is a meta-build-system for C/C++, like https://gitlab.kitware.com/cmake/cmake[cmake]
 and https://github.com/mesonbuild/meson[meson], focused on speed.
