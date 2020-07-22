@@ -1,9 +1,9 @@
-extern crate libcmbs;
-extern crate libcmbscore;
+extern crate libleaf;
+extern crate libleafcore;
 
-use libcmbscore::generators::{ninja::*, *};
+use libleafcore::generators::{ninja::*, *};
 
-use libcmbs::{grammar, handle::Handle, interpreter};
+use libleaf::{grammar, handle::Handle, interpreter};
 use std::fs::File;
 
 fn main() {

@@ -8,7 +8,7 @@ use crate::{
     handle::Handle,
 };
 use itertools::Itertools;
-use libcmbscore::utils::Stack;
+use libleafcore::utils::Stack;
 use std::collections::HashMap;
 use std::ops::Deref;
 
