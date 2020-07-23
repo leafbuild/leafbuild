@@ -8,8 +8,10 @@ use std::fs::File;
 
 fn main() {
     let mut handle = Handle::new();
-    let program =
-        grammar::parse("x = f().to_string()\nprint(x, (0 + 1 + 2).as_str, z: x + 2)\n").unwrap();
+    let program = grammar::parse(
+        "x = f().to_string()\nprint(\nx,\n (0 + 1 + 2).to_string(),\n z: x + 2\n)\n",
+    )
+    .unwrap();
     interpreter::interpret_wrapper(&program, &mut handle);
     let mut gen = NinjaGen::new();
     let rl = gen.new_rule(

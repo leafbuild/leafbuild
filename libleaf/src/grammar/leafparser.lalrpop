@@ -32,22 +32,22 @@ FuncCall: AstFuncCall = {
 };
 
 pub FuncArgs:AstFuncCallArgs = {
-	<pos_args:PositionalFuncArgs> "," <named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new(pos_args,named_args),
-	<pos_args:PositionalFuncArgs> ","? => AstFuncCallArgs::new_only_positional(pos_args),
-	<named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new_only_named(named_args),
-	() => AstFuncCallArgs::empty(),
+	"\n"* <pos_args:PositionalFuncArgs> "," "\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new(pos_args,named_args),
+	"\n"* <pos_args:PositionalFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_positional(pos_args),
+	"\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_named(named_args),
+	("\n"*) => AstFuncCallArgs::empty(),
 };
 
 #[inline]
 PositionalFuncArgs: Vec<AstPositionalArg> = {
-	<arg1:PositionalFuncArg> <rest:("," <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
+	<arg1:PositionalFuncArg> <rest:("," "\n"* <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
 };
 
 pub PositionalFuncArg = { Expr };
 
 #[inline]
 NamedFuncArgs: Vec<AstNamedArg> = {
-	<arg1:NamedFuncArg> <rest:("," <NamedFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
+	<arg1:NamedFuncArg> <rest:("," "\n"* <NamedFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
 };
 
 pub NamedFuncArg: AstNamedArg = {
