@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 if [ $# -lt 1 ] || [ "$1" != "build" ] && [ "$1" != "serve" ] && [ "$1" != "push" ];
-then echo "$0: invoke as \"$0 <build|serve>\"" >&2
+then echo "$0: invoke as \"$0 <build|serve|push>\"" >&2
      exit 1
 fi
 case $1 in

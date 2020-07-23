@@ -93,7 +93,7 @@ pub(crate) trait ValueTypeMarker {
     fn get_type_id(&self) -> types::TypeId;
     fn get_type_id_and_value(&self) -> types::TypeIdAndValue;
     fn get_func_call_pool(&self) -> CallPool {
-        get_func_call_pool_for_typeid(self.get_type_id_and_value())
+        get_func_call_pool_for_typeid(self.get_type_id())
     }
 }
 
