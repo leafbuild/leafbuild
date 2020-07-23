@@ -92,7 +92,7 @@ pub(crate) trait ValueTypeMarker {
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>>;
     fn get_type_id(&self) -> types::TypeId;
     fn get_type_id_and_value(&self) -> types::TypeIdAndValue;
-    fn get_func_call_pool(&self) -> FuncCallPool {
+    fn get_func_call_pool(&self) -> CallPool {
         get_func_call_pool_for_typeid(self.get_type_id_and_value())
     }
 }
@@ -158,12 +158,12 @@ pub fn interpret_wrapper(program: &AstProgram, handle: &mut Handle) {
     interpret(program).push_to(handle);
 }
 
-pub(crate) struct FuncCallPool {
-    executors: Vec<FuncCallExecutor>,
+pub(crate) struct CallPool {
+    executors: Vec<CallExecutor>,
 }
 
-impl FuncCallPool {
-    pub(crate) fn new(executors: Vec<FuncCallExecutor>) -> Self {
+impl CallPool {
+    pub(crate) fn new(executors: Vec<CallExecutor>) -> Self {
         Self { executors }
     }
 }
@@ -174,13 +174,13 @@ type ExecutorClosure = dyn Fn(
     Option<&Value<Box<dyn ValueTypeMarker>>>,
 ) -> Value<Box<dyn ValueTypeMarker>>;
 
-pub(crate) struct FuncCallExecutor {
+pub(crate) struct CallExecutor {
     name: String,
     func: Box<ExecutorClosure>,
 }
 
-impl FuncCallExecutor {
-    pub(crate) fn new<F>(name: String, func: F) -> FuncCallExecutor
+impl CallExecutor {
+    pub(crate) fn new<F>(name: String, func: F) -> CallExecutor
     where
         F: 'static
             + Fn(

@@ -2,5 +2,6 @@
 
 image::https://github.com/NonNullDinu/leafbuild/workflows/Build-Rust/badge.svg[]
 
-`leafbuild` is a meta-build-system for C/C++, like https://gitlab.kitware.com/cmake/cmake[cmake]
-and https://github.com/mesonbuild/meson[meson], focused on speed.
+An early-in-development meta build system for C/C++ written in Rust;
+focused on usability. See https://dblanovschi.github.io/leafbuild[the documentation]
+for more.

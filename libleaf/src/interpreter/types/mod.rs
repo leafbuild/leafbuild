@@ -1,6 +1,4 @@
-use crate::interpreter::{
-    get_global_functions, FuncCallExecutor, FuncCallPool, Value, ValueTypeMarker,
-};
+use crate::interpreter::{get_global_functions, CallExecutor, CallPool, Value, ValueTypeMarker};
 
 use std::fmt;
 use std::fmt::{Display, Formatter};

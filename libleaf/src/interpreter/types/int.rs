@@ -15,7 +15,7 @@ impl ValueTypeMarker for i32 {
         TypeIdAndValue::I32(self)
     }
 
-    fn get_func_call_pool(&self) -> FuncCallPool {
+    fn get_func_call_pool(&self) -> CallPool {
         get_global_functions()
     }
 }
@@ -72,8 +72,8 @@ impl ValueTypeMarker for u64 {
 }
 
 #[inline]
-pub(crate) fn get_num_call_pool() -> FuncCallPool {
-    FuncCallPool::new(vec![FuncCallExecutor::new(
+pub(crate) fn get_num_call_pool() -> CallPool {
+    CallPool::new(vec![CallExecutor::new(
         "to_string".to_string(),
         |_args, _frame, base: Option<&Value<Box<dyn ValueTypeMarker>>>| {
             Value::new(Box::new(base.unwrap().get_value().deref().stringify()))

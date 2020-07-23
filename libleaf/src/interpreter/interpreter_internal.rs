@@ -43,7 +43,7 @@ fn eval_call(
     call_name: &str,
     args: &AstFuncCallArgs,
     env_frame: &mut EnvFrame,
-    func_call_poll: &FuncCallPool,
+    func_call_poll: &CallPool,
     base_value: Option<&Value<Box<dyn ValueTypeMarker>>>,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     (func_call_poll
