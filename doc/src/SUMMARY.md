@@ -2,13 +2,20 @@
 
 - [Quick Start](quick_start.md)
 - [Syntax](syntax.md)
-- [Project Model]()
-- [Special objects]()
-  - [The library object]()
-  - [The executable object]()
-  - [The compiler object]()
-- [Global objects]()
-  - [The leaf object]()
+- [Project Model](project_model.md)
+
+- [Reference](reference/reference.md)
+  - [Functions]()
+    - [Project and Module related]()
+      - [project()]()
+      - [module()]()
+  - [Special types]()
+    - [The library type]()
+    - [The executable type]()
+    - [The compiler type]()
+  - [Special Global Objects]()
+    - [The leaf object]()
+
 # Developer resources
 - [Repository Structure](dev/repo_structure.md)
 - [The `gh-pages` Branch and Documentation](dev/documentation.md)

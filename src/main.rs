@@ -9,8 +9,7 @@ use std::fs::File;
 fn main() {
     let mut handle = Handle::new();
     let program = grammar::parse(
-        "x = 2\nx += '''\n\
-        2\n\
+        "x = 2\nx += '''2\n\
         '''\nprint(\nx,\n (0 + 1 + 2).to_string(),\n z: x + 2\n)\n",
     )
     .unwrap();
