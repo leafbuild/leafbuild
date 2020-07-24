@@ -29,7 +29,7 @@ Statement: AstStatement = {
 };
 
 FuncCall: AstFuncCall = {
-	<name:IdExpression> "(" <args:FuncArgs> ")" => AstFuncCall::new(namef, args)
+	<name:IdExpression> "(" <args:FuncArgs> ")" => AstFuncCall::new(name, args)
 };
 
 pub FuncArgs:AstFuncCallArgs = {
@@ -78,6 +78,7 @@ FactorOp: Opcode = {
 
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
+    "str" => Box::new(Expr::Atom(Atom::Str(<>))),
     "(" <Expr> ")",
     <MethodCall> => Box::new(Expr::MethodCall(<>)),
     <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
@@ -129,6 +130,7 @@ extern {
         ")" => lexer::Tok::PCLOSE(<TokLoc>),
         "num" => lexer::Tok::Number(<i32>, <TokLoc>),
         "id" => lexer::Tok::Identifier(<String>, <TokLoc>),
+        "str" => lexer::Tok::Str(<String>, <TokLoc>),
         ":" => lexer::Tok::Colon(<TokLoc>),
         "," => lexer::Tok::Comma(<TokLoc>),
         "." => lexer::Tok::Dot(<TokLoc>),

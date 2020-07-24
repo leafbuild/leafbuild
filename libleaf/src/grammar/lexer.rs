@@ -7,7 +7,7 @@ pub struct TokLoc {
     begin: usize,
     len: usize,
     line: usize,
-    char_begin: usize,
+    column_begin: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -15,6 +15,7 @@ pub enum Tok {
     Newline,
     Number(i32, TokLoc),
     Identifier(String, TokLoc),
+    Str(String, TokLoc),
 
     Add(TokLoc),
     Sub(TokLoc),
@@ -45,6 +46,7 @@ impl Display for Tok {
 #[derive(Debug)]
 pub enum LexicalError {
     UnrecognizedToken { location: usize },
+    StringStartedButNotEnded { start_loc: usize },
 }
 
 impl Display for LexicalError {
@@ -100,7 +102,7 @@ impl<'input> Lexer<'input> {
                     begin: initial_position,
                     len: next_position - initial_position,
                     line: self.line,
-                    char_begin: initial_position - self.line_begin + 1,
+                    column_begin: initial_position - self.line_begin + 1,
                 },
             ),
             next_position,
@@ -121,7 +123,7 @@ impl<'input> Lexer<'input> {
                         begin: initial_position,
                         len: 1,
                         line: self.line,
-                        char_begin: initial_position - self.line_begin + 1,
+                        column_begin: initial_position - self.line_begin + 1,
                     },
                 ),
                 initial_position + 1,
@@ -157,7 +159,7 @@ impl<'input> Lexer<'input> {
                                     begin: initial_position,
                                     len: end_position - initial_position,
                                     line: self.line,
-                                    char_begin: initial_position - self.line_begin + 1,
+                                    column_begin: initial_position - self.line_begin + 1,
                                 },
                             ),
                             end_position,
@@ -190,7 +192,7 @@ impl<'input> Lexer<'input> {
                                     begin: initial_position,
                                     len: end_position - initial_position,
                                     line: self.line,
-                                    char_begin: initial_position - self.line_begin + 1,
+                                    column_begin: initial_position - self.line_begin + 1,
                                 },
                             ),
                             end_position,
@@ -223,13 +225,103 @@ impl<'input> Lexer<'input> {
                                 begin: initial_position,
                                 len: end_position - initial_position,
                                 line: self.line,
-                                char_begin: initial_position - self.line_begin + 1,
+                                column_begin: initial_position - self.line_begin + 1,
                             },
                         ),
                         end_position,
                     ))
                 }
             }
+        }
+    }
+
+    fn parse_string(
+        &mut self,
+        initial_position: usize,
+    ) -> Result<(usize, Tok, usize), LexicalError> {
+        // we know we have a '\'' already from the self.chars.next() in the match in the iterator implementation
+        match self.chars.peek() {
+            Some((_, '\'')) => {
+                self.chars.next();
+                match self.chars.peek() {
+                    Some((_, '\'')) => {
+                        // parse multiline string
+                        let line = self.line;
+                        let column_begin = initial_position - self.line_begin + 1;
+                        self.chars.next();
+                        let mut prev = ['0', '0'];
+                        let mut s: String = self
+                            .chars
+                            .peeking_take_while(|(_, chr)| {
+                                let r = *chr != '\'' || prev[0] != '\'' || prev[1] != '\'';
+                                prev[0] = prev[1];
+                                prev[1] = *chr;
+                                r
+                            })
+                            .map(|(_, chr)| chr)
+                            .collect();
+                        let (last_single_quote_index, _) = self.chars.next().unwrap(); // take the last ' out of the iterator
+
+                        // and remove the last 2 single quotes
+                        s.pop();
+                        s.pop();
+                        Ok((
+                            initial_position,
+                            Tok::Str(
+                                s,
+                                TokLoc {
+                                    begin: initial_position,
+                                    len: last_single_quote_index + 1 - initial_position,
+                                    line,
+                                    column_begin,
+                                },
+                            ),
+                            last_single_quote_index + 1,
+                        ))
+                    }
+                    _ => Ok((
+                        initial_position,
+                        Tok::Str(
+                            "".to_string(),
+                            TokLoc {
+                                begin: initial_position,
+                                len: 2,
+                                line: self.line,
+                                column_begin: initial_position - self.line_begin + 1,
+                            },
+                        ),
+                        initial_position + 2,
+                    )),
+                }
+            }
+            Some((_, _)) => {
+                // parse simple ' ... ' string
+                let mut last_index = 0;
+                let s: String = self
+                    .chars
+                    .peeking_take_while(|(_, chr)| *chr != '\'')
+                    .map(|(index, chr)| {
+                        last_index = index;
+                        chr
+                    })
+                    .collect();
+                Ok((
+                    initial_position,
+                    Tok::Str(
+                        s,
+                        TokLoc {
+                            begin: initial_position,
+                            len: last_index + 2 - initial_position,
+                            line: self.line,
+                            column_begin: initial_position - self.line_begin,
+                        },
+                    ),
+                    last_index + 2,
+                ))
+            }
+            None => Err(LexicalError::StringStartedButNotEnded {
+                start_loc: initial_position,
+            }),
         }
     }
 
@@ -267,10 +359,10 @@ impl<'input> Iterator for Lexer<'input> {
                             begin: i,
                             len: 1,
                             line: self.line,
-                            char_begin: i - self.line_begin + 1,
+                            column_begin: i - self.line_begin + 1,
                         }),
                         i + 1,
-                    )))
+                    )));
                 }
                 Some((i, ',')) => {
                     return Some(Ok((
@@ -279,10 +371,10 @@ impl<'input> Iterator for Lexer<'input> {
                             begin: i,
                             len: 1,
                             line: self.line,
-                            char_begin: i - self.line_begin + 1,
+                            column_begin: i - self.line_begin + 1,
                         }),
                         i + 1,
-                    )))
+                    )));
                 }
                 Some((i, '.')) => {
                     return Some(Ok((
@@ -291,10 +383,10 @@ impl<'input> Iterator for Lexer<'input> {
                             begin: i,
                             len: 1,
                             line: self.line,
-                            char_begin: i - self.line_begin + 1,
+                            column_begin: i - self.line_begin + 1,
                         }),
                         i + 1,
-                    )))
+                    )));
                 }
                 Some((i, '(')) => {
                     return Some(Ok((
@@ -303,10 +395,10 @@ impl<'input> Iterator for Lexer<'input> {
                             begin: i,
                             len: 1,
                             line: self.line,
-                            char_begin: i - self.line_begin + 1,
+                            column_begin: i - self.line_begin + 1,
                         }),
                         i + 1,
-                    )))
+                    )));
                 }
                 Some((i, ')')) => {
                     return Some(Ok((
@@ -315,10 +407,10 @@ impl<'input> Iterator for Lexer<'input> {
                             begin: i,
                             len: 1,
                             line: self.line,
-                            char_begin: i - self.line_begin + 1,
+                            column_begin: i - self.line_begin + 1,
                         }),
                         i + 1,
-                    )))
+                    )));
                 }
                 Some((i, '+')) => {
                     return match self.chars.peek() {
@@ -330,7 +422,7 @@ impl<'input> Iterator for Lexer<'input> {
                                     begin: i,
                                     len: 2,
                                     line: self.line,
-                                    char_begin: i - self.line_begin + 1,
+                                    column_begin: i - self.line_begin + 1,
                                 }),
                                 i + 2,
                             )))
@@ -341,11 +433,11 @@ impl<'input> Iterator for Lexer<'input> {
                                 begin: i,
                                 len: 1,
                                 line: self.line,
-                                char_begin: i - self.line_begin + 1,
+                                column_begin: i - self.line_begin + 1,
                             }),
                             i + 1,
                         ))),
-                    }
+                    };
                 }
                 Some((i, '-')) => {
                     return match self.chars.peek() {
@@ -357,7 +449,7 @@ impl<'input> Iterator for Lexer<'input> {
                                     begin: i,
                                     len: 2,
                                     line: self.line,
-                                    char_begin: i - self.line_begin + 1,
+                                    column_begin: i - self.line_begin + 1,
                                 }),
                                 i + 2,
                             )))
@@ -368,11 +460,11 @@ impl<'input> Iterator for Lexer<'input> {
                                 begin: i,
                                 len: 1,
                                 line: self.line,
-                                char_begin: i - self.line_begin + 1,
+                                column_begin: i - self.line_begin + 1,
                             }),
                             i + 1,
                         ))),
-                    }
+                    };
                 }
                 Some((i, '*')) => {
                     return match self.chars.peek() {
@@ -384,7 +476,7 @@ impl<'input> Iterator for Lexer<'input> {
                                     begin: i,
                                     len: 2,
                                     line: self.line,
-                                    char_begin: i - self.line_begin + 1,
+                                    column_begin: i - self.line_begin + 1,
                                 }),
                                 i + 2,
                             )))
@@ -395,11 +487,11 @@ impl<'input> Iterator for Lexer<'input> {
                                 begin: i,
                                 len: 1,
                                 line: self.line,
-                                char_begin: i - self.line_begin + 1,
+                                column_begin: i - self.line_begin + 1,
                             }),
                             i + 1,
                         ))),
-                    }
+                    };
                 }
                 Some((i, '/')) => {
                     return match self.chars.peek() {
@@ -411,7 +503,7 @@ impl<'input> Iterator for Lexer<'input> {
                                     begin: i,
                                     len: 2,
                                     line: self.line,
-                                    char_begin: i - self.line_begin + 1,
+                                    column_begin: i - self.line_begin + 1,
                                 }),
                                 i + 2,
                             )))
@@ -422,11 +514,11 @@ impl<'input> Iterator for Lexer<'input> {
                                 begin: i,
                                 len: 1,
                                 line: self.line,
-                                char_begin: i - self.line_begin + 1,
+                                column_begin: i - self.line_begin + 1,
                             }),
                             i + 1,
                         ))),
-                    }
+                    };
                 }
                 Some((i, '%')) => {
                     return match self.chars.peek() {
@@ -438,7 +530,7 @@ impl<'input> Iterator for Lexer<'input> {
                                     begin: i,
                                     len: 2,
                                     line: self.line,
-                                    char_begin: i - self.line_begin + 1,
+                                    column_begin: i - self.line_begin + 1,
                                 }),
                                 i + 2,
                             )))
@@ -449,11 +541,11 @@ impl<'input> Iterator for Lexer<'input> {
                                 begin: i,
                                 len: 1,
                                 line: self.line,
-                                char_begin: i - self.line_begin + 1,
+                                column_begin: i - self.line_begin + 1,
                             }),
                             i + 1,
                         ))),
-                    }
+                    };
                 }
                 Some((i, '=')) => {
                     return Some(Ok((
@@ -462,16 +554,16 @@ impl<'input> Iterator for Lexer<'input> {
                             begin: i,
                             len: 1,
                             line: self.line,
-                            char_begin: i - self.line_begin + 1,
+                            column_begin: i - self.line_begin + 1,
                         }),
                         i + 1,
-                    )))
+                    )));
                 }
                 Some((i, chr)) if chr.is_ascii_alphabetic() || chr == '_' => {
-                    return Some(self.parse_identifier(i, chr))
+                    return Some(self.parse_identifier(i, chr));
                 }
                 Some((i, chr)) if chr.is_ascii_digit() => return Some(self.parse_number(i, chr)),
-
+                Some((i, chr)) if chr == '\'' => return Some(self.parse_string(i)),
                 None => return None, // End of file
                 Some((i, _)) => return Some(Err(LexicalError::UnrecognizedToken { location: i })),
             }
