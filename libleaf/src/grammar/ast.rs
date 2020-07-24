@@ -1,12 +1,13 @@
+use crate::grammar::lexer::TokLoc;
 use crate::{
     interpreter,
     interpreter::{EnvFrame, Value, ValueTypeMarker},
 };
 
 pub enum Atom {
-    Number(i32),
-    Str(String),
-    Id(String),
+    Number((i32, TokLoc)),
+    Str((String, TokLoc)),
+    Id((String, TokLoc)),
 }
 
 pub enum Expr {
@@ -19,31 +20,34 @@ pub enum Expr {
 
 pub struct AstPropertyAccess {
     base: Box<Expr>,
-    property_name: String,
+    property_name: (String, TokLoc),
 }
 
 impl AstPropertyAccess {
-    pub fn new(base: Box<Expr>, property_name: String) -> Self {
+    pub fn new(base: Box<Expr>, property_name: (String, TokLoc)) -> Self {
         Self {
             base,
             property_name,
         }
     }
+
+    #[inline]
     pub(crate) fn get_base(&self) -> &Expr {
         &self.base
     }
 
+    #[inline]
     pub(crate) fn get_property_name(&self) -> &String {
-        &self.property_name
+        &self.property_name.0
     }
 }
 
 impl Expr {
     pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
-            Expr::Atom(Atom::Number(num)) => Value::new(Box::new(*num)),
-            Expr::Atom(Atom::Str(str)) => Value::new(Box::new(str.clone())),
-            Expr::Atom(Atom::Id(id)) => frame
+            Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
+            Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
+            Expr::Atom(Atom::Id((id, _loc))) => frame
                 .get_value_for_variable(&id.clone())
                 .get_value()
                 .clone_to_value(),
@@ -86,12 +90,12 @@ impl Opcode {
 }
 
 pub struct AstFuncCall {
-    func_name: String,
+    func_name: (String, TokLoc),
     func_args: AstFuncCallArgs,
 }
 
 impl AstFuncCall {
-    pub fn new(name: String, call_args: AstFuncCallArgs) -> AstFuncCall {
+    pub fn new(name: (String, TokLoc), call_args: AstFuncCallArgs) -> AstFuncCall {
         AstFuncCall {
             func_name: name,
             func_args: call_args,
@@ -99,7 +103,7 @@ impl AstFuncCall {
     }
 
     pub fn get_name(&self) -> &String {
-        &self.func_name
+        &self.func_name.0
     }
 
     pub fn get_args(&self) -> &AstFuncCallArgs {
@@ -160,21 +164,21 @@ impl From<Box<Expr>> for AstPositionalArg {
 }
 
 pub struct AstNamedArg {
-    name: String,
+    name: (String, TokLoc),
     value: Box<Expr>,
 }
 
 impl AstNamedArg {
     pub fn get_name(&self) -> &String {
-        &self.name
+        &self.name.0
     }
     pub fn get_value(&self) -> &Expr {
         &self.value
     }
 }
 
-impl From<(String, Box<Expr>)> for AstNamedArg {
-    fn from(v: (String, Box<Expr>)) -> Self {
+impl From<((String, TokLoc), Box<Expr>)> for AstNamedArg {
+    fn from(v: ((String, TokLoc), Box<Expr>)) -> Self {
         let (name, value) = v;
         Self { name, value }
     }
@@ -198,7 +202,7 @@ impl AstMethodCall {
     }
 
     pub(crate) fn get_name(&self) -> &String {
-        &self.method_property.property_name
+        &self.method_property.get_property_name()
     }
     pub(crate) fn get_args(&self) -> &AstFuncCallArgs {
         &self.args
@@ -206,22 +210,27 @@ impl AstMethodCall {
 }
 
 pub struct AstAssignment {
-    name: String,
+    name: (String, TokLoc),
     op: AstAtrOp,
     value: Box<Expr>,
 }
 
 impl AstAssignment {
-    pub fn new(name: String, op: AstAtrOp, value: Box<Expr>) -> AstAssignment {
+    pub fn new(name: (String, TokLoc), op: AstAtrOp, value: Box<Expr>) -> AstAssignment {
         AstAssignment { name, op, value }
     }
 
+    #[inline]
     pub fn get_name(&self) -> &String {
-        &self.name
+        &self.name.0
     }
+
+    #[inline]
     pub fn get_op(&self) -> &AstAtrOp {
         &self.op
     }
+
+    #[inline]
     pub fn get_value(&self) -> &Expr {
         &self.value
     }

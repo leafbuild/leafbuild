@@ -39,6 +39,7 @@ fn run_method_call_in_env_frame(
 }
 
 /// Evaluate a method or a function call, depending on base_value
+
 fn eval_call(
     call_name: &str,
     args: &AstFuncCallArgs,
@@ -56,6 +57,51 @@ fn eval_call(
 
 fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFrame) {
     let value = assignment.get_value().eval_in_env(env_frame);
+    let name = assignment.get_name().clone();
+    let old_value = env_frame.variables.get(&name);
+    let value = match &assignment.get_op() {
+        AstAtrOp::Atr => value,
+        AstAtrOp::AddAtr => ops::op_add(
+            old_value
+                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .value
+                .get_value()
+                .clone_to_value(),
+            value,
+        ),
+        AstAtrOp::SubAtr => ops::op_sub(
+            old_value
+                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .value
+                .get_value()
+                .clone_to_value(),
+            value,
+        ),
+        AstAtrOp::MulAtr => ops::op_add(
+            old_value
+                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .value
+                .get_value()
+                .clone_to_value(),
+            value,
+        ),
+        AstAtrOp::DivAtr => ops::op_add(
+            old_value
+                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .value
+                .get_value()
+                .clone_to_value(),
+            value,
+        ),
+        AstAtrOp::ModAtr => ops::op_add(
+            old_value
+                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .value
+                .get_value()
+                .clone_to_value(),
+            value,
+        ),
+    };
     let var = Variable::new(assignment.get_name().clone(), value);
     env_frame
         .variables

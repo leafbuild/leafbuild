@@ -1,6 +1,7 @@
 use crate::{
 	grammar::{
 		lexer,
+		lexer::TokLoc,
 		ast::{
 			Atom,
 			Expr,
@@ -28,7 +29,7 @@ Statement: AstStatement = {
 };
 
 FuncCall: AstFuncCall = {
-	<name:IdExpression> "(" <args:FuncArgs> ")" => AstFuncCall::new(name, args)
+	<name:IdExpression> "(" <args:FuncArgs> ")" => AstFuncCall::new(namef, args)
 };
 
 pub FuncArgs:AstFuncCallArgs = {
@@ -113,23 +114,23 @@ extern {
 
     enum lexer::Tok {
         "\n" => lexer::Tok::Newline,
-        "+=" => lexer::Tok::AddEq,
-        "-=" => lexer::Tok::SubEq,
-        "*=" => lexer::Tok::MulEq,
-        "/=" => lexer::Tok::DivEq,
-        "%=" => lexer::Tok::ModEq,
-        "=" => lexer::Tok::Eq,
-        "+" => lexer::Tok::Add,
-        "-" => lexer::Tok::Sub,
-        "*" => lexer::Tok::Mul,
-        "/" => lexer::Tok::Div,
-        "%" => lexer::Tok::Mod,
-        "(" => lexer::Tok::POPEN,
-        ")" => lexer::Tok::PCLOSE,
-        "num" => lexer::Tok::Number(<i32>),
-        "id" => lexer::Tok::Identifier(<String>),
-        ":" => lexer::Tok::Colon,
-        "," => lexer::Tok::Comma,
-        "." => lexer::Tok::Dot,
+        "+=" => lexer::Tok::AddEq(<TokLoc>),
+        "-=" => lexer::Tok::SubEq(<TokLoc>),
+        "*=" => lexer::Tok::MulEq(<TokLoc>),
+        "/=" => lexer::Tok::DivEq(<TokLoc>),
+        "%=" => lexer::Tok::ModEq(<TokLoc>),
+        "=" => lexer::Tok::Eq(<TokLoc>),
+        "+" => lexer::Tok::Add(<TokLoc>),
+        "-" => lexer::Tok::Sub(<TokLoc>),
+        "*" => lexer::Tok::Mul(<TokLoc>),
+        "/" => lexer::Tok::Div(<TokLoc>),
+        "%" => lexer::Tok::Mod(<TokLoc>),
+        "(" => lexer::Tok::POPEN(<TokLoc>),
+        ")" => lexer::Tok::PCLOSE(<TokLoc>),
+        "num" => lexer::Tok::Number(<i32>, <TokLoc>),
+        "id" => lexer::Tok::Identifier(<String>, <TokLoc>),
+        ":" => lexer::Tok::Colon(<TokLoc>),
+        "," => lexer::Tok::Comma(<TokLoc>),
+        "." => lexer::Tok::Dot(<TokLoc>),
     }
 }

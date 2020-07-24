@@ -4,7 +4,7 @@ mod types;
 use crate::grammar::ast::{AstAssignment, AstPropertyAccess};
 use crate::interpreter::types::{resolve_num_property_access, resolve_str_property_access, TypeId};
 use crate::{
-    grammar::ast::{AstFuncCall, AstFuncCallArgs, AstProgram, AstStatement},
+    grammar::ast::{AstAtrOp, AstFuncCall, AstFuncCallArgs, AstProgram, AstStatement},
     handle::Handle,
 };
 use itertools::Itertools;
@@ -132,6 +132,7 @@ where
     pub fn new(value: T) -> Self {
         Self { value }
     }
+    #[inline]
     pub fn get_value(&self) -> &T {
         &self.value
     }

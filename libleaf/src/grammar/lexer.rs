@@ -3,29 +3,37 @@ pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 use std::fmt::{Debug, Display, Formatter};
 
 #[derive(Clone, Debug)]
+pub struct TokLoc {
+    begin: usize,
+    len: usize,
+    line: usize,
+    char_begin: usize,
+}
+
+#[derive(Clone, Debug)]
 pub enum Tok {
     Newline,
-    Number(i32),
-    Identifier(String),
+    Number(i32, TokLoc),
+    Identifier(String, TokLoc),
 
-    Add,
-    Sub,
-    Mul,
-    Div,
-    Mod,
+    Add(TokLoc),
+    Sub(TokLoc),
+    Mul(TokLoc),
+    Div(TokLoc),
+    Mod(TokLoc),
 
-    AddEq,
-    SubEq,
-    MulEq,
-    DivEq,
-    ModEq,
-    Eq,
+    AddEq(TokLoc),
+    SubEq(TokLoc),
+    MulEq(TokLoc),
+    DivEq(TokLoc),
+    ModEq(TokLoc),
+    Eq(TokLoc),
 
-    POPEN,
-    PCLOSE,
-    Colon,
-    Comma,
-    Dot,
+    POPEN(TokLoc),
+    PCLOSE(TokLoc),
+    Colon(TokLoc),
+    Comma(TokLoc),
+    Dot(TokLoc),
 }
 
 impl Display for Tok {
@@ -52,6 +60,8 @@ use std::str::CharIndices;
 pub struct Lexer<'input> {
     chars: Peekable<CharIndices<'input>>,
     input: &'input str,
+    line: usize,
+    line_begin: usize,
 }
 
 impl<'input> Lexer<'input> {
@@ -59,6 +69,8 @@ impl<'input> Lexer<'input> {
         Lexer {
             chars: input.char_indices().peekable(),
             input,
+            line: 1,
+            line_begin: 0,
         }
     }
 
@@ -80,7 +92,19 @@ impl<'input> Lexer<'input> {
                 .map(|(_pos, chr)| chr)
                 .collect::<String>()
         );
-        Ok((initial_position, Tok::Identifier(result), next_position))
+        Ok((
+            initial_position,
+            Tok::Identifier(
+                result,
+                TokLoc {
+                    begin: initial_position,
+                    len: next_position - initial_position,
+                    line: self.line,
+                    char_begin: initial_position - self.line_begin + 1,
+                },
+            ),
+            next_position,
+        ))
     }
 
     fn parse_number(
@@ -91,7 +115,15 @@ impl<'input> Lexer<'input> {
         match self.chars.peek() {
             None => Ok((
                 initial_position,
-                Tok::Number(Self::decdigit_value(initial_char)),
+                Tok::Number(
+                    Self::decdigit_value(initial_char),
+                    TokLoc {
+                        begin: initial_position,
+                        len: 1,
+                        line: self.line,
+                        char_begin: initial_position - self.line_begin + 1,
+                    },
+                ),
                 initial_position + 1,
             )),
             Some((_i, chr)) => {
@@ -117,7 +149,19 @@ impl<'input> Lexer<'input> {
                                 }
                             };
                         }
-                        Ok((initial_position, Tok::Number(num), end_position))
+                        Ok((
+                            initial_position,
+                            Tok::Number(
+                                num,
+                                TokLoc {
+                                    begin: initial_position,
+                                    len: end_position - initial_position,
+                                    line: self.line,
+                                    char_begin: initial_position - self.line_begin + 1,
+                                },
+                            ),
+                            end_position,
+                        ))
                     } else {
                         // parse as oct
                         let mut num = 0;
@@ -138,7 +182,19 @@ impl<'input> Lexer<'input> {
                                 }
                             };
                         }
-                        Ok((initial_position, Tok::Number(num), end_position))
+                        Ok((
+                            initial_position,
+                            Tok::Number(
+                                num,
+                                TokLoc {
+                                    begin: initial_position,
+                                    len: end_position - initial_position,
+                                    line: self.line,
+                                    char_begin: initial_position - self.line_begin + 1,
+                                },
+                            ),
+                            end_position,
+                        ))
                     }
                 } else {
                     let mut num = Self::decdigit_value(initial_char);
@@ -159,7 +215,19 @@ impl<'input> Lexer<'input> {
                             }
                         };
                     }
-                    Ok((initial_position, Tok::Number(num), end_position))
+                    Ok((
+                        initial_position,
+                        Tok::Number(
+                            num,
+                            TokLoc {
+                                begin: initial_position,
+                                len: end_position - initial_position,
+                                line: self.line,
+                                char_begin: initial_position - self.line_begin + 1,
+                            },
+                        ),
+                        end_position,
+                    ))
                 }
             }
         }
@@ -192,57 +260,213 @@ impl<'input> Iterator for Lexer<'input> {
             match self.chars.next() {
                 Some((i, '\n')) => return Some(Ok((i, Tok::Newline, i + 1))),
                 Some((_, chr)) if chr.is_whitespace() => continue,
-                Some((i, ':')) => return Some(Ok((i, Tok::Colon, i + 1))),
-                Some((i, ',')) => return Some(Ok((i, Tok::Comma, i + 1))),
-                Some((i, '.')) => return Some(Ok((i, Tok::Dot, i + 1))),
-                Some((i, '(')) => return Some(Ok((i, Tok::POPEN, i + 1))),
-                Some((i, ')')) => return Some(Ok((i, Tok::PCLOSE, i + 1))),
+                Some((i, ':')) => {
+                    return Some(Ok((
+                        i,
+                        Tok::Colon(TokLoc {
+                            begin: i,
+                            len: 1,
+                            line: self.line,
+                            char_begin: i - self.line_begin + 1,
+                        }),
+                        i + 1,
+                    )))
+                }
+                Some((i, ',')) => {
+                    return Some(Ok((
+                        i,
+                        Tok::Comma(TokLoc {
+                            begin: i,
+                            len: 1,
+                            line: self.line,
+                            char_begin: i - self.line_begin + 1,
+                        }),
+                        i + 1,
+                    )))
+                }
+                Some((i, '.')) => {
+                    return Some(Ok((
+                        i,
+                        Tok::Dot(TokLoc {
+                            begin: i,
+                            len: 1,
+                            line: self.line,
+                            char_begin: i - self.line_begin + 1,
+                        }),
+                        i + 1,
+                    )))
+                }
+                Some((i, '(')) => {
+                    return Some(Ok((
+                        i,
+                        Tok::POPEN(TokLoc {
+                            begin: i,
+                            len: 1,
+                            line: self.line,
+                            char_begin: i - self.line_begin + 1,
+                        }),
+                        i + 1,
+                    )))
+                }
+                Some((i, ')')) => {
+                    return Some(Ok((
+                        i,
+                        Tok::PCLOSE(TokLoc {
+                            begin: i,
+                            len: 1,
+                            line: self.line,
+                            char_begin: i - self.line_begin + 1,
+                        }),
+                        i + 1,
+                    )))
+                }
                 Some((i, '+')) => {
                     return match self.chars.peek() {
                         Some((_, '=')) => {
                             self.chars.next();
-                            Some(Ok((i, Tok::AddEq, i + 2)))
+                            Some(Ok((
+                                i,
+                                Tok::AddEq(TokLoc {
+                                    begin: i,
+                                    len: 2,
+                                    line: self.line,
+                                    char_begin: i - self.line_begin + 1,
+                                }),
+                                i + 2,
+                            )))
                         }
-                        _ => Some(Ok((i, Tok::Add, i + 1))),
+                        _ => Some(Ok((
+                            i,
+                            Tok::Add(TokLoc {
+                                begin: i,
+                                len: 1,
+                                line: self.line,
+                                char_begin: i - self.line_begin + 1,
+                            }),
+                            i + 1,
+                        ))),
                     }
                 }
                 Some((i, '-')) => {
                     return match self.chars.peek() {
                         Some((_, '=')) => {
                             self.chars.next();
-                            Some(Ok((i, Tok::SubEq, i + 2)))
+                            Some(Ok((
+                                i,
+                                Tok::SubEq(TokLoc {
+                                    begin: i,
+                                    len: 2,
+                                    line: self.line,
+                                    char_begin: i - self.line_begin + 1,
+                                }),
+                                i + 2,
+                            )))
                         }
-                        _ => Some(Ok((i, Tok::Sub, i + 1))),
+                        _ => Some(Ok((
+                            i,
+                            Tok::Sub(TokLoc {
+                                begin: i,
+                                len: 1,
+                                line: self.line,
+                                char_begin: i - self.line_begin + 1,
+                            }),
+                            i + 1,
+                        ))),
                     }
                 }
                 Some((i, '*')) => {
                     return match self.chars.peek() {
                         Some((_, '=')) => {
                             self.chars.next();
-                            Some(Ok((i, Tok::MulEq, i + 2)))
+                            Some(Ok((
+                                i,
+                                Tok::MulEq(TokLoc {
+                                    begin: i,
+                                    len: 2,
+                                    line: self.line,
+                                    char_begin: i - self.line_begin + 1,
+                                }),
+                                i + 2,
+                            )))
                         }
-                        _ => Some(Ok((i, Tok::Mul, i + 1))),
+                        _ => Some(Ok((
+                            i,
+                            Tok::Mul(TokLoc {
+                                begin: i,
+                                len: 1,
+                                line: self.line,
+                                char_begin: i - self.line_begin + 1,
+                            }),
+                            i + 1,
+                        ))),
                     }
                 }
                 Some((i, '/')) => {
                     return match self.chars.peek() {
                         Some((_, '=')) => {
                             self.chars.next();
-                            Some(Ok((i, Tok::DivEq, i + 2)))
+                            Some(Ok((
+                                i,
+                                Tok::DivEq(TokLoc {
+                                    begin: i,
+                                    len: 2,
+                                    line: self.line,
+                                    char_begin: i - self.line_begin + 1,
+                                }),
+                                i + 2,
+                            )))
                         }
-                        _ => Some(Ok((i, Tok::Div, i + 1))),
+                        _ => Some(Ok((
+                            i,
+                            Tok::Div(TokLoc {
+                                begin: i,
+                                len: 1,
+                                line: self.line,
+                                char_begin: i - self.line_begin + 1,
+                            }),
+                            i + 1,
+                        ))),
                     }
                 }
                 Some((i, '%')) => {
                     return match self.chars.peek() {
                         Some((_, '=')) => {
                             self.chars.next();
-                            Some(Ok((i, Tok::ModEq, i + 2)))
+                            Some(Ok((
+                                i,
+                                Tok::ModEq(TokLoc {
+                                    begin: i,
+                                    len: 2,
+                                    line: self.line,
+                                    char_begin: i - self.line_begin + 1,
+                                }),
+                                i + 2,
+                            )))
                         }
-                        _ => Some(Ok((i, Tok::Mod, i + 1))),
+                        _ => Some(Ok((
+                            i,
+                            Tok::Mod(TokLoc {
+                                begin: i,
+                                len: 1,
+                                line: self.line,
+                                char_begin: i - self.line_begin + 1,
+                            }),
+                            i + 1,
+                        ))),
                     }
                 }
-                Some((i, '=')) => return Some(Ok((i, Tok::Eq, i + 1))),
+                Some((i, '=')) => {
+                    return Some(Ok((
+                        i,
+                        Tok::Eq(TokLoc {
+                            begin: i,
+                            len: 1,
+                            line: self.line,
+                            char_begin: i - self.line_begin + 1,
+                        }),
+                        i + 1,
+                    )))
+                }
                 Some((i, chr)) if chr.is_ascii_alphabetic() || chr == '_' => {
                     return Some(self.parse_identifier(i, chr))
                 }

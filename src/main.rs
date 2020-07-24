@@ -9,7 +9,7 @@ use std::fs::File;
 fn main() {
     let mut handle = Handle::new();
     let program = grammar::parse(
-        "x = f().to_string()\nprint(\nx,\n (0 + 1 + 2).to_string(),\n z: x + 2\n)\n",
+        "x = 2\nx += 2.as_str\nprint(\nx,\n (0 + 1 + 2).to_string(),\n z: x + 2\n)\n",
     )
     .unwrap();
     interpreter::interpret_wrapper(&program, &mut handle);
