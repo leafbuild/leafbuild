@@ -2,6 +2,13 @@
 
 image::https://github.com/NonNullDinu/leafbuild/workflows/Build-Rust/badge.svg[]
 
-An early-in-development meta build system for C/C++ written in Rust;
+An early-in-development meta build system for C/C++ projects written in Rust;
 focused on usability. See https://dblanovschi.github.io/leafbuild[the documentation]
 for more.
+
+== Support
+
+You can join the official https://discord.gg/KF45NYK[discord server] to ask us
+any question you may have.
+
+image::https://discord.com/api/guilds/736172943759114250/embed.png?style=banner3[link="https://discord.gg/KF45NYK"]
