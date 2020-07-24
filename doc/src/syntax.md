@@ -4,7 +4,7 @@ The full syntax reference.
 
 ## Comments
 Same as in C/C++, a single line comment starts with `//` and goes
-on to the end of the line, and a multiline comment starts with `/*`
+on to the end of the line, and a block comment starts with `/*`
 and ends with `*/`
 
 Examples:
@@ -15,7 +15,7 @@ Examples:
 // another single line comment
 
 /*
- A multiline comment
+ A block comment
  that can
  go on for
  multiple
