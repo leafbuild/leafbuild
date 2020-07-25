@@ -116,6 +116,8 @@ g(
 )
 ```
 
+> **Note**: newlines are allowed only after commas.
+
 ## Calling methods
 
 You can call methods like this:

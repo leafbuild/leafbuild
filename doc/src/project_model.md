@@ -11,6 +11,8 @@ In a nutshell, a module is any folder that has a `build.leaf` file directly belo
 A project is a module that contains some extra metadata.
 See the [kwargs of the `project()` function]() to find out more.
 
+The metadata present in the project should apply to all of its submodules.
+
 # The `build.leaf` file
 
 A `build.leaf` file should always start with a call to either
