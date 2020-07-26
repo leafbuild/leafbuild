@@ -9,7 +9,7 @@ and ends with `*/`
 
 Examples:
 
-```c
+```leafbuild
 // a single line comment
 
 // another single line comment
@@ -33,7 +33,7 @@ Int values work as they do in C/C++:
 - prefixed with `0x` means it is a hex number
 
 Examples of values:
-```c
+```leafbuild
 0, 1, 2,
 0777, // octal number
 0x12349abcdef, // hex number
@@ -44,7 +44,7 @@ A simple string begins and ends with `'`, and may not contain newlines.
 You can also use multiline strings; those begin and end with `'''`.
 
 Examples:
-```
+```leafbuild
 'A simple single line string',
 
 '''A
@@ -63,7 +63,7 @@ they are declared in is processed.
 ### Declaring
 You can declare a variable like:
 
-```
+```leafbuild
 a = 0
 b = 1
 c = 'a string'
@@ -80,14 +80,14 @@ It's the same as declaring one; values can change their type.
 
 You can access properties of values like so:
 
-```
+```leafbuild
 value.property_name
 ```
 
 ## Calling functions
 
 You can call functions like this:
-```
+```leafbuild
 function_name(positional_args, kwargs)
 ```
 
@@ -97,15 +97,17 @@ being separated by `:`.
 
 Examples:
 
-```c
+```leafbuild
 f(a, b, c: d, e: f)
 // note that you can also have only positional args or kwargs, without needing the extra comma between them
 g(0, a)
 h(a: b, c: d)
+
+project()
 ```
 
 You can also have a trailing comma and split function calls over multiple lines:
-```c
+```leafbuild
 f(
   0,
   1,
@@ -122,7 +124,7 @@ g(
 
 You can call methods like this:
 
-```
+```leafbuild
 base_value.method_name(positional_args, kwargs)
 ```
 

@@ -1,7 +1,7 @@
 # The `module()` function
 
 ## Syntax and parameters
-```
+```leafbuild
 module (
         module_name,
         [languages: languages],
@@ -47,3 +47,9 @@ The default value is taken from the parent module/project.
 > **Type**: `maintainer` or array of `maintainer`s; see
 > [the maintainer type](../../special_types/maintainer.md)
 > on how to build a maintainer object.
+
+#### Description
+The list of maintainers of the module.
+
+#### Default value
+The default value is taken from the parent module/project.
