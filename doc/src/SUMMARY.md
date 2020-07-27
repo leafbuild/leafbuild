@@ -1,5 +1,7 @@
 # Summary
 
+- [Motivation](motivation.md)
+- [Introduction]()
 - [Quick Start](quick_start.md)
 - [Supported Languages](supported_languages.md)
 - [Syntax](syntax.md)
@@ -11,11 +13,13 @@
     - [Project and Module related](reference/functions/project_and_module/index.md)
       - [project()](reference/functions/project_and_module/project.md)
       - [module()](reference/functions/project_and_module/module.md)
+    - [Libraries-related](reference/functions/libraries/index.md)
+      - [library()](reference/functions/libraries/library.md)
   - [Special types](reference/special_types/index.md)
     - [The `author` type](reference/special_types/author.md)
     - [The `maintainer` type](reference/special_types/maintainer.md)
-    - [The `library` type]()
-    - [The `executable` type]()
+    - [The `library` type](reference/special_types/library.md)
+    - [The `executable` type](reference/special_types/executable.md)
     - [The `compiler` type]()
   - [Special Global Objects](reference/special_global_objects/index.md)
     - [The leaf object]()

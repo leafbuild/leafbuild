@@ -16,18 +16,18 @@ Tells the build system that the folder we are in should be treated
 as a project, which is basically a module with more metadata as far
 as the build system is concerned.
 
-## Return type
+## Returns
 This function doesn't return anything and is allowed only as a
 standalone function call(Not allowed in expressions).
 
-## Positional args
+## Positional parameters
 
 ### project_name
 > **Type**: `string`
 
-The name of the module.
+The name of the project.
 
-## Kwargs
+## Kw parameters
 
 ### languages
 > **Type**: `string` or array of `string`s, that are valid languages;

@@ -14,19 +14,25 @@ module (
 Tells the build system that the folder we are in should be treated
 as a module.
 
-## Positional args
+## Returns
+This function doesn't return anything and is allowed only as a
+standalone function call(Not allowed in expressions).
+
+## Positional parameters
 
 ### module_name
 > **Type**: `string`
 
 The name of the module.
 
-## Kwargs
+## Kw parameters
 
 ### languages (optional)
 > **Type**: `string` or array of `string`s, that are valid languages;
 > see [this](../../../supported_languages.md) for the list of supported
 > languages and how to configure them.
+
+#### Description
 
 The language or languages required to build this module.
 
@@ -37,6 +43,8 @@ The default value is taken from the parent module/project.
 > **Type**: `author` or array of `author`s; see
 > [the author type](../../special_types/author.md)
 > on how to build an author object.
+
+#### Description
 
 The list of authors of the module.
 
@@ -56,3 +64,5 @@ The list of maintainers of the module.
 The default value is taken from the parent module/project.
 
 ## Aliases
+
+`mod()`
