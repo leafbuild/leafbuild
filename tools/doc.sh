@@ -20,7 +20,7 @@ case $1 in
   mdbook build
   cd book || exit $?
   git init
-  git remote add origin https://github.com/dblanovschi/leafbuild.git
+  git remote add origin https://github.com/leafbuild/leafbuild.git
   git add -A
   git commit -a -m "Update docs"
   git branch gh-pages

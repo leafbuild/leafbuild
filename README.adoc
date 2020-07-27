@@ -1,6 +1,6 @@
 = The Leaf Build system
 
-image::https://github.com/NonNullDinu/leafbuild/workflows/Build-Rust/badge.svg[]
+image::https://github.com/leafbuild/leafbuild/workflows/Build-Rust/badge.svg[]
 
 An early-in-development meta build system for C/C++ projects written in Rust;
 focused on usability. See https://dblanovschi.github.io/leafbuild[the documentation]

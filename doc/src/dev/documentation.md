@@ -16,4 +16,4 @@ and mention you changed the documentation, so the site can be rebuilt.
 
 Please use reference-style links for all links to the main repo.
 
-[master_branch]: https://github.com/dblanovschi/leafbuild/tree/master
+[master_branch]: https://github.com/leafbuild/leafbuild/tree/master

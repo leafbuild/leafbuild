@@ -85,5 +85,5 @@ or `None` if we are calling this as a function.
 It is a collection of `CallExecutor`s associated with a type or functions that can be
 called from the global scope.
 
-[lexer_link]: https://github.com/dblanovschi/leafbuild/blob/master/libleaf/src/grammar/lexer.rs
-[lalrpop_parser_link]: https://github.com/dblanovschi/leafbuild/blob/master/libleaf/src/grammar/leafparser.lalrpop
+[lexer_link]: https://github.com/leafbuild/leafbuild/blob/master/libleaf/src/grammar/lexer.rs
+[lalrpop_parser_link]: https://github.com/leafbuild/leafbuild/blob/master/libleaf/src/grammar/leafparser.lalrpop

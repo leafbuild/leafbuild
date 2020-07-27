@@ -7,6 +7,7 @@
 
 - [Reference](reference/reference.md)
   - [Functions](reference/functions/index.md)
+    - [Aliases](reference/functions/aliases.md)
     - [Project and Module related](reference/functions/project_and_module/index.md)
       - [project()](reference/functions/project_and_module/project.md)
       - [module()](reference/functions/project_and_module/module.md)

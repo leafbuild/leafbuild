@@ -1,6 +1,6 @@
 # The `module()` function
 
-## Syntax and parameters
+## Parameters
 ```leafbuild
 module (
         module_name,
@@ -21,6 +21,7 @@ as a module.
 
 The name of the module.
 
+## Kwargs
 
 ### languages (optional)
 > **Type**: `string` or array of `string`s, that are valid languages;
@@ -53,3 +54,5 @@ The list of maintainers of the module.
 
 #### Default value
 The default value is taken from the parent module/project.
+
+## Aliases
