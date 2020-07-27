@@ -15,6 +15,8 @@
       - [module()](reference/functions/project_and_module/module.md)
     - [Libraries-related](reference/functions/libraries/index.md)
       - [library()](reference/functions/libraries/library.md)
+    - [Executables-related](reference/functions/executables/index.md)
+      - [executable()](reference/functions/executables/executable.md)
   - [Special types](reference/special_types/index.md)
     - [The `author` type](reference/special_types/author.md)
     - [The `maintainer` type](reference/special_types/maintainer.md)
