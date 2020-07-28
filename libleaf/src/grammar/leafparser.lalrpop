@@ -23,9 +23,9 @@ grammar;
 
 pub Program = <Statement*>;
 Statement: AstStatement = {
-    <MethodCall> "\n" => AstStatement::MethodCall(<>),
-	<FuncCall> "\n" => AstStatement::FuncCall(<>),
-	<Assignment> "\n" => AstStatement::Assignment(<>),
+    <MethodCall> "\n"+ => AstStatement::MethodCall(<>),
+	<FuncCall> "\n"+ => AstStatement::FuncCall(<>),
+	<Assignment> "\n"+ => AstStatement::Assignment(<>),
 };
 
 FuncCall: AstFuncCall = {

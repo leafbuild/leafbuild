@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.19.0"
-// sha256: 972851ca2408052a16eaab5e29c7d20a5f67d474bf8a1788d982578c2a1ca
+// sha256: 4e30e4e81a7b0971c1a49472398d3811fddd6cb56abd6cd8e83faab9525f
 use crate::{
 	grammar::{
 		lexer,
@@ -1807,11 +1807,11 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n" => ActionFn(60);
+        // "\n"+ = "\n" => ActionFn(56);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action56::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
@@ -1822,13 +1822,13 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n"+, "\n" => ActionFn(61);
+        // "\n"+ = "\n"+, "\n" => ActionFn(57);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant0(__symbols);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(__sym0, __sym1);
+        let __nt = super::__action57::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 2)
     }
@@ -4533,9 +4533,9 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = MethodCall, "\n" => ActionFn(7);
+        // Statement = MethodCall, "\n"+ => ActionFn(7);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant15(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -4550,9 +4550,9 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = FuncCall, "\n" => ActionFn(8);
+        // Statement = FuncCall, "\n"+ => ActionFn(8);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant14(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -4567,9 +4567,9 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = Assignment, "\n" => ActionFn(9);
+        // Statement = Assignment, "\n"+ => ActionFn(9);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant10(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -4584,10 +4584,10 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* =  => ActionFn(56);
+        // Statement* =  => ActionFn(58);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(&__start, &__end);
+        let __nt = super::__action58::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 27)
     }
@@ -4598,11 +4598,11 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* = Statement+ => ActionFn(57);
+        // Statement* = Statement+ => ActionFn(59);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action59::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 27)
     }
@@ -4613,11 +4613,11 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement => ActionFn(58);
+        // Statement+ = Statement => ActionFn(60);
         let __sym0 = __pop_Variant20(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action60::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 28)
     }
@@ -4628,13 +4628,13 @@ mod __parse__Expr {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement+, Statement => ActionFn(59);
+        // Statement+ = Statement+, Statement => ActionFn(61);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant20(__symbols);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(__sym0, __sym1);
+        let __nt = super::__action61::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 28)
     }
@@ -6606,11 +6606,11 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n" => ActionFn(60);
+        // "\n"+ = "\n" => ActionFn(56);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action56::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
@@ -6621,13 +6621,13 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n"+, "\n" => ActionFn(61);
+        // "\n"+ = "\n"+, "\n" => ActionFn(57);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant0(__symbols);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(__sym0, __sym1);
+        let __nt = super::__action57::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 2)
     }
@@ -9332,9 +9332,9 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = MethodCall, "\n" => ActionFn(7);
+        // Statement = MethodCall, "\n"+ => ActionFn(7);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant15(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -9349,9 +9349,9 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = FuncCall, "\n" => ActionFn(8);
+        // Statement = FuncCall, "\n"+ => ActionFn(8);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant14(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -9366,9 +9366,9 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = Assignment, "\n" => ActionFn(9);
+        // Statement = Assignment, "\n"+ => ActionFn(9);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant10(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -9383,10 +9383,10 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* =  => ActionFn(56);
+        // Statement* =  => ActionFn(58);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(&__start, &__end);
+        let __nt = super::__action58::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 27)
     }
@@ -9397,11 +9397,11 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* = Statement+ => ActionFn(57);
+        // Statement* = Statement+ => ActionFn(59);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action59::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 27)
     }
@@ -9412,11 +9412,11 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement => ActionFn(58);
+        // Statement+ = Statement => ActionFn(60);
         let __sym0 = __pop_Variant20(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action60::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 28)
     }
@@ -9427,13 +9427,13 @@ mod __parse__FuncArgs {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement+, Statement => ActionFn(59);
+        // Statement+ = Statement+, Statement => ActionFn(61);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant20(__symbols);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(__sym0, __sym1);
+        let __nt = super::__action61::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 28)
     }
@@ -10726,11 +10726,11 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n" => ActionFn(60);
+        // "\n"+ = "\n" => ActionFn(56);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action56::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
@@ -10741,13 +10741,13 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n"+, "\n" => ActionFn(61);
+        // "\n"+ = "\n"+, "\n" => ActionFn(57);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant0(__symbols);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(__sym0, __sym1);
+        let __nt = super::__action57::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 2)
     }
@@ -13452,9 +13452,9 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = MethodCall, "\n" => ActionFn(7);
+        // Statement = MethodCall, "\n"+ => ActionFn(7);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant15(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -13469,9 +13469,9 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = FuncCall, "\n" => ActionFn(8);
+        // Statement = FuncCall, "\n"+ => ActionFn(8);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant14(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -13486,9 +13486,9 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = Assignment, "\n" => ActionFn(9);
+        // Statement = Assignment, "\n"+ => ActionFn(9);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant10(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -13503,10 +13503,10 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* =  => ActionFn(56);
+        // Statement* =  => ActionFn(58);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(&__start, &__end);
+        let __nt = super::__action58::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 27)
     }
@@ -13517,11 +13517,11 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* = Statement+ => ActionFn(57);
+        // Statement* = Statement+ => ActionFn(59);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action59::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 27)
     }
@@ -13532,11 +13532,11 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement => ActionFn(58);
+        // Statement+ = Statement => ActionFn(60);
         let __sym0 = __pop_Variant20(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action60::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 28)
     }
@@ -13547,13 +13547,13 @@ mod __parse__IdExpression {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement+, Statement => ActionFn(59);
+        // Statement+ = Statement+, Statement => ActionFn(61);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant20(__symbols);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(__sym0, __sym1);
+        let __nt = super::__action61::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 28)
     }
@@ -15525,11 +15525,11 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n" => ActionFn(60);
+        // "\n"+ = "\n" => ActionFn(56);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action56::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
@@ -15540,13 +15540,13 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n"+, "\n" => ActionFn(61);
+        // "\n"+ = "\n"+, "\n" => ActionFn(57);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant0(__symbols);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(__sym0, __sym1);
+        let __nt = super::__action57::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 2)
     }
@@ -18251,9 +18251,9 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = MethodCall, "\n" => ActionFn(7);
+        // Statement = MethodCall, "\n"+ => ActionFn(7);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant15(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -18268,9 +18268,9 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = FuncCall, "\n" => ActionFn(8);
+        // Statement = FuncCall, "\n"+ => ActionFn(8);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant14(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -18285,9 +18285,9 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = Assignment, "\n" => ActionFn(9);
+        // Statement = Assignment, "\n"+ => ActionFn(9);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant10(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -18302,10 +18302,10 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* =  => ActionFn(56);
+        // Statement* =  => ActionFn(58);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(&__start, &__end);
+        let __nt = super::__action58::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 27)
     }
@@ -18316,11 +18316,11 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* = Statement+ => ActionFn(57);
+        // Statement* = Statement+ => ActionFn(59);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action59::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 27)
     }
@@ -18331,11 +18331,11 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement => ActionFn(58);
+        // Statement+ = Statement => ActionFn(60);
         let __sym0 = __pop_Variant20(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action60::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 28)
     }
@@ -18346,13 +18346,13 @@ mod __parse__NamedFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement+, Statement => ActionFn(59);
+        // Statement+ = Statement+, Statement => ActionFn(61);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant20(__symbols);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(__sym0, __sym1);
+        let __nt = super::__action61::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 28)
     }
@@ -20324,11 +20324,11 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n" => ActionFn(60);
+        // "\n"+ = "\n" => ActionFn(56);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action56::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
@@ -20339,13 +20339,13 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n"+, "\n" => ActionFn(61);
+        // "\n"+ = "\n"+, "\n" => ActionFn(57);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant0(__symbols);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(__sym0, __sym1);
+        let __nt = super::__action57::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 2)
     }
@@ -23050,9 +23050,9 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = MethodCall, "\n" => ActionFn(7);
+        // Statement = MethodCall, "\n"+ => ActionFn(7);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant15(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -23067,9 +23067,9 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = FuncCall, "\n" => ActionFn(8);
+        // Statement = FuncCall, "\n"+ => ActionFn(8);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant14(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -23084,9 +23084,9 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = Assignment, "\n" => ActionFn(9);
+        // Statement = Assignment, "\n"+ => ActionFn(9);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant10(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -23101,10 +23101,10 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* =  => ActionFn(56);
+        // Statement* =  => ActionFn(58);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(&__start, &__end);
+        let __nt = super::__action58::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 27)
     }
@@ -23115,11 +23115,11 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* = Statement+ => ActionFn(57);
+        // Statement* = Statement+ => ActionFn(59);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action59::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 27)
     }
@@ -23130,11 +23130,11 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement => ActionFn(58);
+        // Statement+ = Statement => ActionFn(60);
         let __sym0 = __pop_Variant20(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action60::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 28)
     }
@@ -23145,13 +23145,13 @@ mod __parse__PositionalFuncArg {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement+, Statement => ActionFn(59);
+        // Statement+ = Statement+, Statement => ActionFn(61);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant20(__symbols);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(__sym0, __sym1);
+        let __nt = super::__action61::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 28)
     }
@@ -23397,199 +23397,199 @@ mod __parse__Program {
     }
     const __ACTION: &[i16] = &[
         // State 0
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
         // State 1
-        0, 0, 103, 6, 0, 0, 104, 0, 105, 0, 0, 106, -164, 0, 107, 0, 108, 0, 0, 0,
+        102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 2
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 3
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 4
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 5
-        117, 0, 0, 4, -137, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 6
-        117, 0, 0, 4, -137, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 7
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 8
-        0, 0, 0, 0, 120, 0, 0, 121, 0, 0, 122, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 9
-        -33, 123, 0, 0, -33, 124, 0, -33, 0, -33, -33, 0, 0, 125, 0, 0, 0, 0, 0, 0,
-        // State 10
-        -25, 0, 0, 0, 0, 0, 0, 121, 0, 0, 122, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 11
-        126, 0, 0, 4, -138, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 12
-        -145, 0, 0, 0, -145, 0, 0, 121, 0, -145, 122, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 13
-        117, 0, 0, 0, -129, 0, 0, 0, 0, 22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 14
-        117, 0, 0, 0, -113, 0, 0, 0, 0, 24, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 15
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 16
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 17
-        117, 0, 0, 0, -133, 0, 0, 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 18
-        117, 0, 0, 0, -117, 0, 0, 0, 0, 29, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 19
-        0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 20
-        117, 0, 0, 0, -130, 0, 0, 0, 0, 31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 21
-        117, 0, 0, 0, -121, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 22
-        117, 0, 0, 0, -114, 0, 0, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 23
-        117, 0, 0, 4, -105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 24
-        -32, 123, 0, 0, -32, 124, 0, -32, 0, -32, -32, 0, 0, 125, 0, 0, 0, 0, 0, 0,
-        // State 25
-        117, 0, 0, 0, -134, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 26
-        117, 0, 0, 0, -125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 27
-        117, 0, 0, 0, -118, 0, 0, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 28
-        117, 0, 0, 4, -109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 29
-        -142, 0, 0, 0, -142, 0, 0, 121, 0, -142, 122, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 30
-        117, 0, 0, 0, -122, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 31
-        126, 0, 0, 0, -123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 32
-        117, 0, 0, 4, -106, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 33
-        126, 0, 0, 4, -107, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 34
-        117, 0, 0, 0, -73, 0, 0, 0, 0, 46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 35
-        117, 0, 0, 0, -126, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 36
-        126, 0, 0, 0, -127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 37
-        117, 0, 0, 4, -110, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 38
-        126, 0, 0, 4, -111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 39
-        117, 0, 0, 0, -89, 0, 0, 0, 0, 52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 40
-        126, 0, 0, 0, -124, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 41
-        126, 0, 0, 4, -108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 42
-        117, 0, 0, 0, -74, 0, 0, 0, 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 43
-        117, 0, 0, 0, -81, 0, 0, 0, 0, 57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 44
-        117, 0, 0, 0, -75, 0, 0, 0, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 45
-        117, 0, 0, 0, -41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 46
-        126, 0, 0, 0, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 47
-        126, 0, 0, 4, -112, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
-        // State 48
-        117, 0, 0, 0, -90, 0, 0, 0, 0, 62, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 49
-        117, 0, 0, 0, -97, 0, 0, 0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 50
-        117, 0, 0, 0, -91, 0, 0, 0, 0, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 51
-        117, 0, 0, 0, -57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 52
-        117, 0, 0, 0, -82, 0, 0, 0, 0, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 53
-        117, 0, 0, 0, -76, 0, 0, 0, 0, 69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 54
-        117, 0, 0, 0, -42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 55
-        117, 0, 0, 0, -83, 0, 0, 0, 0, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 56
-        117, 0, 0, 0, -49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 57
-        117, 0, 0, 0, -43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 58
-        126, 0, 0, 0, -45, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 59
-        117, 0, 0, 0, -98, 0, 0, 0, 0, 75, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 60
-        117, 0, 0, 0, -92, 0, 0, 0, 0, 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 61
-        117, 0, 0, 0, -58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 62
-        117, 0, 0, 0, -99, 0, 0, 0, 0, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 63
-        117, 0, 0, 0, -65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 64
-        117, 0, 0, 0, -59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 65
-        126, 0, 0, 0, -61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 66
-        117, 0, 0, 0, -84, 0, 0, 0, 0, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 67
-        117, 0, 0, 0, -50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 68
-        117, 0, 0, 0, -44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 69
-        126, 0, 0, 0, -46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 70
-        117, 0, 0, 0, -51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 71
-        126, 0, 0, 0, -53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 72
-        126, 0, 0, 0, -47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 73
-        117, 0, 0, 0, -100, 0, 0, 0, 0, 85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 74
-        117, 0, 0, 0, -66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 75
-        117, 0, 0, 0, -60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 76
-        126, 0, 0, 0, -62, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 77
-        117, 0, 0, 0, -67, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 78
-        126, 0, 0, 0, -69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 79
-        126, 0, 0, 0, -63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 80
-        117, 0, 0, 0, -52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 81
-        126, 0, 0, 0, -54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 82
-        126, 0, 0, 0, -48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 83
-        126, 0, 0, 0, -55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 84
-        117, 0, 0, 0, -68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 85
-        126, 0, 0, 0, -70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 86
-        126, 0, 0, 0, -64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 87
-        126, 0, 0, 0, -71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 88
-        126, 0, 0, 0, -56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 89
-        126, 0, 0, 0, -72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
-        // State 90
-        101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 91
         102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -163, 0, 0, 0, 0, 0, 0, 0,
+        // State 3
+        0, 0, 104, 9, 0, 0, 105, 0, 106, 0, 0, 107, -164, 0, 108, 0, 109, 0, 0, 0,
+        // State 4
+        102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -161, 0, 0, 0, 0, 0, 0, 0,
+        // State 5
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 6
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 7
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 8
+        102, 0, 0, 7, -137, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 9
+        102, 0, 0, 7, -137, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 10
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 11
+        0, 0, 0, 0, 121, 0, 0, 122, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 12
+        -33, 124, 0, 0, -33, 125, 0, -33, 0, -33, -33, 0, 0, 126, 0, 0, 0, 0, 0, 0,
+        // State 13
+        -25, 0, 0, 0, 0, 0, 0, 122, 0, 0, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 14
+        116, 0, 0, 7, -138, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 15
+        -145, 0, 0, 0, -145, 0, 0, 122, 0, -145, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 16
+        102, 0, 0, 0, -129, 0, 0, 0, 0, 25, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 17
+        102, 0, 0, 0, -113, 0, 0, 0, 0, 27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 18
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 19
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 20
+        102, 0, 0, 0, -133, 0, 0, 0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 21
+        102, 0, 0, 0, -117, 0, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 22
+        0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 23
+        102, 0, 0, 0, -130, 0, 0, 0, 0, 34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 24
+        102, 0, 0, 0, -121, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 25
+        102, 0, 0, 0, -114, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 26
+        102, 0, 0, 7, -105, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 27
+        -32, 124, 0, 0, -32, 125, 0, -32, 0, -32, -32, 0, 0, 126, 0, 0, 0, 0, 0, 0,
+        // State 28
+        102, 0, 0, 0, -134, 0, 0, 0, 0, 39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 29
+        102, 0, 0, 0, -125, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 30
+        102, 0, 0, 0, -118, 0, 0, 0, 0, 41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 31
+        102, 0, 0, 7, -109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 32
+        -142, 0, 0, 0, -142, 0, 0, 122, 0, -142, 123, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 33
+        102, 0, 0, 0, -122, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 34
+        116, 0, 0, 0, -123, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 35
+        102, 0, 0, 7, -106, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 36
+        116, 0, 0, 7, -107, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 37
+        102, 0, 0, 0, -73, 0, 0, 0, 0, 49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 38
+        102, 0, 0, 0, -126, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 39
+        116, 0, 0, 0, -127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 40
+        102, 0, 0, 7, -110, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 41
+        116, 0, 0, 7, -111, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 42
+        102, 0, 0, 0, -89, 0, 0, 0, 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 43
+        116, 0, 0, 0, -124, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 44
+        116, 0, 0, 7, -108, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 45
+        102, 0, 0, 0, -74, 0, 0, 0, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 46
+        102, 0, 0, 0, -81, 0, 0, 0, 0, 60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 47
+        102, 0, 0, 0, -75, 0, 0, 0, 0, 61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 48
+        102, 0, 0, 0, -41, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 49
+        116, 0, 0, 0, -128, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 50
+        116, 0, 0, 7, -112, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 99, 100,
+        // State 51
+        102, 0, 0, 0, -90, 0, 0, 0, 0, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 52
+        102, 0, 0, 0, -97, 0, 0, 0, 0, 67, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 53
+        102, 0, 0, 0, -91, 0, 0, 0, 0, 68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 54
+        102, 0, 0, 0, -57, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 55
+        102, 0, 0, 0, -82, 0, 0, 0, 0, 71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 56
+        102, 0, 0, 0, -76, 0, 0, 0, 0, 72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 57
+        102, 0, 0, 0, -42, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 58
+        102, 0, 0, 0, -83, 0, 0, 0, 0, 74, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 59
+        102, 0, 0, 0, -49, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 60
+        102, 0, 0, 0, -43, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 61
+        116, 0, 0, 0, -45, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 62
+        102, 0, 0, 0, -98, 0, 0, 0, 0, 78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 63
+        102, 0, 0, 0, -92, 0, 0, 0, 0, 79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 64
+        102, 0, 0, 0, -58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 65
+        102, 0, 0, 0, -99, 0, 0, 0, 0, 81, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 66
+        102, 0, 0, 0, -65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 67
+        102, 0, 0, 0, -59, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 68
+        116, 0, 0, 0, -61, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 69
+        102, 0, 0, 0, -84, 0, 0, 0, 0, 84, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 70
+        102, 0, 0, 0, -50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 71
+        102, 0, 0, 0, -44, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 72
+        116, 0, 0, 0, -46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 73
+        102, 0, 0, 0, -51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 74
+        116, 0, 0, 0, -53, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 75
+        116, 0, 0, 0, -47, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 76
+        102, 0, 0, 0, -100, 0, 0, 0, 0, 88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 77
+        102, 0, 0, 0, -66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 78
+        102, 0, 0, 0, -60, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 79
+        116, 0, 0, 0, -62, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 80
+        102, 0, 0, 0, -67, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 81
+        116, 0, 0, 0, -69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 82
+        116, 0, 0, 0, -63, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 83
+        102, 0, 0, 0, -52, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 84
+        116, 0, 0, 0, -54, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 85
+        116, 0, 0, 0, -48, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 86
+        116, 0, 0, 0, -55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 87
+        102, 0, 0, 0, -68, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 88
+        116, 0, 0, 0, -70, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 89
+        116, 0, 0, 0, -64, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 90
+        116, 0, 0, 0, -71, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
+        // State 91
+        116, 0, 0, 0, -56, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
         // State 92
-        109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -161, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -72, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 98, 0, 0,
         // State 93
         0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 94
-        -162, -162, 0, 7, -162, -162, 0, -162, 0, -162, -162, 0, -162, -162, 0, 0, 0, 0, 0, 0,
+        -162, -162, 0, 10, -162, -162, 0, -162, 0, -162, -162, 0, -162, -162, 0, 0, 0, 0, 0, 0,
         // State 95
         0, 0, 0, -156, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -156, -156, -156,
         // State 96
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 11, 0, 0, 0, 0, 0, 0, 0,
         // State 97
         -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, -140, 0, 0, 0,
         // State 98
@@ -23597,85 +23597,85 @@ mod __parse__Program {
         // State 99
         -159, -159, 0, 0, -159, -159, 0, -159, 0, -159, -159, 0, -159, -159, 0, 0, 0, 0, 0, 0,
         // State 100
-        0, 0, 0, -153, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -153, -153, -153,
+        116, 0, 0, -153, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -153, -153, -153,
         // State 101
-        0, 0, 0, -152, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -152, -152, -152,
-        // State 102
-        0, 0, 0, -31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -31, -31, -31,
-        // State 103
-        0, 0, 0, -29, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -29, -29, -29,
-        // State 104
-        0, 0, 0, -27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -27, -27, -27,
-        // State 105
-        0, 0, 0, -28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -28, -28, -28,
-        // State 106
-        0, 0, 0, -30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -30, -30, -30,
-        // State 107
-        0, 0, 0, -26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -26, -26, -26,
-        // State 108
-        0, 0, 0, -151, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -151, -151, -151,
-        // State 109
-        0, 0, 0, -157, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -157, -157, -157,
-        // State 110
-        -163, -163, 0, 0, -163, -163, 0, -163, 0, -163, -163, 0, -163, -163, 0, 0, 0, 0, 0, 0,
-        // State 111
-        -164, -164, 0, 6, -164, -164, 0, -164, 0, -164, -164, 0, -164, -164, 0, 0, 0, 0, 0, 0,
-        // State 112
-        -161, -161, 0, 0, -161, -161, 0, -161, 0, -161, -161, 0, -161, -161, 0, 0, 0, 0, 0, 0,
-        // State 113
-        -37, -37, 0, 0, -37, -37, 0, -37, 0, -37, -37, 0, 8, -37, 0, 0, 0, 0, 0, 0,
-        // State 114
-        0, 0, 0, 0, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 115
-        -164, -164, 0, 6, -164, -164, 0, -164, 0, -164, -164, 0, -164, -164, 0, 20, 0, 0, 0, 0,
-        // State 116
         -5, 0, 0, -5, -5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -5, -5, -5,
-        // State 117
-        0, 0, 0, 0, 130, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        // State 118
-        -150, -150, 0, -150, -150, -150, 0, -150, 0, -150, -150, 0, -150, -150, 0, 0, 0, 0, 0, 0,
-        // State 119
-        -160, -160, 0, 0, -160, -160, 0, -160, 0, -160, -160, 0, -160, -160, 0, 0, 0, 0, 0, 0,
-        // State 120
-        0, 0, 0, -34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -34, -34, -34,
-        // State 121
-        0, 0, 0, -35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -35, -35, -35,
-        // State 122
-        0, 0, 0, -40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -40, -40, -40,
-        // State 123
-        0, 0, 0, -38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -38, -38, -38,
-        // State 124
-        0, 0, 0, -39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -39, -39, -39,
-        // State 125
+        // State 102
+        116, 0, 0, -152, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -152, -152, -152,
+        // State 103
+        0, 0, 0, -31, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -31, -31, -31,
+        // State 104
+        0, 0, 0, -29, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -29, -29, -29,
+        // State 105
+        0, 0, 0, -27, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -27, -27, -27,
+        // State 106
+        0, 0, 0, -28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -28, -28, -28,
+        // State 107
+        0, 0, 0, -30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -30, -30, -30,
+        // State 108
+        0, 0, 0, -26, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -26, -26, -26,
+        // State 109
+        116, 0, 0, -151, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -151, -151, -151,
+        // State 110
+        0, 0, 0, -157, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -157, -157, -157,
+        // State 111
+        -163, -163, 0, 0, -163, -163, 0, -163, 0, -163, -163, 0, -163, -163, 0, 0, 0, 0, 0, 0,
+        // State 112
+        -164, -164, 0, 9, -164, -164, 0, -164, 0, -164, -164, 0, -164, -164, 0, 0, 0, 0, 0, 0,
+        // State 113
+        -161, -161, 0, 0, -161, -161, 0, -161, 0, -161, -161, 0, -161, -161, 0, 0, 0, 0, 0, 0,
+        // State 114
+        -37, -37, 0, 0, -37, -37, 0, -37, 0, -37, -37, 0, 11, -37, 0, 0, 0, 0, 0, 0,
+        // State 115
         -6, 0, 0, -6, -6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -6, -6, -6,
+        // State 116
+        0, 0, 0, 0, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 117
+        -164, -164, 0, 9, -164, -164, 0, -164, 0, -164, -164, 0, -164, -164, 0, 23, 0, 0, 0, 0,
+        // State 118
+        0, 0, 0, 0, 130, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        // State 119
+        -150, -150, 0, -150, -150, -150, 0, -150, 0, -150, -150, 0, -150, -150, 0, 0, 0, 0, 0, 0,
+        // State 120
+        -160, -160, 0, 0, -160, -160, 0, -160, 0, -160, -160, 0, -160, -160, 0, 0, 0, 0, 0, 0,
+        // State 121
+        0, 0, 0, -34, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -34, -34, -34,
+        // State 122
+        0, 0, 0, -35, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -35, -35, -35,
+        // State 123
+        0, 0, 0, -40, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -40, -40, -40,
+        // State 124
+        0, 0, 0, -38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -38, -38, -38,
+        // State 125
+        0, 0, 0, -39, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -39, -39, -39,
         // State 126
         -139, -139, 0, 0, -139, -139, 0, -139, 0, -139, -139, 0, -139, -139, 0, 0, 0, 0, 0, 0,
         // State 127
-        126, 0, 0, 0, -131, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -131, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 128
-        126, 0, 0, 0, -115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -115, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 129
         -141, -141, 0, 0, -141, -141, 0, -141, 0, -141, -141, 0, -141, -141, 0, 0, 0, 0, 0, 0,
         // State 130
-        -36, -36, 0, 0, -36, -36, 0, -36, 0, -36, -36, 0, 8, -36, 0, 0, 0, 0, 0, 0,
+        -36, -36, 0, 0, -36, -36, 0, -36, 0, -36, -36, 0, 11, -36, 0, 0, 0, 0, 0, 0,
         // State 131
-        126, 0, 0, 0, -135, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -135, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 132
-        126, 0, 0, 0, -119, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -119, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 133
-        126, 0, 0, 0, -132, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -132, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 134
-        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 23, 0, 0, 0, 0,
         // State 135
         -11, 0, 0, 0, -11, 0, 0, 0, 0, -11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 136
-        126, 0, 0, 0, -116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -116, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 137
         -19, 0, 0, 0, -19, 0, 0, 0, 0, -19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 138
-        126, 0, 0, 0, -136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -136, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 139
-        126, 0, 0, 0, -120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -120, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 140
         -13, 0, 0, 0, -13, 0, 0, 0, 0, -13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 141
@@ -23685,41 +23685,41 @@ mod __parse__Program {
         // State 143
         -20, 0, 0, 0, -20, 0, 0, 0, 0, -20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 144
-        126, 0, 0, 0, -77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -77, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 145
-        126, 0, 0, 0, -93, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -93, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 146
         -14, 0, 0, 0, -14, 0, 0, 0, 0, -14, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 147
         -22, 0, 0, 0, -22, 0, 0, 0, 0, -22, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 148
-        126, 0, 0, 0, -78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -78, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 149
-        126, 0, 0, 0, -85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 150
-        126, 0, 0, 0, -79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -79, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 151
-        126, 0, 0, 0, -94, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -94, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 152
-        126, 0, 0, 0, -101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -101, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 153
-        126, 0, 0, 0, -95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -95, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 154
-        126, 0, 0, 0, -86, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -86, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 155
-        126, 0, 0, 0, -80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 156
-        126, 0, 0, 0, -87, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -87, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 157
-        126, 0, 0, 0, -102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -102, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 158
-        126, 0, 0, 0, -96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -96, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 159
-        126, 0, 0, 0, -103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -103, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 160
-        126, 0, 0, 0, -88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -88, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
         // State 161
-        126, 0, 0, 0, -104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        116, 0, 0, 0, -104, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
     ];
     fn __action(state: i16, integer: usize) -> i16 {
         __ACTION[(state as usize) * 20 + integer]
@@ -23730,13 +23730,13 @@ mod __parse__Program {
         // State 1
         0,
         // State 2
-        -149,
+        0,
         // State 3
         0,
         // State 4
         0,
         // State 5
-        0,
+        -149,
         // State 6
         0,
         // State 7
@@ -23928,9 +23928,9 @@ mod __parse__Program {
         // State 100
         -153,
         // State 101
-        -152,
+        -5,
         // State 102
-        0,
+        -152,
         // State 103
         0,
         // State 104
@@ -23942,11 +23942,11 @@ mod __parse__Program {
         // State 107
         0,
         // State 108
-        -151,
-        // State 109
-        -157,
-        // State 110
         0,
+        // State 109
+        -151,
+        // State 110
+        -157,
         // State 111
         0,
         // State 112
@@ -23956,7 +23956,7 @@ mod __parse__Program {
         // State 114
         0,
         // State 115
-        0,
+        -6,
         // State 116
         0,
         // State 117
@@ -24053,140 +24053,143 @@ mod __parse__Program {
     fn __goto(state: i16, nt: usize) -> i16 {
         match nt {
             2 => match state {
-                21 => 31,
-                23 => 33,
+                24 => 34,
                 26 => 36,
-                28 => 38,
-                30 => 40,
-                32 => 41,
-                35 => 46,
-                37 => 47,
-                45 => 58,
-                51 => 65,
-                54 => 69,
-                56 => 71,
+                29 => 39,
+                31 => 41,
+                33 => 43,
+                35 => 44,
+                38 => 49,
+                40 => 50,
+                48 => 61,
+                54 => 68,
                 57 => 72,
-                61 => 76,
-                63 => 78,
+                59 => 74,
+                60 => 75,
                 64 => 79,
-                67 => 81,
-                68 => 82,
-                70 => 83,
-                74 => 85,
-                75 => 86,
-                77 => 87,
-                80 => 88,
-                84 => 89,
-                13 => 127,
-                14 => 128,
-                17 => 131,
-                18 => 132,
-                20 => 133,
-                22 => 136,
-                25 => 138,
-                27 => 139,
-                34 => 144,
-                39 => 145,
-                42 => 148,
-                43 => 149,
-                44 => 150,
-                48 => 151,
-                49 => 152,
-                50 => 153,
-                52 => 154,
-                53 => 155,
-                55 => 156,
-                59 => 157,
-                60 => 158,
-                62 => 159,
-                66 => 160,
-                73 => 161,
-                _ => 11,
+                66 => 81,
+                67 => 82,
+                70 => 84,
+                71 => 85,
+                73 => 86,
+                77 => 88,
+                78 => 89,
+                80 => 90,
+                83 => 91,
+                87 => 92,
+                1 => 100,
+                2 => 102,
+                4 => 109,
+                16 => 127,
+                17 => 128,
+                20 => 131,
+                21 => 132,
+                23 => 133,
+                25 => 136,
+                28 => 138,
+                30 => 139,
+                37 => 144,
+                42 => 145,
+                45 => 148,
+                46 => 149,
+                47 => 150,
+                51 => 151,
+                52 => 152,
+                53 => 153,
+                55 => 154,
+                56 => 155,
+                58 => 156,
+                62 => 157,
+                63 => 158,
+                65 => 159,
+                69 => 160,
+                76 => 161,
+                _ => 14,
             },
             5 => match state {
-                17 => 25,
-                34 => 44,
-                39 => 50,
+                20 => 28,
+                37 => 47,
                 42 => 53,
-                43 => 55,
-                48 => 60,
-                49 => 62,
-                52 => 66,
-                59 => 73,
-                _ => 20,
+                45 => 56,
+                46 => 58,
+                51 => 63,
+                52 => 65,
+                55 => 69,
+                62 => 76,
+                _ => 23,
             },
             8 => match state {
-                18 => 27,
-                _ => 22,
+                21 => 30,
+                _ => 25,
             },
-            10 => 90,
-            11 => 4,
+            10 => 1,
+            11 => 7,
             12 => match state {
-                3 => 8,
-                4 => 10,
-                19 => 29,
+                6 => 11,
+                7 => 13,
+                22 => 32,
+                _ => 15,
+            },
+            13 => 18,
+            14 => match state {
+                18 => 27,
                 _ => 12,
             },
-            13 => 15,
-            14 => match state {
-                15 => 24,
-                _ => 9,
-            },
-            15 => 16,
+            15 => 19,
             16 => match state {
-                6 => 117,
-                _ => 114,
+                9 => 118,
+                _ => 116,
             },
             17 => match state {
-                0 | 2 => 91,
-                _ => 110,
+                0 | 5 => 2,
+                _ => 111,
             },
             18 => match state {
-                0 | 2 => 1,
-                3..=4 | 15..=16 | 19 => 111,
-                5..=6 | 11 | 23 | 28 | 32..=33 | 37..=38 | 41 | 47 => 115,
-                7 => 118,
+                0 | 5 => 3,
+                6..=7 | 18..=19 | 22 => 112,
+                8..=9 | 14 | 26 | 31 | 35..=36 | 40..=41 | 44 | 50 => 117,
+                10 => 119,
                 _ => 134,
             },
             19 => match state {
-                0 | 2 => 92,
-                _ => 112,
+                0 | 5 => 4,
+                _ => 113,
             },
             20 => match state {
-                5..=6 => 13,
-                11 => 17,
-                23 => 34,
-                28 => 39,
-                32 => 42,
-                33 => 43,
-                37 => 48,
-                38 => 49,
+                8..=9 => 16,
+                14 => 20,
+                26 => 37,
+                31 => 42,
+                35 => 45,
+                36 => 46,
+                40 => 51,
                 41 => 52,
-                47 => 59,
-                30 | 35 | 57 | 64 | 68 | 70 | 75 | 77 | 80 | 84 => 140,
-                31 | 36 | 58 | 65 | 69 | 71 | 76 | 78 | 81 | 85 => 141,
-                40 | 46 | 72 | 79 | 82..=83 | 86..=89 => 146,
+                44 => 55,
+                50 => 62,
+                33 | 38 | 60 | 67 | 71 | 73 | 78 | 80 | 83 | 87 => 140,
+                34 | 39 | 61 | 68 | 72 | 74 | 79 | 81 | 84 | 88 => 141,
+                43 | 49 | 75 | 82 | 85..=86 | 89..=92 => 146,
                 _ => 135,
             },
             22 => match state {
-                5..=6 => 14,
-                11 => 18,
-                32 | 37 => 142,
-                33 | 38 => 143,
-                41 | 47 => 147,
+                8..=9 => 17,
+                14 => 21,
+                35 | 40 => 142,
+                36 | 41 => 143,
+                44 | 50 => 147,
                 _ => 137,
             },
             24 => 93,
             25 => 94,
             26 => match state {
-                2 => 109,
+                5 => 110,
                 _ => 95,
             },
-            28 => 2,
+            28 => 5,
             29 => match state {
-                0 | 2 => 96,
-                16 => 130,
-                _ => 113,
+                0 | 5 => 96,
+                19 => 130,
+                _ => 114,
             },
             _ => 0,
         }
@@ -25215,11 +25218,11 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n" => ActionFn(60);
+        // "\n"+ = "\n" => ActionFn(56);
         let __sym0 = __pop_Variant0(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action60::<>(__sym0);
+        let __nt = super::__action56::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (1, 2)
     }
@@ -25230,13 +25233,13 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // "\n"+ = "\n"+, "\n" => ActionFn(61);
+        // "\n"+ = "\n"+, "\n" => ActionFn(57);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant0(__symbols);
         let __sym0 = __pop_Variant5(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action61::<>(__sym0, __sym1);
+        let __nt = super::__action57::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant5(__nt), __end));
         (2, 2)
     }
@@ -27941,9 +27944,9 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = MethodCall, "\n" => ActionFn(7);
+        // Statement = MethodCall, "\n"+ => ActionFn(7);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant15(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -27958,9 +27961,9 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = FuncCall, "\n" => ActionFn(8);
+        // Statement = FuncCall, "\n"+ => ActionFn(8);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant14(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -27975,9 +27978,9 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement = Assignment, "\n" => ActionFn(9);
+        // Statement = Assignment, "\n"+ => ActionFn(9);
         assert!(__symbols.len() >= 2);
-        let __sym1 = __pop_Variant0(__symbols);
+        let __sym1 = __pop_Variant5(__symbols);
         let __sym0 = __pop_Variant10(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
@@ -27992,10 +27995,10 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* =  => ActionFn(56);
+        // Statement* =  => ActionFn(58);
         let __start = __lookahead_start.cloned().or_else(|| __symbols.last().map(|s| s.2.clone())).unwrap_or_default();
         let __end = __start.clone();
-        let __nt = super::__action56::<>(&__start, &__end);
+        let __nt = super::__action58::<>(&__start, &__end);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (0, 27)
     }
@@ -28006,11 +28009,11 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement* = Statement+ => ActionFn(57);
+        // Statement* = Statement+ => ActionFn(59);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action57::<>(__sym0);
+        let __nt = super::__action59::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 27)
     }
@@ -28021,11 +28024,11 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement => ActionFn(58);
+        // Statement+ = Statement => ActionFn(60);
         let __sym0 = __pop_Variant20(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym0.2.clone();
-        let __nt = super::__action58::<>(__sym0);
+        let __nt = super::__action60::<>(__sym0);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (1, 28)
     }
@@ -28036,13 +28039,13 @@ mod __parse__Program {
         _: ::std::marker::PhantomData<()>,
     ) -> (usize, usize)
     {
-        // Statement+ = Statement+, Statement => ActionFn(59);
+        // Statement+ = Statement+, Statement => ActionFn(61);
         assert!(__symbols.len() >= 2);
         let __sym1 = __pop_Variant20(__symbols);
         let __sym0 = __pop_Variant18(__symbols);
         let __start = __sym0.0.clone();
         let __end = __sym1.2.clone();
-        let __nt = super::__action59::<>(__sym0, __sym1);
+        let __nt = super::__action61::<>(__sym0, __sym1);
         __symbols.push((__start, __Symbol::Variant18(__nt), __end));
         (2, 28)
     }
@@ -28291,7 +28294,7 @@ fn __action6<
 fn __action7<
 >(
     (_, __0, _): (usize, AstMethodCall, usize),
-    (_, _, _): (usize, lexer::Tok, usize),
+    (_, _, _): (usize, ::std::vec::Vec<lexer::Tok>, usize),
 ) -> AstStatement
 {
     AstStatement::MethodCall(__0)
@@ -28300,7 +28303,7 @@ fn __action7<
 fn __action8<
 >(
     (_, __0, _): (usize, AstFuncCall, usize),
-    (_, _, _): (usize, lexer::Tok, usize),
+    (_, _, _): (usize, ::std::vec::Vec<lexer::Tok>, usize),
 ) -> AstStatement
 {
     AstStatement::FuncCall(__0)
@@ -28309,7 +28312,7 @@ fn __action8<
 fn __action9<
 >(
     (_, __0, _): (usize, AstAssignment, usize),
-    (_, _, _): (usize, lexer::Tok, usize),
+    (_, _, _): (usize, ::std::vec::Vec<lexer::Tok>, usize),
 ) -> AstStatement
 {
     AstStatement::Assignment(__0)
@@ -28725,6 +28728,23 @@ fn __action55<
 
 fn __action56<
 >(
+    (_, __0, _): (usize, lexer::Tok, usize),
+) -> ::std::vec::Vec<lexer::Tok>
+{
+    vec![__0]
+}
+
+fn __action57<
+>(
+    (_, v, _): (usize, ::std::vec::Vec<lexer::Tok>, usize),
+    (_, e, _): (usize, lexer::Tok, usize),
+) -> ::std::vec::Vec<lexer::Tok>
+{
+    { let mut v = v; v.push(e); v }
+}
+
+fn __action58<
+>(
     __lookbehind: &usize,
     __lookahead: &usize,
 ) -> ::std::vec::Vec<AstStatement>
@@ -28732,7 +28752,7 @@ fn __action56<
     vec![]
 }
 
-fn __action57<
+fn __action59<
 >(
     (_, v, _): (usize, ::std::vec::Vec<AstStatement>, usize),
 ) -> ::std::vec::Vec<AstStatement>
@@ -28740,7 +28760,7 @@ fn __action57<
     v
 }
 
-fn __action58<
+fn __action60<
 >(
     (_, __0, _): (usize, AstStatement, usize),
 ) -> ::std::vec::Vec<AstStatement>
@@ -28748,28 +28768,11 @@ fn __action58<
     vec![__0]
 }
 
-fn __action59<
+fn __action61<
 >(
     (_, v, _): (usize, ::std::vec::Vec<AstStatement>, usize),
     (_, e, _): (usize, AstStatement, usize),
 ) -> ::std::vec::Vec<AstStatement>
-{
-    { let mut v = v; v.push(e); v }
-}
-
-fn __action60<
->(
-    (_, __0, _): (usize, lexer::Tok, usize),
-) -> ::std::vec::Vec<lexer::Tok>
-{
-    vec![__0]
-}
-
-fn __action61<
->(
-    (_, v, _): (usize, ::std::vec::Vec<lexer::Tok>, usize),
-    (_, e, _): (usize, lexer::Tok, usize),
-) -> ::std::vec::Vec<lexer::Tok>
 {
     { let mut v = v; v.push(e); v }
 }
@@ -33500,7 +33503,7 @@ fn __action252<
 {
     let __start0 = __lookbehind.clone();
     let __end0 = __lookahead.clone();
-    let __temp0 = __action56(
+    let __temp0 = __action58(
         &__start0,
         &__end0,
     );
@@ -33517,7 +33520,7 @@ fn __action253<
 {
     let __start0 = __0.0.clone();
     let __end0 = __0.2.clone();
-    let __temp0 = __action57(
+    let __temp0 = __action59(
         __0,
     );
     let __temp0 = (__start0, __temp0, __end0);

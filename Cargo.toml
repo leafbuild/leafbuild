@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 libleaf = { path = "libleaf" }
 libleafcore = { path = "libleafcore" }
+clap = "3.0.0-beta.1"
 
 [workspace]
 members = [
