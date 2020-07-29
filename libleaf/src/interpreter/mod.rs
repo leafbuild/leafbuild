@@ -17,7 +17,7 @@ use itertools::Itertools;
 use libleafcore::utils::Stack;
 use std::collections::HashMap;
 use std::ops::Deref;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 pub(crate) struct Env<'env> {
     frames: Stack<EnvFrame<'env>>,
@@ -188,12 +188,13 @@ pub(crate) fn interpret<'env>(
 
 pub fn start_on(proj_path: &Path, handle: &mut Handle) {
     let path = proj_path.join("build.leaf");
+    let path_clone = path.clone();
     let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap() + "\n";
     let program = grammar::parse(&src).unwrap();
     interpret(
         &mut handle.env,
         &program,
-        proj_path.to_str().unwrap().to_string(),
+        path_clone.to_str().unwrap().to_string(),
         src,
     )
     .push_to(handle);

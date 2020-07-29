@@ -1,5 +1,5 @@
 // auto-generated: "lalrpop 0.19.0"
-// sha256: 4e30e4e81a7b0971c1a49472398d3811fddd6cb56abd6cd8e83faab9525f
+// sha256: c9a1d3cafaf7c517d8c67c4abbab3e2dcdc51cc37ecb8783345d95d0d238168f
 use crate::{
 	grammar::{
 		lexer,
@@ -28323,10 +28323,10 @@ fn __action10<
     (_, name, _): (usize, (String, TokLoc), usize),
     (_, _, _): (usize, TokLoc, usize),
     (_, args, _): (usize, AstFuncCallArgs, usize),
-    (_, _, _): (usize, TokLoc, usize),
+    (_, end, _): (usize, TokLoc, usize),
 ) -> AstFuncCall
 {
-    AstFuncCall::new(name, args)
+    AstFuncCall::new(name, args, end.get_end())
 }
 
 fn __action11<
@@ -28558,10 +28558,10 @@ fn __action36<
     (_, property_access, _): (usize, AstPropertyAccess, usize),
     (_, _, _): (usize, TokLoc, usize),
     (_, args, _): (usize, AstFuncCallArgs, usize),
-    (_, _, _): (usize, TokLoc, usize),
+    (_, end, _): (usize, TokLoc, usize),
 ) -> AstMethodCall
 {
-    AstMethodCall::new(property_access, args)
+    AstMethodCall::new(property_access, args, end.get_end())
 }
 
 fn __action37<

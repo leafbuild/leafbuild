@@ -29,7 +29,7 @@ Statement: AstStatement = {
 };
 
 FuncCall: AstFuncCall = {
-	<name:IdExpression> "(" <args:FuncArgs> ")" => AstFuncCall::new(name, args)
+	<name:IdExpression> "(" <args:FuncArgs> <end:")"> => AstFuncCall::new(name, args, end.get_end())
 };
 
 pub FuncArgs:AstFuncCallArgs = {
@@ -91,7 +91,7 @@ PropertyAccess: AstPropertyAccess = {
 };
 
 MethodCall: AstMethodCall = {
-	<property_access:PropertyAccess> "(" <args:FuncArgs> ")" => AstMethodCall::new(property_access, args),
+	<property_access:PropertyAccess> "(" <args:FuncArgs> <end:")"> => AstMethodCall::new(property_access, args, end.get_end()),
 };
 
 Assignment: AstAssignment = {

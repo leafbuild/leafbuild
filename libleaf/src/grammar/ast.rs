@@ -3,11 +3,42 @@ use crate::{
     interpreter,
     interpreter::{EnvFrame, Value, ValueTypeMarker},
 };
+use std::ops::Range;
+
+pub(crate) trait AstLoc {
+    fn get_begin(&self) -> usize;
+
+    fn get_end(&self) -> usize;
+
+    fn get_rng(&self) -> Range<usize>;
+}
 
 pub enum Atom {
     Number((i32, TokLoc)),
     Str((String, TokLoc)),
     Id((String, TokLoc)),
+}
+
+impl AstLoc for Atom {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        match self {
+            Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.get_begin(),
+        }
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        match self {
+            Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.get_end(),
+        }
+    }
+
+    fn get_rng(&self) -> Range<usize> {
+        match self {
+            Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.as_rng(),
+        }
+    }
 }
 
 pub enum Expr {
@@ -16,6 +47,41 @@ pub enum Expr {
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
     PropertyAccess(AstPropertyAccess),
+}
+
+impl AstLoc for Expr {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        match self {
+            Expr::Atom(atm) => atm.get_begin(),
+            Expr::FuncCall(call) => call.get_begin(),
+            Expr::MethodCall(call) => call.get_begin(),
+            Expr::Op(expr, _, _) => expr.get_begin(),
+            Expr::PropertyAccess(prop_access) => prop_access.get_begin(),
+        }
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        match self {
+            Expr::Atom(atm) => atm.get_end(),
+            Expr::FuncCall(call) => call.get_end(),
+            Expr::MethodCall(call) => call.get_end(),
+            Expr::Op(expr, _, _) => expr.get_end(),
+            Expr::PropertyAccess(prop_access) => prop_access.get_end(),
+        }
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        match self {
+            Expr::Atom(atm) => atm.get_rng(),
+            Expr::FuncCall(call) => call.get_rng(),
+            Expr::MethodCall(call) => call.get_rng(),
+            Expr::Op(expr, _, _) => expr.get_rng(),
+            Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
+        }
+    }
 }
 
 pub struct AstPropertyAccess {
@@ -44,6 +110,23 @@ impl AstPropertyAccess {
     #[inline]
     pub(crate) fn get_property_name_loc(&self) -> &TokLoc {
         &self.property_name.1
+    }
+}
+
+impl AstLoc for AstPropertyAccess {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.base.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.property_name.1.get_end()
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
     }
 }
 
@@ -97,13 +180,15 @@ impl Opcode {
 pub struct AstFuncCall {
     func_name: (String, TokLoc),
     func_args: AstFuncCallArgs,
+    end_pos: usize,
 }
 
 impl AstFuncCall {
-    pub fn new(name: (String, TokLoc), call_args: AstFuncCallArgs) -> AstFuncCall {
+    pub fn new(name: (String, TokLoc), call_args: AstFuncCallArgs, end_pos: usize) -> AstFuncCall {
         AstFuncCall {
             func_name: name,
             func_args: call_args,
+            end_pos,
         }
     }
 
@@ -117,6 +202,23 @@ impl AstFuncCall {
 
     pub fn get_args(&self) -> &AstFuncCallArgs {
         &self.func_args
+    }
+}
+
+impl AstLoc for AstFuncCall {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.func_name.1.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.end_pos
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
     }
 }
 
@@ -166,6 +268,23 @@ impl AstPositionalArg {
     }
 }
 
+impl AstLoc for AstPositionalArg {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.value.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.value.get_end()
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.value.get_rng()
+    }
+}
+
 impl From<Box<Expr>> for AstPositionalArg {
     fn from(b: Box<Expr>) -> Self {
         Self { value: *b }
@@ -186,6 +305,23 @@ impl AstNamedArg {
     }
 }
 
+impl AstLoc for AstNamedArg {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.name.1.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.value.get_end()
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
+    }
+}
+
 impl From<((String, TokLoc), Box<Expr>)> for AstNamedArg {
     fn from(v: ((String, TokLoc), Box<Expr>)) -> Self {
         let (name, value) = v;
@@ -196,13 +332,19 @@ impl From<((String, TokLoc), Box<Expr>)> for AstNamedArg {
 pub struct AstMethodCall {
     method_property: AstPropertyAccess,
     args: AstFuncCallArgs,
+    end_pos: usize,
 }
 
 impl AstMethodCall {
-    pub fn new(method_property: AstPropertyAccess, args: AstFuncCallArgs) -> AstMethodCall {
+    pub fn new(
+        method_property: AstPropertyAccess,
+        args: AstFuncCallArgs,
+        end_pos: usize,
+    ) -> AstMethodCall {
         AstMethodCall {
             method_property,
             args,
+            end_pos,
         }
     }
 
@@ -223,6 +365,23 @@ impl AstMethodCall {
     #[inline]
     pub(crate) fn get_args(&self) -> &AstFuncCallArgs {
         &self.args
+    }
+}
+
+impl AstLoc for AstMethodCall {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.method_property.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.end_pos
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
     }
 }
 
@@ -253,6 +412,23 @@ impl AstAssignment {
     }
 }
 
+impl AstLoc for AstAssignment {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.name.1.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.value.get_end()
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
+    }
+}
+
 pub enum AstAtrOp {
     Atr,
     AddAtr,
@@ -266,6 +442,31 @@ pub enum AstStatement {
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
     Assignment(AstAssignment),
+}
+
+impl AstLoc for AstStatement {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        match self {
+            AstStatement::FuncCall(call) => call.get_begin(),
+            AstStatement::MethodCall(call) => call.get_begin(),
+            AstStatement::Assignment(assignment) => assignment.get_begin(),
+        }
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        match self {
+            AstStatement::FuncCall(call) => call.get_end(),
+            AstStatement::MethodCall(call) => call.get_end(),
+            AstStatement::Assignment(assignment) => assignment.get_end(),
+        }
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
+    }
 }
 
 pub struct AstProgram {

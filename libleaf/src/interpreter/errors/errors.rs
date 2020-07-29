@@ -24,7 +24,7 @@ impl ErrCtx {
 }
 
 pub(crate) fn push_diagnostic(frame: &EnvFrame, diagnostic: Diagnostic<usize>) {
-    let writer = StandardStream::stderr(ColorChoice::Always);
+    let writer = StandardStream::stderr(ColorChoice::Auto);
     let config = codespan_reporting::term::Config::default();
 
     term::emit(
