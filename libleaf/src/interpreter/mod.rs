@@ -1,27 +1,46 @@
+#[path = "errors/errors.rs"]
+pub(crate) mod errors;
 pub(crate) mod ops;
 mod types;
 
 use crate::grammar::ast::{AstAssignment, AstPropertyAccess};
+use crate::grammar::TokLoc;
+use crate::interpreter::errors::ErrCtx;
 use crate::interpreter::types::{resolve_num_property_access, resolve_str_property_access, TypeId};
 use crate::{
+    grammar,
     grammar::ast::{AstAtrOp, AstFuncCall, AstFuncCallArgs, AstProgram, AstStatement},
     handle::Handle,
 };
+use codespan_reporting::diagnostic::{Diagnostic, Label};
 use itertools::Itertools;
 use libleafcore::utils::Stack;
 use std::collections::HashMap;
 use std::ops::Deref;
+use std::path::{Path, PathBuf};
 
-struct Env {
-    frames: Stack<EnvFrame>,
+pub(crate) struct Env<'env> {
+    frames: Stack<EnvFrame<'env>>,
+    errctx: ErrCtx,
 }
 
-pub(crate) struct EnvFrame {
+impl<'env> Env<'env> {
+    pub(crate) fn new() -> Self {
+        Self {
+            frames: Stack::new(),
+            errctx: ErrCtx::new(),
+        }
+    }
+}
+
+pub(crate) struct EnvFrame<'env> {
+    env_ref: &'env Env<'env>,
     variables: HashMap<String, Variable<Box<dyn ValueTypeMarker>>>,
     env_frame_returns: EnvFrameReturns,
+    file_id: usize,
 }
 
-impl EnvFrame {
+impl<'env> EnvFrame<'env> {
     pub(crate) fn get_value_for_variable(&self, id: &str) -> &Value<Box<dyn ValueTypeMarker>> {
         self.variables
             .iter()
@@ -29,6 +48,10 @@ impl EnvFrame {
             .unwrap_or_else(|| panic!("No variable named {} found in stack", id))
             .1
             .get_value()
+    }
+
+    pub(crate) fn get_errctx(&self) -> &ErrCtx {
+        &self.env_ref.errctx
     }
 }
 
@@ -141,11 +164,19 @@ where
     }
 }
 
-pub(crate) fn interpret(program: &AstProgram) -> EnvFrameReturns {
+pub(crate) fn interpret<'env>(
+    env: &'env mut Env,
+    program: &'_ AstProgram,
+    file: String,
+    src: String,
+) -> EnvFrameReturns {
     let statements = program.get_statements();
+    let file_id = env.errctx.new_file(file, src);
     let mut frame = EnvFrame {
         variables: HashMap::new(),
         env_frame_returns: EnvFrameReturns::empty(),
+        env_ref: env,
+        file_id,
     };
 
     statements.iter().for_each(|statement| {
@@ -155,8 +186,17 @@ pub(crate) fn interpret(program: &AstProgram) -> EnvFrameReturns {
     frame.env_frame_returns
 }
 
-pub fn interpret_wrapper(program: &AstProgram, handle: &mut Handle) {
-    interpret(program).push_to(handle);
+pub fn start_on(proj_path: &Path, handle: &mut Handle) {
+    let path = proj_path.join("build.leaf");
+    let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap() + "\n";
+    let program = grammar::parse(&src).unwrap();
+    interpret(
+        &mut handle.env,
+        &program,
+        proj_path.to_str().unwrap().to_string(),
+        src,
+    )
+    .push_to(handle);
 }
 
 pub(crate) struct CallPool {
@@ -203,6 +243,7 @@ pub(crate) fn func_call_result(
 ) -> Value<Box<dyn ValueTypeMarker>> {
     eval_call(
         call.get_name(),
+        call.get_name_loc(),
         call.get_args(),
         frame,
         &get_global_functions(),
@@ -218,6 +259,7 @@ pub(crate) fn method_call_result(
     let value = method_property.get_base().eval_in_env(frame);
     eval_call(
         method_property.get_property_name(),
+        method_property.get_property_name_loc(),
         call_args,
         frame,
         &value.get_value().get_func_call_pool(),

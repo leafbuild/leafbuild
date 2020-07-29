@@ -40,6 +40,11 @@ impl AstPropertyAccess {
     pub(crate) fn get_property_name(&self) -> &String {
         &self.property_name.0
     }
+
+    #[inline]
+    pub(crate) fn get_property_name_loc(&self) -> &TokLoc {
+        &self.property_name.1
+    }
 }
 
 impl Expr {
@@ -104,6 +109,10 @@ impl AstFuncCall {
 
     pub fn get_name(&self) -> &String {
         &self.func_name.0
+    }
+
+    pub fn get_name_loc(&self) -> &TokLoc {
+        &self.func_name.1
     }
 
     pub fn get_args(&self) -> &AstFuncCallArgs {
@@ -201,9 +210,17 @@ impl AstMethodCall {
         &self.method_property.base
     }
 
+    #[inline]
     pub(crate) fn get_name(&self) -> &String {
         &self.method_property.get_property_name()
     }
+
+    #[inline]
+    pub(crate) fn get_name_loc(&self) -> &TokLoc {
+        &self.method_property.get_property_name_loc()
+    }
+
+    #[inline]
     pub(crate) fn get_args(&self) -> &AstFuncCallArgs {
         &self.args
     }

@@ -6,6 +6,9 @@ where
 }
 
 impl<Element> Stack<Element> {
+    pub fn new() -> Self {
+        Self::default()
+    }
     pub fn push(&mut self, element: Element) {
         self.elements.push(element);
     }
@@ -17,5 +20,11 @@ impl<Element> Stack<Element> {
     }
     pub fn empty(&self) -> bool {
         self.elements.is_empty()
+    }
+}
+
+impl<Element> Default for Stack<Element> {
+    fn default() -> Self {
+        Self { elements: vec![] }
     }
 }

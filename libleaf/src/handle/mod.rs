@@ -1,12 +1,15 @@
+use crate::interpreter::Env;
 use crate::interpreter::EnvFrameReturns;
 
-pub struct Handle {
+pub struct Handle<'env> {
+    pub(crate) env: Env<'env>,
     env_frame_returns: EnvFrameReturns,
 }
 
-impl Handle {
+impl<'env> Handle<'env> {
     pub fn new() -> Self {
         Self {
+            env: Env::new(),
             env_frame_returns: EnvFrameReturns::empty(),
         }
     }
@@ -16,7 +19,7 @@ impl Handle {
     }
 }
 
-impl Default for Handle {
+impl<'env> Default for Handle<'env> {
     fn default() -> Self {
         Self::new()
     }

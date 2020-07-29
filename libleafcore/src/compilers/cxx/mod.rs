@@ -8,10 +8,11 @@ impl Compiler for dyn CXXCompiler {
             || filename.ends_with(".h")
             || filename.ends_with(".hpp")
             || filename.ends_with(".hh")
+            || filename.ends_with(".hxx")
     }
 
     fn can_compile(filename: &str) -> bool {
-        filename.ends_with(".cpp") || filename.ends_with(".cc")
+        filename.ends_with(".cpp") || filename.ends_with(".cc") || filename.ends_with(".cxx")
     }
 }
 

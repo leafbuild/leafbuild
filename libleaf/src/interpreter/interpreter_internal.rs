@@ -6,6 +6,7 @@ fn run_in_env_frame(statement: &AstStatement, env_frame: &mut EnvFrame) {
         AstStatement::MethodCall(call) => run_method_call_in_env_frame(
             &call.get_base_expr().eval_in_env(env_frame),
             call.get_name(),
+            call.get_name_loc(),
             call.get_args(),
             env_frame,
         ),
@@ -16,6 +17,7 @@ fn run_in_env_frame(statement: &AstStatement, env_frame: &mut EnvFrame) {
 fn run_func_call_in_env_frame(call: &AstFuncCall, env_frame: &mut EnvFrame) {
     eval_call(
         call.get_name(),
+        call.get_name_loc(),
         call.get_args(),
         env_frame,
         &get_global_functions(),
@@ -26,11 +28,13 @@ fn run_func_call_in_env_frame(call: &AstFuncCall, env_frame: &mut EnvFrame) {
 fn run_method_call_in_env_frame(
     base_value: &Value<Box<dyn ValueTypeMarker>>,
     call_name: &str,
+    call_loc: &TokLoc,
     call_args: &AstFuncCallArgs,
     env_frame: &mut EnvFrame,
 ) {
     eval_call(
         call_name,
+        call_loc,
         call_args,
         env_frame,
         &get_global_functions(),
@@ -42,17 +46,36 @@ fn run_method_call_in_env_frame(
 
 fn eval_call(
     call_name: &str,
+    call_loc: &TokLoc,
     args: &AstFuncCallArgs,
     env_frame: &mut EnvFrame,
     func_call_poll: &CallPool,
     base_value: Option<&Value<Box<dyn ValueTypeMarker>>>,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    (func_call_poll
+    let executor = func_call_poll
         .executors
         .iter()
-        .find(|executor| executor.name == call_name)
-        .unwrap()
-        .func)(args, env_frame, base_value)
+        .find(|executor| executor.name == call_name);
+    match executor {
+        Some(exe) => (exe.func)(args, env_frame, base_value),
+        None => {
+            errors::push_diagnostic(
+                env_frame,
+                Diagnostic::error()
+                    .with_message("Cannot find call")
+                    .with_labels(vec![Label::primary(env_frame.file_id, call_loc.as_rng())
+                        .with_message(format!(
+                            "cannot find {} '{}'",
+                            match base_value {
+                                Some(_) => "method",
+                                None => "function",
+                            },
+                            call_name
+                        ))]),
+            );
+            (get_print_executor().func)(args, env_frame, base_value)
+        }
+    }
 }
 
 fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFrame) {
@@ -63,7 +86,9 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         AstAtrOp::Atr => value,
         AstAtrOp::AddAtr => ops::op_add(
             old_value
-                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .unwrap_or_else(|| {
+                    panic!("Cannot composite assignment on variable that doesn't exist")
+                })
                 .value
                 .get_value()
                 .clone_to_value(),
@@ -71,7 +96,9 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         ),
         AstAtrOp::SubAtr => ops::op_sub(
             old_value
-                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .unwrap_or_else(|| {
+                    panic!("Cannot composite assignment on variable that doesn't exist")
+                })
                 .value
                 .get_value()
                 .clone_to_value(),
@@ -79,7 +106,9 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         ),
         AstAtrOp::MulAtr => ops::op_add(
             old_value
-                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .unwrap_or_else(|| {
+                    panic!("Cannot composite assignment on variable that doesn't exist")
+                })
                 .value
                 .get_value()
                 .clone_to_value(),
@@ -87,7 +116,9 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         ),
         AstAtrOp::DivAtr => ops::op_add(
             old_value
-                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .unwrap_or_else(|| {
+                    panic!("Cannot composite assignment on variable that doesn't exist")
+                })
                 .value
                 .get_value()
                 .clone_to_value(),
@@ -95,7 +126,9 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         ),
         AstAtrOp::ModAtr => ops::op_add(
             old_value
-                .unwrap_or_else(|| panic!("Cannot add to variable that doesn't exist"))
+                .unwrap_or_else(|| {
+                    panic!("Cannot composite assignment on variable that doesn't exist")
+                })
                 .value
                 .get_value()
                 .clone_to_value(),

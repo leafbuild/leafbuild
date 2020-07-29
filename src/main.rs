@@ -2,7 +2,7 @@ extern crate libleaf;
 extern crate libleafcore;
 
 use clap::{App, Arg};
-use libleaf::{grammar, handle::Handle, interpreter};
+use libleaf::{handle::Handle, interpreter};
 use std::path::Path;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -36,9 +36,5 @@ fn main() {
         Some(path) => Path::new(path),
         None => wd.as_path(),
     };
-    let program = grammar::parse(
-        &(String::from_utf8(std::fs::read(proj_path.join("build.leaf")).unwrap()).unwrap() + "\n"),
-    )
-    .unwrap();
-    interpreter::interpret_wrapper(&program, &mut handle);
+    interpreter::start_on(&proj_path, &mut handle);
 }
