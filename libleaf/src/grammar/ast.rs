@@ -143,11 +143,7 @@ impl Expr {
             Expr::MethodCall(call_expr) => {
                 interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
             }
-            Expr::Op(left, opcode, right) => {
-                let ls = left.eval_in_env(frame);
-                let rs = right.eval_in_env(frame);
-                opcode.compute_result_for(ls, rs)
-            } // will implement later
+            Expr::Op(left, opcode, right) => opcode.compute_result_for(left, right, frame), // will implement later
             Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
         }
     }
@@ -164,15 +160,16 @@ pub enum Opcode {
 impl Opcode {
     pub(crate) fn compute_result_for(
         &self,
-        ls: Value<Box<dyn ValueTypeMarker>>,
-        rs: Value<Box<dyn ValueTypeMarker>>,
+        ls: &Expr,
+        rs: &Expr,
+        frame: &mut EnvFrame,
     ) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
-            Opcode::Add => interpreter::ops::op_add(ls, rs),
-            Opcode::Sub => interpreter::ops::op_sub(ls, rs),
-            Opcode::Mul => interpreter::ops::op_mul(ls, rs),
-            Opcode::Div => interpreter::ops::op_div(ls, rs),
-            Opcode::Mod => interpreter::ops::op_mod(ls, rs),
+            Opcode::Add => interpreter::ops::op_add(ls, rs, frame),
+            Opcode::Sub => interpreter::ops::op_sub(ls, rs, frame),
+            Opcode::Mul => interpreter::ops::op_mul(ls, rs, frame),
+            Opcode::Div => interpreter::ops::op_div(ls, rs, frame),
+            Opcode::Mod => interpreter::ops::op_mod(ls, rs, frame),
         }
     }
 }
@@ -386,19 +383,23 @@ impl AstLoc for AstMethodCall {
 }
 
 pub struct AstAssignment {
-    name: (String, TokLoc),
+    bound_name: Box<Expr>,
     op: AstAtrOp,
     value: Box<Expr>,
 }
 
 impl AstAssignment {
-    pub fn new(name: (String, TokLoc), op: AstAtrOp, value: Box<Expr>) -> AstAssignment {
-        AstAssignment { name, op, value }
+    pub fn new(bound_name: Box<Expr>, op: AstAtrOp, value: Box<Expr>) -> AstAssignment {
+        AstAssignment {
+            bound_name,
+            op,
+            value,
+        }
     }
 
     #[inline]
-    pub fn get_name(&self) -> &String {
-        &self.name.0
+    pub fn get_bound(&self) -> &Expr {
+        &self.bound_name
     }
 
     #[inline]
@@ -415,7 +416,7 @@ impl AstAssignment {
 impl AstLoc for AstAssignment {
     #[inline]
     fn get_begin(&self) -> usize {
-        self.name.1.get_begin()
+        self.bound_name.get_begin()
     }
 
     #[inline]

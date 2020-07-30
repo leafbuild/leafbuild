@@ -1,4 +1,4 @@
-use crate::interpreter::{get_global_functions, CallExecutor, CallPool, Value, ValueTypeMarker};
+use crate::interpreter::{CallExecutor, CallPool, Value, ValueTypeMarker};
 
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -11,6 +11,18 @@ pub(crate) enum TypeIdAndValue<'a> {
     U32(&'a u32),
     U64(&'a u64),
     String(&'a String),
+}
+
+impl<'a> TypeIdAndValue<'a> {
+    pub(crate) fn stringify(&self) -> String {
+        match self {
+            TypeIdAndValue::I32(v) => format!("{}", v),
+            TypeIdAndValue::I64(v) => format!("{}", v),
+            TypeIdAndValue::U32(v) => format!("{}", v),
+            TypeIdAndValue::U64(v) => format!("{}", v),
+            TypeIdAndValue::String(v) => (*v).clone(),
+        }
+    }
 }
 
 impl<'a> Display for TypeIdAndValue<'a> {

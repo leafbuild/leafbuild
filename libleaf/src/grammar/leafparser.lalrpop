@@ -95,7 +95,7 @@ MethodCall: AstMethodCall = {
 };
 
 Assignment: AstAssignment = {
-	<var_name: IdExpression> <op: AtrOp> <val: Expr> => AstAssignment::new(var_name, op, val),
+	<bound_name: Expr> <op: AtrOp> <val: Expr> => AstAssignment::new(bound_name, op, val),
 }
 
 AtrOp: AstAtrOp = {

@@ -2125,7 +2125,7 @@ hljs.registerLanguage('leafbuild', function () {
     };
     let KEYWORDS = {
       className: 'keyword',
-      beginKeywords: 'project module executable library'
+      beginKeywords: 'project module executable library print'
     };
     return {
       name: 'leafbuild',

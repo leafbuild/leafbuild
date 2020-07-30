@@ -14,10 +14,6 @@ impl ValueTypeMarker for i32 {
     fn get_type_id_and_value(&self) -> TypeIdAndValue {
         TypeIdAndValue::I32(self)
     }
-
-    fn get_func_call_pool(&self) -> CallPool {
-        get_global_functions()
-    }
 }
 
 impl ValueTypeMarker for i64 {

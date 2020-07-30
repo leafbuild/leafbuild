@@ -3,14 +3,15 @@ pub(crate) mod errors;
 pub(crate) mod ops;
 mod types;
 
-use crate::grammar::ast::{AstAssignment, AstPropertyAccess};
-use crate::grammar::TokLoc;
-use crate::interpreter::errors::ErrCtx;
-use crate::interpreter::types::{resolve_num_property_access, resolve_str_property_access, TypeId};
+use crate::grammar::ast::{AstLoc, Atom, Expr};
 use crate::{
     grammar,
+    grammar::ast::{AstAssignment, AstPropertyAccess},
     grammar::ast::{AstAtrOp, AstFuncCall, AstFuncCallArgs, AstProgram, AstStatement},
+    grammar::TokLoc,
     handle::Handle,
+    interpreter::errors::ErrCtx,
+    interpreter::types::{resolve_num_property_access, resolve_str_property_access, TypeId},
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use itertools::Itertools;
@@ -22,6 +23,7 @@ use std::path::Path;
 pub(crate) struct Env<'env> {
     frames: Stack<EnvFrame<'env>>,
     errctx: ErrCtx,
+    call_pools: CallPoolsWrapper,
 }
 
 impl<'env> Env<'env> {
@@ -29,6 +31,7 @@ impl<'env> Env<'env> {
         Self {
             frames: Stack::new(),
             errctx: ErrCtx::new(),
+            call_pools: CallPoolsWrapper::new(),
         }
     }
 }
@@ -50,8 +53,14 @@ impl<'env> EnvFrame<'env> {
             .get_value()
     }
 
+    #[inline]
     pub(crate) fn get_errctx(&self) -> &ErrCtx {
         &self.env_ref.errctx
+    }
+
+    #[inline]
+    pub(crate) fn get_pools_wrapper(&self) -> &'env CallPoolsWrapper {
+        &self.env_ref.call_pools
     }
 }
 
@@ -115,9 +124,6 @@ pub(crate) trait ValueTypeMarker {
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>>;
     fn get_type_id(&self) -> types::TypeId;
     fn get_type_id_and_value(&self) -> types::TypeIdAndValue;
-    fn get_func_call_pool(&self) -> CallPool {
-        get_func_call_pool_for_typeid(self.get_type_id())
-    }
 }
 
 impl<T> ValueTypeMarker for Box<T>
@@ -159,6 +165,7 @@ where
     pub fn get_value(&self) -> &T {
         &self.value
     }
+    #[inline]
     pub fn stringify(&self) -> String {
         self.value.stringify()
     }
@@ -198,6 +205,45 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
         src,
     )
     .push_to(handle);
+}
+
+pub(crate) struct CallPoolsWrapper {
+    global_pool: CallPool,
+    num_pool: CallPool,
+    string_pool: CallPool,
+}
+
+impl CallPoolsWrapper {
+    #[inline]
+    pub(crate) fn new() -> Self {
+        Self {
+            global_pool: get_global_functions(),
+            num_pool: types::get_num_call_pool(),
+            string_pool: types::get_string_call_pool(),
+        }
+    }
+    #[inline]
+    pub(crate) fn get_global_pool(&self) -> &CallPool {
+        &self.global_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_num_pool(&self) -> &CallPool {
+        &self.num_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_string_pool(&self) -> &CallPool {
+        &self.string_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
+        match type_ {
+            TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => &self.get_num_pool(),
+            TypeId::String => &self.get_string_pool(),
+        }
+    }
 }
 
 pub(crate) struct CallPool {
@@ -247,7 +293,7 @@ pub(crate) fn func_call_result(
         call.get_name_loc(),
         call.get_args(),
         frame,
-        &get_global_functions(),
+        frame.get_pools_wrapper().get_global_pool(),
         None,
     )
 }
@@ -263,7 +309,9 @@ pub(crate) fn method_call_result(
         method_property.get_property_name_loc(),
         call_args,
         frame,
-        &value.get_value().get_func_call_pool(),
+        frame
+            .get_pools_wrapper()
+            .get_type_pool(value.get_value().get_type_id()),
         Some(&value),
     )
 }

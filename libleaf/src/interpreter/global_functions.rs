@@ -33,12 +33,3 @@ pub(crate) fn get_global_functions() -> CallPool {
         get_print_executor(),
     ])
 }
-
-pub(crate) fn get_func_call_pool_for_typeid(typeid: types::TypeId) -> CallPool {
-    match typeid {
-        types::TypeId::I32 | types::TypeId::I64 | types::TypeId::U32 | types::TypeId::U64 => {
-            types::get_num_call_pool()
-        }
-        types::TypeId::String => types::get_string_call_pool(),
-    }
-}

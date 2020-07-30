@@ -1,18 +1,20 @@
-use crate::interpreter::{types::TypeIdAndValue, Value, ValueTypeMarker};
+use crate::grammar::ast::Expr;
+use crate::interpreter::{types::TypeIdAndValue, EnvFrame, Value, ValueTypeMarker};
 
 pub(crate) fn op_add(
-    ls: Value<Box<dyn ValueTypeMarker>>,
-    rs: Value<Box<dyn ValueTypeMarker>>,
+    ls: &Expr,
+    rs: &Expr,
+    frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
+        ls.eval_in_env(frame).get_value().get_type_id_and_value(),
+        rs.eval_in_env(frame).get_value().get_type_id_and_value(),
     ) {
-        (TypeIdAndValue::String(left), _right) => {
-            Value::new(Box::new(format!("{}{}", left, rs.stringify())))
+        (TypeIdAndValue::String(left), right) => {
+            Value::new(Box::new(format!("{}{}", left, right.stringify())))
         }
-        (_left, TypeIdAndValue::String(right)) => {
-            Value::new(Box::new(format!("{}{}", ls.stringify(), right)))
+        (left, TypeIdAndValue::String(right)) => {
+            Value::new(Box::new(format!("{}{}", left.stringify(), right)))
         }
         (TypeIdAndValue::I32(leftval), right) => match right {
             TypeIdAndValue::I32(rightval) => Value::new(Box::new(*leftval + *rightval)),
@@ -46,12 +48,13 @@ pub(crate) fn op_add(
 }
 
 pub(crate) fn op_sub(
-    ls: Value<Box<dyn ValueTypeMarker>>,
-    rs: Value<Box<dyn ValueTypeMarker>>,
+    ls: &Expr,
+    rs: &Expr,
+    frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
+        ls.eval_in_env(frame).get_value().get_type_id_and_value(),
+        rs.eval_in_env(frame).get_value().get_type_id_and_value(),
     ) {
         (TypeIdAndValue::I32(leftval), right) => match right {
             TypeIdAndValue::I32(rightval) => Value::new(Box::new(*leftval - *rightval)),
@@ -102,12 +105,13 @@ pub(crate) fn op_sub(
 }
 
 pub(crate) fn op_mul(
-    ls: Value<Box<dyn ValueTypeMarker>>,
-    rs: Value<Box<dyn ValueTypeMarker>>,
+    ls: &Expr,
+    rs: &Expr,
+    frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
+        ls.eval_in_env(frame).get_value().get_type_id_and_value(),
+        rs.eval_in_env(frame).get_value().get_type_id_and_value(),
     ) {
         (TypeIdAndValue::I32(leftval), right) => match right {
             TypeIdAndValue::I32(rightval) => Value::new(Box::new(*leftval * *rightval)),
@@ -158,12 +162,13 @@ pub(crate) fn op_mul(
 }
 
 pub(crate) fn op_div(
-    ls: Value<Box<dyn ValueTypeMarker>>,
-    rs: Value<Box<dyn ValueTypeMarker>>,
+    ls: &Expr,
+    rs: &Expr,
+    frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
+        ls.eval_in_env(frame).get_value().get_type_id_and_value(),
+        rs.eval_in_env(frame).get_value().get_type_id_and_value(),
     ) {
         (TypeIdAndValue::I32(leftval), right) => match right {
             TypeIdAndValue::I32(rightval) => Value::new(Box::new(*leftval / *rightval)),
@@ -214,12 +219,13 @@ pub(crate) fn op_div(
 }
 
 pub(crate) fn op_mod(
-    ls: Value<Box<dyn ValueTypeMarker>>,
-    rs: Value<Box<dyn ValueTypeMarker>>,
+    ls: &Expr,
+    rs: &Expr,
+    frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
+        ls.eval_in_env(frame).get_value().get_type_id_and_value(),
+        rs.eval_in_env(frame).get_value().get_type_id_and_value(),
     ) {
         (TypeIdAndValue::I32(leftval), right) => match right {
             TypeIdAndValue::I32(rightval) => Value::new(Box::new(*leftval % *rightval)),
