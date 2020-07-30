@@ -15,6 +15,7 @@ use crate::{
 			AstAssignment,
 			AstAtrOp,
 			AstPropertyAccess,
+			AstDeclaration,
 		},
 	},
 };
@@ -26,6 +27,7 @@ Statement: AstStatement = {
     <MethodCall> "\n"+ => AstStatement::MethodCall(<>),
 	<FuncCall> "\n"+ => AstStatement::FuncCall(<>),
 	<Assignment> "\n"+ => AstStatement::Assignment(<>),
+	<Declaration> "\n"+ => AstStatement::Declaration(<>),
 };
 
 FuncCall: AstFuncCall = {
@@ -94,9 +96,13 @@ MethodCall: AstMethodCall = {
 	<property_access:PropertyAccess> "(" <args:FuncArgs> <end:")"> => AstMethodCall::new(property_access, args, end.get_end()),
 };
 
+Declaration: AstDeclaration = {
+	<begin: "let"> <name: IdExpression> "=" <value: Expr> => AstDeclaration::new(name, value, begin)
+};
+
 Assignment: AstAssignment = {
-	<bound_name: Expr> <op: AtrOp> <val: Expr> => AstAssignment::new(bound_name, op, val),
-}
+	<bind_name: Expr> <op: AtrOp> <val: Expr> => AstAssignment::new(bind_name, op, val),
+};
 
 AtrOp: AstAtrOp = {
 	"=" => AstAtrOp::Atr,
@@ -105,7 +111,7 @@ AtrOp: AstAtrOp = {
 	"*=" => AstAtrOp::MulAtr,
 	"/=" => AstAtrOp::DivAtr,
 	"%=" => AstAtrOp::ModAtr,
-}
+};
 
 pub IdExpression = { "id" };
 
@@ -128,6 +134,9 @@ extern {
         "%" => lexer::Tok::Mod(<TokLoc>),
         "(" => lexer::Tok::POPEN(<TokLoc>),
         ")" => lexer::Tok::PCLOSE(<TokLoc>),
+
+        "let" => lexer::Tok::Let(<TokLoc>),
+
         "num" => lexer::Tok::Number(<i32>, <TokLoc>),
         "id" => lexer::Tok::Identifier(<String>, <TokLoc>),
         "str" => lexer::Tok::Str(<String>, <TokLoc>),

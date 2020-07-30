@@ -3,33 +3,34 @@ pub(crate) mod errors;
 pub(crate) mod ops;
 mod types;
 
-use crate::grammar::ast::{AstLoc, Atom, Expr};
+use crate::grammar::ast::AstDeclaration;
 use crate::{
-    grammar,
-    grammar::ast::{AstAssignment, AstPropertyAccess},
-    grammar::ast::{AstAtrOp, AstFuncCall, AstFuncCallArgs, AstProgram, AstStatement},
-    grammar::TokLoc,
+    grammar::{
+        self,
+        ast::{
+            AstAssignment, AstAtrOp, AstFuncCall, AstFuncCallArgs, AstLoc, AstProgram,
+            AstPropertyAccess, AstStatement,
+        },
+        TokLoc,
+    },
     handle::Handle,
     interpreter::errors::ErrCtx,
+    interpreter::types::TypeIdAndValue,
     interpreter::types::{resolve_num_property_access, resolve_str_property_access, TypeId},
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use itertools::Itertools;
-use libleafcore::utils::Stack;
-use std::collections::HashMap;
-use std::ops::Deref;
-use std::path::Path;
+use std::ops::Range;
+use std::{collections::HashMap, ops::Deref, path::Path};
 
-pub(crate) struct Env<'env> {
-    frames: Stack<EnvFrame<'env>>,
+pub(crate) struct Env {
     errctx: ErrCtx,
     call_pools: CallPoolsWrapper,
 }
 
-impl<'env> Env<'env> {
+impl Env {
     pub(crate) fn new() -> Self {
         Self {
-            frames: Stack::new(),
             errctx: ErrCtx::new(),
             call_pools: CallPoolsWrapper::new(),
         }
@@ -37,7 +38,7 @@ impl<'env> Env<'env> {
 }
 
 pub(crate) struct EnvFrame<'env> {
-    env_ref: &'env Env<'env>,
+    env_ref: &'env Env,
     variables: HashMap<String, Variable<Box<dyn ValueTypeMarker>>>,
     env_frame_returns: EnvFrameReturns,
     file_id: usize,
@@ -61,6 +62,13 @@ impl<'env> EnvFrame<'env> {
     #[inline]
     pub(crate) fn get_pools_wrapper(&self) -> &'env CallPoolsWrapper {
         &self.env_ref.call_pools
+    }
+
+    #[inline]
+    pub(crate) fn get_variables_mut(
+        &mut self,
+    ) -> &mut HashMap<String, Variable<Box<dyn ValueTypeMarker>>> {
+        &mut self.variables
     }
 }
 
@@ -99,7 +107,7 @@ struct EnvExeDecl {
     path: String,
 }
 
-struct Variable<T>
+pub(crate) struct Variable<T>
 where
     T: ValueTypeMarker,
 {
@@ -117,6 +125,9 @@ where
     pub(crate) fn get_value(&self) -> &Value<T> {
         &self.value
     }
+    pub(crate) fn get_value_mut(&mut self) -> &mut Value<T> {
+        &mut self.value
+    }
 }
 
 pub(crate) trait ValueTypeMarker {
@@ -127,6 +138,27 @@ pub(crate) trait ValueTypeMarker {
 }
 
 impl<T> ValueTypeMarker for Box<T>
+where
+    T: ValueTypeMarker + ?Sized,
+{
+    fn stringify(&self) -> String {
+        self.deref().stringify()
+    }
+
+    fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>> {
+        self.deref().clone_to_value()
+    }
+
+    fn get_type_id(&self) -> TypeId {
+        self.deref().get_type_id()
+    }
+
+    fn get_type_id_and_value(&self) -> types::TypeIdAndValue {
+        self.deref().get_type_id_and_value()
+    }
+}
+
+impl<T> ValueTypeMarker for &mut Box<T>
 where
     T: ValueTypeMarker + ?Sized,
 {
@@ -165,9 +197,72 @@ where
     pub fn get_value(&self) -> &T {
         &self.value
     }
+
+    #[inline]
+    pub fn get_value_mut(&mut self) -> &mut T {
+        &mut self.value
+    }
+
     #[inline]
     pub fn stringify(&self) -> String {
         self.value.stringify()
+    }
+}
+
+/// A value reference
+pub(crate) struct ValRef<'a, T>
+where
+    T: ValueTypeMarker,
+{
+    reference: &'a mut Value<T>,
+}
+
+impl<'a, T> ValRef<'a, T>
+where
+    T: ValueTypeMarker,
+{
+    pub(crate) fn new(reference: &'a mut Value<T>) -> Self {
+        Self { reference }
+    }
+}
+
+impl<'a, T> ValueTypeMarker for ValRef<'a, T>
+where
+    T: ValueTypeMarker,
+{
+    #[inline]
+    fn stringify(&self) -> String {
+        self.reference.stringify()
+    }
+
+    #[inline]
+    fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>> {
+        // when you clone a reference, it should return a brand new object with the same value
+        self.reference.get_value().clone_to_value()
+    }
+
+    #[inline]
+    fn get_type_id(&self) -> TypeId {
+        self.reference.get_value().get_type_id()
+    }
+
+    #[inline]
+    fn get_type_id_and_value(&self) -> TypeIdAndValue<'_> {
+        self.reference.get_value().get_type_id_and_value()
+    }
+}
+
+pub(crate) struct TakeRefError<'a> {
+    description: &'a str,
+    location: Range<usize>,
+}
+
+impl<'a> TakeRefError<'a> {
+    pub(crate) fn new(description: &'a str, location: Range<usize>) -> Self {
+        Self {
+            description,
+            location,
+        }
     }
 }
 

@@ -49,6 +49,7 @@ pub enum Tok {
     Colon(TokLoc),
     Comma(TokLoc),
     Dot(TokLoc),
+    Let(TokLoc),
 }
 
 impl Display for Tok {
@@ -105,15 +106,19 @@ impl<'input> Lexer<'input> {
                 .map(|(_pos, chr)| chr)
                 .collect::<String>()
         );
+        let loc = TokLoc {
+            begin: initial_position,
+            end: next_position,
+        };
+
+        // keywords are checked here
+
         Ok((
             initial_position,
-            Tok::Identifier(
-                result,
-                TokLoc {
-                    begin: initial_position,
-                    end: next_position,
-                },
-            ),
+            match &result as &str {
+                "let" => Tok::Let(loc),
+                _ => Tok::Identifier(result, loc),
+            },
             next_position,
         ))
     }

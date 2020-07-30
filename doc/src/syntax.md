@@ -61,16 +61,22 @@ Variables, once assigned a value, will live for as long as the file
 they are declared in is processed.
 
 ### Declaring
-You can declare a variable like:
+Variables are declared with the `let` keyword:
 
 ```leafbuild
-a = 0
-b = 1
-c = 'a string'
-d = '''A
+let variable_name = value
+```
+
+Examples:
+
+```leafbuild
+let a = 0
+let b = 1
+let c = 'a string'
+let d = '''A
 multiline
 string'''
-e = a // e = 0
+let e = a // e = 0
 ```
 
 ### Assigning a value to a variable

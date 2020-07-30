@@ -10,6 +10,7 @@ fn run_in_env_frame(statement: &AstStatement, env_frame: &mut EnvFrame) {
             call.get_args(),
             env_frame,
         ),
+        AstStatement::Declaration(decl) => run_declaration_in_env_frame(decl, env_frame),
         AstStatement::Assignment(assignment) => run_assignment_in_env_frame(assignment, env_frame),
     };
 }
@@ -80,124 +81,149 @@ fn eval_call(
     }
 }
 
+fn run_declaration_in_env_frame(decl: &AstDeclaration, env_frame: &mut EnvFrame) {
+    let value = decl.get_value().eval_in_env(env_frame);
+    let name = decl.get_name();
+    env_frame
+        .variables
+        .insert(name.clone(), Variable::new(name.clone(), value));
+}
+
 fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFrame) {
     let value = assignment.get_value();
     let bound_name_expr = assignment.get_bound();
-    let empty_name = "".to_string();
-    let name = match bound_name_expr {
-        Expr::Atom(atom) => match atom {
-            Atom::Id((id, _)) => id,
-            Atom::Number(_) => &empty_name,
-            Atom::Str(_) => &empty_name,
-        },
-        Expr::Op(_, _, _) => &empty_name,
-        Expr::FuncCall(_) => &empty_name,
-        Expr::MethodCall(_) => &empty_name,
-        Expr::PropertyAccess(_) => &empty_name,
-    };
-    if *name == "" {
-        errors::push_diagnostic(
-            env_frame,
-            Diagnostic::error()
-                .with_message("Assignment on something that isn't an id")
-                .with_labels(vec![Label::primary(
-                    env_frame.file_id,
-                    bound_name_expr.get_rng(),
-                )
-                .with_message("not a variable")]),
-        )
-    }
-    let old_value = env_frame.variables.get(name);
-    let value = match &assignment.get_op() {
-        AstAtrOp::Atr => value.eval_in_env(env_frame),
-        AstAtrOp::AddAtr => {
-            if let None = old_value {
-                errors::push_diagnostic(
+
+    // if old_value.is_none() {
+    //     errors::push_diagnostic(
+    //         env_frame,
+    //         Diagnostic::error()
+    //             .with_message(
+    //                 "Cannot perform composite assignment with value that doesn't exist",
+    //             )
+    //             .with_labels(vec![Label::primary(
+    //                 env_frame.file_id,
+    //                 bound_name_expr.get_rng(),
+    //             )
+    //             .with_message("doesn't exist")]),
+    //     )
+    // }
+    match &assignment.get_op() {
+        AstAtrOp::Atr => {
+            let new_val = value.eval_in_env(env_frame);
+            let expr = bound_name_expr.eval_ref(env_frame);
+            match expr {
+                Ok(val) => {
+                    *val.reference = new_val;
+                }
+                Err(err) => errors::push_diagnostic(
                     env_frame,
                     Diagnostic::error()
-                        .with_message(
-                            "Cannot perform composite assignment with value that doesn't exist",
-                        )
-                        .with_labels(vec![Label::primary(
-                            env_frame.file_id,
-                            bound_name_expr.get_rng(),
-                        )
-                        .with_message("doesn't exist")]),
-                )
+                        .with_message(err.description)
+                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
+                ),
             }
-            ops::op_add(bound_name_expr, value, env_frame)
+        }
+        AstAtrOp::AddAtr => {
+            let right_val = value.eval_in_env(env_frame);
+            let expr = bound_name_expr.eval_ref(env_frame);
+            match expr {
+                Ok(val) => {
+                    *val.reference = ops::op_add(
+                        &val.reference,
+                        bound_name_expr.get_rng(),
+                        &right_val,
+                        value.get_rng(),
+                    );
+                }
+                Err(err) => errors::push_diagnostic(
+                    env_frame,
+                    Diagnostic::error()
+                        .with_message(err.description)
+                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
+                ),
+            }
         }
         AstAtrOp::SubAtr => {
-            if let None = old_value {
-                errors::push_diagnostic(
+            let right_val = value.eval_in_env(env_frame);
+            let expr = bound_name_expr.eval_ref(env_frame);
+            match expr {
+                Ok(val) => {
+                    *val.reference = ops::op_sub(
+                        &val.reference,
+                        bound_name_expr.get_rng(),
+                        &right_val,
+                        value.get_rng(),
+                    );
+                }
+                Err(err) => errors::push_diagnostic(
                     env_frame,
                     Diagnostic::error()
-                        .with_message(
-                            "Cannot perform composite assignment with value that doesn't exist",
-                        )
-                        .with_labels(vec![Label::primary(
-                            env_frame.file_id,
-                            bound_name_expr.get_rng(),
-                        )
-                        .with_message("doesn't exist")]),
-                )
+                        .with_message(err.description)
+                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
+                ),
             }
-            ops::op_sub(bound_name_expr, value, env_frame)
         }
         AstAtrOp::MulAtr => {
-            if let None = old_value {
-                errors::push_diagnostic(
+            let right_val = value.eval_in_env(env_frame);
+            let expr = bound_name_expr.eval_ref(env_frame);
+            match expr {
+                Ok(val) => {
+                    *val.reference = ops::op_mul(
+                        &val.reference,
+                        bound_name_expr.get_rng(),
+                        &right_val,
+                        value.get_rng(),
+                    );
+                }
+                Err(err) => errors::push_diagnostic(
                     env_frame,
                     Diagnostic::error()
-                        .with_message(
-                            "Cannot perform composite assignment with value that doesn't exist",
-                        )
-                        .with_labels(vec![Label::primary(
-                            env_frame.file_id,
-                            bound_name_expr.get_rng(),
-                        )
-                        .with_message("doesn't exist")]),
-                )
+                        .with_message(err.description)
+                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
+                ),
             }
-            ops::op_mul(bound_name_expr, value, env_frame)
         }
         AstAtrOp::DivAtr => {
-            if let None = old_value {
-                errors::push_diagnostic(
+            let right_val = value.eval_in_env(env_frame);
+            let expr = bound_name_expr.eval_ref(env_frame);
+            match expr {
+                Ok(val) => {
+                    *val.reference = ops::op_div(
+                        &val.reference,
+                        bound_name_expr.get_rng(),
+                        &right_val,
+                        value.get_rng(),
+                    );
+                }
+                Err(err) => errors::push_diagnostic(
                     env_frame,
                     Diagnostic::error()
-                        .with_message(
-                            "Cannot perform composite assignment with value that doesn't exist",
-                        )
-                        .with_labels(vec![Label::primary(
-                            env_frame.file_id,
-                            bound_name_expr.get_rng(),
-                        )
-                        .with_message("doesn't exist")]),
-                )
+                        .with_message(err.description)
+                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
+                ),
             }
-            ops::op_div(bound_name_expr, value, env_frame)
         }
         AstAtrOp::ModAtr => {
-            if let None = old_value {
-                errors::push_diagnostic(
+            let right_val = value.eval_in_env(env_frame);
+            let expr = bound_name_expr.eval_ref(env_frame);
+            match expr {
+                Ok(val) => {
+                    *val.reference = ops::op_mod(
+                        &val.reference,
+                        bound_name_expr.get_rng(),
+                        &right_val,
+                        value.get_rng(),
+                    );
+                }
+                Err(err) => errors::push_diagnostic(
                     env_frame,
                     Diagnostic::error()
-                        .with_message(
-                            "Cannot perform composite assignment with value that doesn't exist",
-                        )
-                        .with_labels(vec![Label::primary(
-                            env_frame.file_id,
-                            bound_name_expr.get_rng(),
-                        )
-                        .with_message("doesn't exist")]),
-                )
+                        .with_message(err.description)
+                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
+                ),
             }
-            ops::op_mod(bound_name_expr, value, env_frame)
         }
     };
-    let var = Variable::new(name.clone(), value);
-    env_frame.variables.insert(name.clone(), var);
 }
 
 include!("global_functions.rs");

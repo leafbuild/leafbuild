@@ -1,7 +1,6 @@
-use crate::grammar::lexer::TokLoc;
 use crate::{
-    interpreter,
-    interpreter::{EnvFrame, Value, ValueTypeMarker},
+    grammar::lexer::TokLoc,
+    interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
 };
 use std::ops::Range;
 
@@ -47,6 +46,66 @@ pub enum Expr {
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
     PropertyAccess(AstPropertyAccess),
+}
+
+impl Expr {
+    pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
+        match self {
+            Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
+            Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
+            Expr::Atom(Atom::Id((id, _loc))) => frame
+                .get_value_for_variable(&id.clone())
+                .get_value()
+                .clone_to_value(),
+            Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
+            Expr::MethodCall(call_expr) => {
+                interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
+            }
+            Expr::Op(left, opcode, right) => opcode.compute_result_for(left, right, frame), // will implement later
+            Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
+        }
+    }
+
+    pub(crate) fn eval_ref<'a>(
+        &self,
+        frame: &'a mut EnvFrame,
+    ) -> Result<ValRef<'a, Box<dyn ValueTypeMarker>>, TakeRefError> {
+        match self {
+            Expr::Atom(atom) => match atom {
+                Atom::Id((name, _)) => Ok(ValRef::new(
+                    frame
+                        .get_variables_mut()
+                        .get_mut(name)
+                        .unwrap()
+                        .get_value_mut(),
+                )),
+                Atom::Number((_, loc)) => Err(TakeRefError::new(
+                    "cannot take a reference from a number",
+                    loc.as_rng(),
+                )),
+                Atom::Str((_, loc)) => Err(TakeRefError::new(
+                    "cannot take a reference from a string",
+                    loc.as_rng(),
+                )),
+            },
+            Expr::FuncCall(_) => Err(TakeRefError::new(
+                "cannot take a reference from a function call",
+                self.get_rng(),
+            )),
+            Expr::MethodCall(_) => Err(TakeRefError::new(
+                "cannot take a reference from a method call",
+                self.get_rng(),
+            )),
+            Expr::PropertyAccess(_) => Err(TakeRefError::new(
+                "cannot take a reference from a property access",
+                self.get_rng(),
+            )),
+            Expr::Op(_, _, _) => Err(TakeRefError::new(
+                "cannot take a reference from an arithmetic expression",
+                self.get_rng(),
+            )),
+        }
+    }
 }
 
 impl AstLoc for Expr {
@@ -130,25 +189,6 @@ impl AstLoc for AstPropertyAccess {
     }
 }
 
-impl Expr {
-    pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
-        match self {
-            Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
-            Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
-            Expr::Atom(Atom::Id((id, _loc))) => frame
-                .get_value_for_variable(&id.clone())
-                .get_value()
-                .clone_to_value(),
-            Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
-            Expr::MethodCall(call_expr) => {
-                interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
-            }
-            Expr::Op(left, opcode, right) => opcode.compute_result_for(left, right, frame), // will implement later
-            Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
-        }
-    }
-}
-
 pub enum Opcode {
     Mul,
     Div,
@@ -165,11 +205,36 @@ impl Opcode {
         frame: &mut EnvFrame,
     ) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
-            Opcode::Add => interpreter::ops::op_add(ls, rs, frame),
-            Opcode::Sub => interpreter::ops::op_sub(ls, rs, frame),
-            Opcode::Mul => interpreter::ops::op_mul(ls, rs, frame),
-            Opcode::Div => interpreter::ops::op_div(ls, rs, frame),
-            Opcode::Mod => interpreter::ops::op_mod(ls, rs, frame),
+            Opcode::Add => interpreter::ops::op_add(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+            ),
+            Opcode::Sub => interpreter::ops::op_sub(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+            ),
+            Opcode::Mul => interpreter::ops::op_mul(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+            ),
+            Opcode::Div => interpreter::ops::op_div(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+            ),
+            Opcode::Mod => interpreter::ops::op_mod(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+            ),
         }
     }
 }
@@ -430,6 +495,52 @@ impl AstLoc for AstAssignment {
     }
 }
 
+pub struct AstDeclaration {
+    name: (String, TokLoc),
+    value: Box<Expr>,
+    let_tok: TokLoc,
+}
+
+impl AstDeclaration {
+    pub fn new(name: (String, TokLoc), value: Box<Expr>, let_tok: TokLoc) -> Self {
+        Self {
+            name,
+            value,
+            let_tok,
+        }
+    }
+
+    pub fn get_name(&self) -> &String {
+        &self.name.0
+    }
+
+    pub fn get_name_loc(&self) -> &TokLoc {
+        &self.name.1
+    }
+
+    pub fn get_value(&self) -> &Expr {
+        &self.value
+    }
+
+    pub fn get_let_tok_location(&self) -> &TokLoc {
+        &self.let_tok
+    }
+}
+
+impl AstLoc for AstDeclaration {
+    fn get_begin(&self) -> usize {
+        self.let_tok.get_begin()
+    }
+
+    fn get_end(&self) -> usize {
+        self.value.get_end()
+    }
+
+    fn get_rng(&self) -> Range<usize> {
+        self.get_begin()..self.get_end()
+    }
+}
+
 pub enum AstAtrOp {
     Atr,
     AddAtr,
@@ -442,6 +553,7 @@ pub enum AstAtrOp {
 pub enum AstStatement {
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
+    Declaration(AstDeclaration),
     Assignment(AstAssignment),
 }
 
@@ -451,6 +563,7 @@ impl AstLoc for AstStatement {
         match self {
             AstStatement::FuncCall(call) => call.get_begin(),
             AstStatement::MethodCall(call) => call.get_begin(),
+            AstStatement::Declaration(decl) => decl.get_begin(),
             AstStatement::Assignment(assignment) => assignment.get_begin(),
         }
     }
@@ -460,6 +573,7 @@ impl AstLoc for AstStatement {
         match self {
             AstStatement::FuncCall(call) => call.get_end(),
             AstStatement::MethodCall(call) => call.get_end(),
+            AstStatement::Declaration(decl) => decl.get_end(),
             AstStatement::Assignment(assignment) => assignment.get_end(),
         }
     }
