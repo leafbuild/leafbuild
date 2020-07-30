@@ -9,7 +9,7 @@ git-repository-url = "https://github.com/dblanovschi/leafbuild"
 git-repository-icon = "fa-github"
 
 [output.html]
-default-theme = "rust"
+default-theme = "navy"
 preferred-dark-theme = "navy"
 curly-quotes = true
 

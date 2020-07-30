@@ -16,4 +16,8 @@ and mention you changed the documentation, so the site can be rebuilt.
 
 Please use reference-style links for all links to the main repo.
 
+You can use `rust` and `leafbuild` for syntax highlighting.
+Also the `leafbuild` language declaration for `highlight.js` can be found [here][leafbuild_highlight]. 
+
 [master_branch]: https://github.com/leafbuild/leafbuild/tree/master
+[leafbuild_highlight]: https://github.com/leafbuild/leafbuild/blob/master/doc/leafbuild_highlight.js

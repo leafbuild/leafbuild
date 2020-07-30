@@ -24,5 +24,11 @@ This function returns a `library` object. The type is described [here](../../spe
 The name of the library.
 Should not contain `/`s.
 
+### files
+> **Type**: `string` or array of `string`s.
+
+#### Description
+The list of source files to build the library with.
+
 ## Aliases
 `lib()`

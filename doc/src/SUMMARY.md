@@ -1,7 +1,6 @@
 # Summary
 
-- [Motivation](motivation.md)
-- [Introduction]()
+- [Introduction](introduction.md)
 - [Quick Start](quick_start.md)
 - [Supported Languages](supported_languages.md)
 - [Syntax](syntax.md)
@@ -32,3 +31,6 @@
 - [About `libleafcore`, a useful library in creating C/C++ meta build systems](dev/libleafcore.md)
 - [About `libleaf`, the library that manages everything](dev/libleaf.md)
 - [About `leaf`, the crate for the binary](dev/leaf.md)
+
+# Others
+- [Motivation](motivation.md)

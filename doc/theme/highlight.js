@@ -2094,10 +2094,10 @@ hljs.registerLanguage('leafbuild', function () {
   'use strict';
 
   /*
-  Language: Leaf.Build
+  Language: Leaf build definition files
   Description: Leaf Build is an open-source system for build automation.
   Author: Dinu Blanovschi <dinu.blanovschi@criptext.com>
-  Website: https://dblanovschi.github.com/leafbuild/
+  Website: https://leafbuild.github.com/leafbuild/
   */
 
   /** @type LanguageFn */

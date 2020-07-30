@@ -1,12 +1,19 @@
 # Supported Languages
 
 The build system supports the following languages:
-- [Assembly](#assembly)
 - [C](#c)
 - [C++](#c-1)
-
-## Assembly
+- [Assembly](#assembly)
 
 ## C
+### What compilers will it be able to use?
+`gcc`, `clang`, `msvc`, `tcc`
 
 ## C++
+## What compilers will it be able to use?
+`gcc`, `clang`, `msvc`
+
+
+## Assembly
+### What assemblers will it be able to use?
+`gas`, `nasm`, `yasm`
