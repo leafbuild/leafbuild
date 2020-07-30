@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-if [ $# -lt 1 ] || [ "$1" != "build" ] && [ "$1" != "serve" ] && [ "$1" != "push" ] && [ "$1" != "build_highlighter" ] && [ "$1" != "prepare_commit" ] && [ "$1" != "nuke" ];
-then echo "$0: invoke as \"$0 <build|serve|push|build_highlighter|prepare_commit|nuke>\"" >&2
+if [ $# -lt 1 ] || [ "$1" != "build" ] && [ "$1" != "serve" ] && [ "$1" != "push" ] && [ "$1" != "build_highlighter" ] && [ "$1" != "nuke" ];
+then echo "$0: invoke as \"$0 <build|serve|push|build_highlighter|nuke>\"" >&2
      exit 1
 fi
 case $1 in
@@ -29,16 +29,12 @@ case $1 in
   ;;
 "build_highlighter")
   pushd doc || exit $?
+  cp ./leafbuild_highlight.js hl_clone/highlight.js/src/languages/leafbuild.js
   pushd hl_clone || exit $?
   cd highlight.js || exit $?
   node tools/build.js -n leafbuild rust || exit $?
   popd || exit $?
   cp hl_clone/highlight.js/build/highlight.js theme/highlight.js || exit $?
-  popd || exit $?
-  ;;
-"prepare_commit")
-  pushd doc || exit $?
-  cp hl_clone/highlight.js/src/languages/leafbuild.js ./leafbuild_highlight.js
   popd || exit $?
   ;;
 "nuke")
