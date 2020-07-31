@@ -1,7 +1,9 @@
+use crate::interpreter::errors::error_message;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
 };
+use codespan_reporting::diagnostic::{Diagnostic, Label};
 use std::ops::Range;
 
 pub(crate) trait AstLoc {
@@ -80,29 +82,77 @@ impl Expr {
                         .get_value_mut(),
                 )),
                 Atom::Number((_, loc)) => Err(TakeRefError::new(
-                    "cannot take a reference from a number",
-                    loc.as_rng(),
+                    Diagnostic::error()
+                        .with_message(error_message(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
+                        .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
+                            .with_message(error_message(
+                                "cannot take a reference from a number literal",
+                                frame,
+                            ))]),
                 )),
                 Atom::Str((_, loc)) => Err(TakeRefError::new(
-                    "cannot take a reference from a string",
-                    loc.as_rng(),
+                    Diagnostic::error()
+                        .with_message(error_message(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
+                        .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
+                            .with_message(error_message(
+                                "cannot take a reference from a string",
+                                frame,
+                            ))]),
                 )),
             },
             Expr::FuncCall(_) => Err(TakeRefError::new(
-                "cannot take a reference from a function call",
-                self.get_rng(),
+                Diagnostic::error()
+                    .with_message(error_message(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
+                    .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
+                        .with_message(error_message(
+                            "cannot take a reference from a function call",
+                            frame,
+                        ))]),
             )),
             Expr::MethodCall(_) => Err(TakeRefError::new(
-                "cannot take a reference from a method call",
-                self.get_rng(),
+                Diagnostic::error()
+                    .with_message(error_message(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
+                    .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
+                        .with_message(error_message(
+                            "cannot take a reference from a method call",
+                            frame,
+                        ))]),
             )),
             Expr::PropertyAccess(_) => Err(TakeRefError::new(
-                "cannot take a reference from a property access",
-                self.get_rng(),
+                Diagnostic::error()
+                    .with_message(error_message(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
+                    .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
+                        .with_message(error_message(
+                            "cannot take a reference from a property access",
+                            frame,
+                        ))]),
             )),
             Expr::Op(_, _, _) => Err(TakeRefError::new(
-                "cannot take a reference from an arithmetic expression",
-                self.get_rng(),
+                Diagnostic::error()
+                    .with_message(error_message(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
+                    .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
+                        .with_message(error_message(
+                            "cannot take a reference from an arithmetic expression",
+                            frame,
+                        ))]),
             )),
         }
     }
@@ -137,7 +187,7 @@ impl AstLoc for Expr {
             Expr::Atom(atm) => atm.get_rng(),
             Expr::FuncCall(call) => call.get_rng(),
             Expr::MethodCall(call) => call.get_rng(),
-            Expr::Op(expr, _, _) => expr.get_rng(),
+            Expr::Op(expr1, _, expr2) => expr1.get_begin()..expr2.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
         }
     }

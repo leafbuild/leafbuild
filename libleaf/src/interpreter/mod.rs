@@ -26,6 +26,8 @@ use std::{collections::HashMap, ops::Deref, path::Path};
 pub(crate) struct Env {
     errctx: ErrCtx,
     call_pools: CallPoolsWrapper,
+    #[cfg(feature = "angry-errors")]
+    angry_errors: bool,
 }
 
 impl Env {
@@ -33,7 +35,14 @@ impl Env {
         Self {
             errctx: ErrCtx::new(),
             call_pools: CallPoolsWrapper::new(),
+            #[cfg(feature = "angry-errors")]
+            angry_errors: false,
         }
+    }
+
+    #[cfg(feature = "angry-errors")]
+    pub(crate) fn set_angry_errors_mode(&mut self, enabled: bool) {
+        self.angry_errors = enabled;
     }
 }
 
@@ -69,6 +78,11 @@ impl<'env> EnvFrame<'env> {
         &mut self,
     ) -> &mut HashMap<String, Variable<Box<dyn ValueTypeMarker>>> {
         &mut self.variables
+    }
+
+    #[inline]
+    pub(crate) fn get_file_id(&self) -> usize {
+        self.file_id
     }
 }
 
@@ -252,17 +266,13 @@ where
     }
 }
 
-pub(crate) struct TakeRefError<'a> {
-    description: &'a str,
-    location: Range<usize>,
+pub(crate) struct TakeRefError {
+    diagnostic: Diagnostic<usize>,
 }
 
-impl<'a> TakeRefError<'a> {
-    pub(crate) fn new(description: &'a str, location: Range<usize>) -> Self {
-        Self {
-            description,
-            location,
-        }
+impl TakeRefError {
+    pub(crate) fn new(diagnostic: Diagnostic<usize>) -> Self {
+        Self { diagnostic }
     }
 }
 

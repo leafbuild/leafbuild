@@ -115,12 +115,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                 Ok(val) => {
                     *val.reference = new_val;
                 }
-                Err(err) => errors::push_diagnostic(
-                    env_frame,
-                    Diagnostic::error()
-                        .with_message(err.description)
-                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
-                ),
+                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
         }
         AstAtrOp::AddAtr => {
@@ -135,12 +130,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                     );
                 }
-                Err(err) => errors::push_diagnostic(
-                    env_frame,
-                    Diagnostic::error()
-                        .with_message(err.description)
-                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
-                ),
+                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
         }
         AstAtrOp::SubAtr => {
@@ -155,12 +145,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                     );
                 }
-                Err(err) => errors::push_diagnostic(
-                    env_frame,
-                    Diagnostic::error()
-                        .with_message(err.description)
-                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
-                ),
+                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
         }
         AstAtrOp::MulAtr => {
@@ -175,12 +160,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                     );
                 }
-                Err(err) => errors::push_diagnostic(
-                    env_frame,
-                    Diagnostic::error()
-                        .with_message(err.description)
-                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
-                ),
+                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
         }
         AstAtrOp::DivAtr => {
@@ -195,12 +175,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                     );
                 }
-                Err(err) => errors::push_diagnostic(
-                    env_frame,
-                    Diagnostic::error()
-                        .with_message(err.description)
-                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
-                ),
+                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
         }
         AstAtrOp::ModAtr => {
@@ -215,12 +190,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                     );
                 }
-                Err(err) => errors::push_diagnostic(
-                    env_frame,
-                    Diagnostic::error()
-                        .with_message(err.description)
-                        .with_labels(vec![Label::primary(env_frame.file_id, err.location)]),
-                ),
+                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
         }
     };
