@@ -35,12 +35,3 @@ pub(crate) fn push_diagnostic(frame: &EnvFrame, diagnostic: Diagnostic<usize>) {
     )
     .unwrap();
 }
-
-pub(crate) fn error_message(message: &str, frame: &mut EnvFrame) -> String {
-    #[cfg(feature = "angry-errors")]
-    if frame.env_ref.angry_errors {
-        return message.to_uppercase();
-    }
-
-    message.to_string()
-}
