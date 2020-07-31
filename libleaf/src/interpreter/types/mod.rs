@@ -42,7 +42,17 @@ pub(crate) enum TypeId {
 
 impl Display for TypeId {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{:?}", self)
+        write!(
+            f,
+            "{}",
+            match self {
+                TypeId::I32 => "i32",
+                TypeId::I64 => "i64",
+                TypeId::U32 => "u32",
+                TypeId::U64 => "u64",
+                TypeId::String => "string",
+            }
+        )
     }
 }
 

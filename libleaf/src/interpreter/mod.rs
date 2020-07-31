@@ -1,9 +1,10 @@
-#[path = "errors/errors.rs"]
+#[path = "errors/errors_ctx.rs"]
 pub(crate) mod errors;
 pub(crate) mod ops;
 mod types;
 
 use crate::grammar::ast::AstDeclaration;
+use crate::interpreter::errors::push_diagnostic_ctx;
 use crate::{
     grammar::{
         self,
@@ -11,6 +12,7 @@ use crate::{
             AstAssignment, AstAtrOp, AstFuncCall, AstFuncCallArgs, AstLoc, AstProgram,
             AstPropertyAccess, AstStatement,
         },
+        lexer::LexicalError,
         TokLoc,
     },
     handle::Handle,
@@ -20,19 +22,45 @@ use crate::{
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use itertools::Itertools;
+use lalrpop_util::ParseError;
 use std::{collections::HashMap, ops::Deref, path::Path};
+
+pub struct EnvConfig {
+    #[cfg(feature = "angry-errors")]
+    angry_errors_enabled: bool,
+}
+
+impl EnvConfig {
+    pub fn new() -> Self {
+        Self {
+            #[cfg(feature = "angry-errors")]
+            angry_errors_enabled: false,
+        }
+    }
+    #[cfg(feature = "angry-errors")]
+    #[inline]
+    pub fn set_angry_errors(&mut self, enabled: bool) -> &mut EnvConfig {
+        self.angry_errors_enabled = enabled;
+        self
+    }
+}
 
 pub(crate) struct Env {
     errctx: ErrCtx,
     call_pools: CallPoolsWrapper,
+    config: EnvConfig,
 }
 
 impl Env {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new(cfg: EnvConfig) -> Self {
         Self {
-            errctx: ErrCtx::new(),
+            errctx: ErrCtx::new(cfg.angry_errors_enabled),
             call_pools: CallPoolsWrapper::new(),
+            config: cfg,
         }
+    }
+    pub(crate) fn modify_config(&mut self) -> &mut EnvConfig {
+        &mut self.config
     }
 }
 
@@ -266,14 +294,16 @@ impl TakeRefError {
     }
 }
 
+pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
+    env.errctx.new_file(file, src)
+}
+
 pub(crate) fn interpret<'env>(
     env: &'env mut Env,
     program: &'_ AstProgram,
-    file: String,
-    src: String,
+    file_id: usize,
 ) -> EnvFrameReturns {
     let statements = program.get_statements();
-    let file_id = env.errctx.new_file(file, src);
     let mut frame = EnvFrame {
         variables: HashMap::new(),
         env_frame_returns: EnvFrameReturns::empty(),
@@ -292,14 +322,53 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
     let path = proj_path.join("build.leaf");
     let path_clone = path.clone();
     let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap() + "\n";
-    let program = grammar::parse(&src).unwrap();
-    interpret(
-        &mut handle.env,
-        &program,
+    let src_len = src.len();
+    let result = grammar::parse(&src);
+    let file_id = add_file(
         path_clone.to_str().unwrap().to_string(),
         src,
-    )
-    .push_to(handle);
+        &mut handle.env,
+    );
+    match result {
+        Ok(program) => {
+            interpret(&mut handle.env, &program, file_id).push_to(handle);
+        }
+        Err(e) => {
+            let (range, description) = match e {
+                ParseError::InvalidToken { location } => {
+                    (location..location + 1, "invalid token".to_string())
+                }
+                ParseError::UnrecognizedEOF { location, expected } => (
+                    location..location + 1,
+                    format!("unrecognized EOF, expected {:?}", expected),
+                ),
+                ParseError::UnrecognizedToken { token, expected } => (
+                    token.0..token.2,
+                    format!("Unexpected token {}, expected {:?}", token.1, expected),
+                ),
+                ParseError::ExtraToken { token } => {
+                    (token.0..token.2, format!("extra token: {}", token.1))
+                }
+                ParseError::User { error } => match error {
+                    LexicalError::UnrecognizedToken { location } => (
+                        location..location + 1,
+                        "Unexpected character at beginning of token".to_string(),
+                    ),
+                    LexicalError::StringStartedButNotEnded { start_loc } => {
+                        (start_loc..src_len, "No end of string found".to_string())
+                    }
+                },
+            };
+            push_diagnostic_ctx(
+                &handle.env.errctx,
+                Diagnostic::error()
+                    .with_message("Syntax error")
+                    .with_labels(vec![Label::primary(file_id, range).with_message(
+                        errors::get_error_ctx(description, &handle.env.errctx),
+                    )]),
+            )
+        }
+    }
 }
 
 pub(crate) struct CallPoolsWrapper {

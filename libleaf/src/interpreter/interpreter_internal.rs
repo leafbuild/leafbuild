@@ -65,15 +65,18 @@ fn eval_call(
             errors::push_diagnostic(
                 env_frame,
                 Diagnostic::error()
-                    .with_message("Cannot find call")
+                    .with_message(errors::get_error("Cannot find call", env_frame))
                     .with_labels(vec![Label::primary(env_frame.file_id, call_loc.as_rng())
-                        .with_message(format!(
-                            "cannot find {} '{}'",
+                        .with_message(errors::get_error_string(
                             match base_value {
-                                Some(_) => "method",
-                                None => "function",
+                                Some(val) => format!(
+                                    "cannot find method '{}' for type `{}`",
+                                    call_name,
+                                    val.get_value().get_type_id(),
+                                ),
+                                None => format!("cannot find function '{}'", call_name),
                             },
-                            call_name
+                            env_frame,
                         ))]),
             );
             (get_print_executor().func)(args, env_frame, base_value)

@@ -5,4 +5,5 @@ extern crate term;
 
 pub mod grammar;
 pub mod handle;
+#[macro_use]
 pub mod interpreter;

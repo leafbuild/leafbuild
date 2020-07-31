@@ -2,13 +2,13 @@ extern crate libleaf;
 extern crate libleafcore;
 
 use clap::{App, Arg};
+use libleaf::interpreter::EnvConfig;
 use libleaf::{handle::Handle, interpreter};
 use std::path::Path;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 fn main() {
-    let mut handle = Handle::new();
     let app = App::new("leafbuild").version(VERSION).author("Dinu Blanovschi <dinu.blanovschi@criptext.com>").about("Automates C/C++ builds").arg(
         Arg::with_name("Directory").short('d').long("dir").takes_value(true).about("The directory containing a leafbuild project to start from"),
     ).arg(
@@ -31,7 +31,9 @@ fn main() {
         Some(path) => Path::new(path),
         None => wd.as_path(),
     };
+    let mut config: EnvConfig = EnvConfig::new();
     #[cfg(feature = "angry-errors")]
-    handle.set_angry_errors_mode(matches.is_present("Angry errors"));
+    config.set_angry_errors(matches.is_present("Angry errors"));
+    let mut handle = Handle::new(config);
     interpreter::start_on(&proj_path, &mut handle);
 }

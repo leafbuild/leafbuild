@@ -1,3 +1,4 @@
+use crate::interpreter::errors;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
@@ -82,42 +83,76 @@ impl Expr {
                 )),
                 Atom::Number((_, loc)) => Err(TakeRefError::new(
                     Diagnostic::error()
-                        .with_message("cannot take a reference from a non-id")
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
                         .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
-                            .with_message("cannot take a reference from a number literal")]),
+                            .with_message(errors::get_error(
+                                "cannot take a reference from a number literal",
+                                frame,
+                            ))]),
                 )),
                 Atom::Str((_, loc)) => Err(TakeRefError::new(
                     Diagnostic::error()
-                        .with_message("cannot take a reference from a non-id")
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
                         .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
-                            .with_message("cannot take a reference from a string")]),
+                            .with_message(errors::get_error(
+                                "cannot take a reference from a string",
+                                frame,
+                            ))]),
                 )),
             },
             Expr::FuncCall(_) => Err(TakeRefError::new(
                 Diagnostic::error()
-                    .with_message("cannot take a reference from a non-id")
+                    .with_message(errors::get_error(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
                     .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
-                        .with_message("cannot take a reference from a function call")]),
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a function call",
+                            frame,
+                        ))]),
             )),
             Expr::MethodCall(_) => Err(TakeRefError::new(
                 Diagnostic::error()
-                    .with_message("cannot take a reference from a non-id")
+                    .with_message(errors::get_error(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
                     .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
-                        .with_message("cannot take a reference from a method call")]),
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a method call",
+                            frame,
+                        ))]),
             )),
             Expr::PropertyAccess(_) => Err(TakeRefError::new(
                 Diagnostic::error()
-                    .with_message("cannot take a reference from a non-id")
+                    .with_message(errors::get_error(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
                     .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
-                        .with_message("cannot take a reference from a property access")]),
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a property access",
+                            frame,
+                        ))]),
             )),
             Expr::Op(_, _, _) => Err(TakeRefError::new(
                 Diagnostic::error()
-                    .with_message("cannot take a reference from a non-id")
+                    .with_message(errors::get_error(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
                     .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
-                        .with_message(
+                        .with_message(errors::get_error(
                             "cannot take a reference from an arithmetic expression",
-                        )]),
+                            frame,
+                        ))]),
             )),
         }
     }
