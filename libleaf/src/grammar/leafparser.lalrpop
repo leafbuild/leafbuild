@@ -81,7 +81,7 @@ FactorOp: Opcode = {
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
     "str" => Box::new(Expr::Atom(Atom::Str(<>))),
-    "(" <Expr> ")",
+    <begin:"("> <value:Expr> <end:")"> => Box::new(Expr::ParenExpr(begin.get_begin(), value, end.get_end())),
     <MethodCall> => Box::new(Expr::MethodCall(<>)),
     <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
     <FuncCall> => Box::new(Expr::FuncCall(<>)),

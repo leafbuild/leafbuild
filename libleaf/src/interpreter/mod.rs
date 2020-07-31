@@ -82,7 +82,7 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
-    pub(crate) fn get_errctx(&self) -> &ErrCtx {
+    pub(crate) fn get_errctx(&self) -> &'env ErrCtx {
         &self.env_ref.errctx
     }
 
@@ -375,6 +375,7 @@ pub(crate) struct CallPoolsWrapper {
     global_pool: CallPool,
     num_pool: CallPool,
     string_pool: CallPool,
+    void_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -384,6 +385,7 @@ impl CallPoolsWrapper {
             global_pool: get_global_functions(),
             num_pool: types::get_num_call_pool(),
             string_pool: types::get_string_call_pool(),
+            void_pool: CallPool::new(vec![]),
         }
     }
     #[inline]
@@ -402,10 +404,16 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_void_pool(&self) -> &CallPool {
+        &self.void_pool
+    }
+
+    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => &self.get_num_pool(),
             TypeId::String => &self.get_string_pool(),
+            TypeId::Void => &self.get_void_pool(),
         }
     }
 }
@@ -491,6 +499,7 @@ pub(crate) fn property_access(
             resolve_num_property_access(&base, property_name)
         }
         types::TypeId::String => resolve_str_property_access(&base, property_name),
+        types::TypeId::Void => Value::new(Box::new(())),
     }
 }
 

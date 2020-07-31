@@ -1,4 +1,5 @@
 use crate::interpreter::errors;
+use crate::interpreter::ops::OpsError;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
@@ -48,6 +49,7 @@ pub enum Expr {
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
     PropertyAccess(AstPropertyAccess),
+    ParenExpr(usize, Box<Expr>, usize),
 }
 
 impl Expr {
@@ -63,8 +65,18 @@ impl Expr {
             Expr::MethodCall(call_expr) => {
                 interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
             }
-            Expr::Op(left, opcode, right) => opcode.compute_result_for(left, right, frame), // will implement later
+            Expr::Op(left, opcode, right) => {
+                let v = opcode.compute_result_for(left, right, frame);
+                match v {
+                    Ok(v) => v,
+                    Err(err) => {
+                        errors::push_diagnostic(frame, err.get_diagnostic());
+                        Value::new(Box::new(()))
+                    }
+                }
+            }
             Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
+            Expr::ParenExpr(_, e, _) => e.eval_in_env(frame),
         }
     }
 
@@ -154,6 +166,7 @@ impl Expr {
                             frame,
                         ))]),
             )),
+            Expr::ParenExpr(_, e, _) => e.eval_ref(frame),
         }
     }
 }
@@ -167,6 +180,7 @@ impl AstLoc for Expr {
             Expr::MethodCall(call) => call.get_begin(),
             Expr::Op(expr, _, _) => expr.get_begin(),
             Expr::PropertyAccess(prop_access) => prop_access.get_begin(),
+            Expr::ParenExpr(begin, _, _) => *begin,
         }
     }
 
@@ -178,6 +192,7 @@ impl AstLoc for Expr {
             Expr::MethodCall(call) => call.get_end(),
             Expr::Op(expr, _, _) => expr.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_end(),
+            Expr::ParenExpr(_, _, end) => *end,
         }
     }
 
@@ -189,6 +204,7 @@ impl AstLoc for Expr {
             Expr::MethodCall(call) => call.get_rng(),
             Expr::Op(expr1, _, expr2) => expr1.get_begin()..expr2.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
+            Expr::ParenExpr(begin, _, end) => *begin..*end,
         }
     }
 }
@@ -253,37 +269,42 @@ impl Opcode {
         ls: &Expr,
         rs: &Expr,
         frame: &mut EnvFrame,
-    ) -> Value<Box<dyn ValueTypeMarker>> {
+    ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
         match self {
             Opcode::Add => interpreter::ops::op_add(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
+                frame.get_file_id(),
             ),
             Opcode::Sub => interpreter::ops::op_sub(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
+                frame.get_file_id(),
             ),
             Opcode::Mul => interpreter::ops::op_mul(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
+                frame.get_file_id(),
             ),
             Opcode::Div => interpreter::ops::op_div(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
+                frame.get_file_id(),
             ),
             Opcode::Mod => interpreter::ops::op_mod(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
+                frame.get_file_id(),
             ),
         }
     }

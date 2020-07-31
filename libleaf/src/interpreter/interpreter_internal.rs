@@ -96,20 +96,8 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
     let value = assignment.get_value();
     let bound_name_expr = assignment.get_bound();
 
-    // if old_value.is_none() {
-    //     errors::push_diagnostic(
-    //         env_frame,
-    //         Diagnostic::error()
-    //             .with_message(
-    //                 "Cannot perform composite assignment with value that doesn't exist",
-    //             )
-    //             .with_labels(vec![Label::primary(
-    //                 env_frame.file_id,
-    //                 bound_name_expr.get_rng(),
-    //             )
-    //             .with_message("doesn't exist")]),
-    //     )
-    // }
+    let errctx = env_frame.get_errctx();
+    let file_id = env_frame.get_file_id();
     match &assignment.get_op() {
         AstAtrOp::Atr => {
             let new_val = value.eval_in_env(env_frame);
@@ -131,7 +119,12 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                    );
+                        file_id,
+                    )
+                    .unwrap_or_else(|err| {
+                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
+                        Value::new(Box::new(()))
+                    });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -146,7 +139,12 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                    );
+                        file_id,
+                    )
+                    .unwrap_or_else(|err| {
+                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
+                        Value::new(Box::new(()))
+                    });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -161,7 +159,12 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                    );
+                        file_id,
+                    )
+                    .unwrap_or_else(|err| {
+                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
+                        Value::new(Box::new(()))
+                    });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -176,7 +179,12 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                    );
+                        file_id,
+                    )
+                    .unwrap_or_else(|err| {
+                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
+                        Value::new(Box::new(()))
+                    });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -191,7 +199,12 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                    );
+                        file_id,
+                    )
+                    .unwrap_or_else(|err| {
+                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
+                        Value::new(Box::new(()))
+                    });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
