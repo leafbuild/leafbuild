@@ -343,6 +343,49 @@ impl<'input> Lexer<'input> {
     }
 }
 
+/// A token made up of a single char; the token's name is $name and $i is the position
+macro_rules! single_char_token {
+    ($name:ident, $i: expr) => {
+        Some(Ok((
+            $i,
+            Tok::$name(TokLoc {
+                begin: $i,
+                end: $i + 1,
+            }),
+            $i + 1,
+        )))
+    };
+}
+
+/// When we met a '+', '-', '*', '/' or '%', depending on what the next character is, '=' or not,
+/// we will return Tok::$x if it is or Tok::$y if it is not, $slf being self and $i being the
+/// index of the '+', '-', '*', '/' or '%', used in <Lexer as Iterator>::next
+macro_rules! possibly_assignment_op {
+    ($slf:expr, $x:ident, $y:ident, $i:expr) => {
+        match $slf.chars.peek() {
+            Some((_, '=')) => {
+                $slf.chars.next();
+                Some(Ok((
+                    $i,
+                    Tok::$x(TokLoc {
+                        begin: $i,
+                        end: $i + 2,
+                    }),
+                    $i + 2,
+                )))
+            }
+            _ => Some(Ok((
+                $i,
+                Tok::$y(TokLoc {
+                    begin: $i,
+                    end: $i + 1,
+                }),
+                $i + 1,
+            ))),
+        }
+    };
+}
+
 impl<'input> Iterator for Lexer<'input> {
     type Item = Spanned<Tok, usize, LexicalError>;
 
@@ -351,181 +394,17 @@ impl<'input> Iterator for Lexer<'input> {
             match self.chars.next() {
                 Some((i, '\n')) => return Some(Ok((i, Tok::Newline, i + 1))),
                 Some((_, chr)) if chr.is_whitespace() => continue,
-                Some((i, ':')) => {
-                    return Some(Ok((
-                        i,
-                        Tok::Colon(TokLoc {
-                            begin: i,
-                            end: i + 1,
-                        }),
-                        i + 1,
-                    )));
-                }
-                Some((i, ',')) => {
-                    return Some(Ok((
-                        i,
-                        Tok::Comma(TokLoc {
-                            begin: i,
-                            end: i + 1,
-                        }),
-                        i + 1,
-                    )));
-                }
-                Some((i, '.')) => {
-                    return Some(Ok((
-                        i,
-                        Tok::Dot(TokLoc {
-                            begin: i,
-                            end: i + 1,
-                        }),
-                        i + 1,
-                    )));
-                }
-                Some((i, '(')) => {
-                    return Some(Ok((
-                        i,
-                        Tok::POPEN(TokLoc {
-                            begin: i,
-                            end: i + 1,
-                        }),
-                        i + 1,
-                    )));
-                }
-                Some((i, ')')) => {
-                    return Some(Ok((
-                        i,
-                        Tok::PCLOSE(TokLoc {
-                            begin: i,
-                            end: i + 1,
-                        }),
-                        i + 1,
-                    )));
-                }
-                Some((i, '+')) => {
-                    return match self.chars.peek() {
-                        Some((_, '=')) => {
-                            self.chars.next();
-                            Some(Ok((
-                                i,
-                                Tok::AddEq(TokLoc {
-                                    begin: i,
-                                    end: i + 2,
-                                }),
-                                i + 2,
-                            )))
-                        }
-                        _ => Some(Ok((
-                            i,
-                            Tok::Add(TokLoc {
-                                begin: i,
-                                end: i + 1,
-                            }),
-                            i + 1,
-                        ))),
-                    };
-                }
-                Some((i, '-')) => {
-                    return match self.chars.peek() {
-                        Some((_, '=')) => {
-                            self.chars.next();
-                            Some(Ok((
-                                i,
-                                Tok::SubEq(TokLoc {
-                                    begin: i,
-                                    end: i + 2,
-                                }),
-                                i + 2,
-                            )))
-                        }
-                        _ => Some(Ok((
-                            i,
-                            Tok::Sub(TokLoc {
-                                begin: i,
-                                end: i + 1,
-                            }),
-                            i + 1,
-                        ))),
-                    };
-                }
-                Some((i, '*')) => {
-                    return match self.chars.peek() {
-                        Some((_, '=')) => {
-                            self.chars.next();
-                            Some(Ok((
-                                i,
-                                Tok::MulEq(TokLoc {
-                                    begin: i,
-                                    end: i + 2,
-                                }),
-                                i + 2,
-                            )))
-                        }
-                        _ => Some(Ok((
-                            i,
-                            Tok::Mul(TokLoc {
-                                begin: i,
-                                end: i + 1,
-                            }),
-                            i + 1,
-                        ))),
-                    };
-                }
-                Some((i, '/')) => {
-                    return match self.chars.peek() {
-                        Some((_, '=')) => {
-                            self.chars.next();
-                            Some(Ok((
-                                i,
-                                Tok::DivEq(TokLoc {
-                                    begin: i,
-                                    end: i + 2,
-                                }),
-                                i + 2,
-                            )))
-                        }
-                        _ => Some(Ok((
-                            i,
-                            Tok::Div(TokLoc {
-                                begin: i,
-                                end: i + 1,
-                            }),
-                            i + 1,
-                        ))),
-                    };
-                }
-                Some((i, '%')) => {
-                    return match self.chars.peek() {
-                        Some((_, '=')) => {
-                            self.chars.next();
-                            Some(Ok((
-                                i,
-                                Tok::ModEq(TokLoc {
-                                    begin: i,
-                                    end: i + 2,
-                                }),
-                                i + 2,
-                            )))
-                        }
-                        _ => Some(Ok((
-                            i,
-                            Tok::Mod(TokLoc {
-                                begin: i,
-                                end: i + 1,
-                            }),
-                            i + 1,
-                        ))),
-                    };
-                }
-                Some((i, '=')) => {
-                    return Some(Ok((
-                        i,
-                        Tok::Eq(TokLoc {
-                            begin: i,
-                            end: i + 1,
-                        }),
-                        i + 1,
-                    )));
-                }
+                Some((i, ':')) => return single_char_token!(Colon, i),
+                Some((i, ',')) => return single_char_token!(Comma, i),
+                Some((i, '.')) => return single_char_token!(Dot, i),
+                Some((i, '(')) => return single_char_token!(POPEN, i),
+                Some((i, ')')) => return single_char_token!(PCLOSE, i),
+                Some((i, '+')) => return possibly_assignment_op!(self, AddEq, Add, i),
+                Some((i, '-')) => return possibly_assignment_op!(self, SubEq, Sub, i),
+                Some((i, '*')) => return possibly_assignment_op!(self, MulEq, Mul, i),
+                Some((i, '/')) => return possibly_assignment_op!(self, DivEq, Div, i),
+                Some((i, '%')) => return possibly_assignment_op!(self, ModEq, Mod, i),
+                Some((i, '=')) => return single_char_token!(Eq, i),
                 Some((i, chr)) if chr.is_ascii_alphabetic() || chr == '_' => {
                     return Some(self.parse_identifier(i, chr));
                 }
