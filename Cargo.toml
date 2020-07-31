@@ -8,7 +8,7 @@ edition = "2018"
 
 [features]
 default = [
-	"angry-errors"
+#	"angry-errors"
 ]
 
 angry-errors = ["libleaf/angry-errors"]
