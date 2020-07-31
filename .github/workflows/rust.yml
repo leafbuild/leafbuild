@@ -1,10 +1,10 @@
 name: Build-Rust
 
 on:
-  push:
-    branches: [ master ]
   pull_request:
     branches: [ master ]
+  schedule:
+    - cron: '0 0,12 * * *'
 
 env:
   CARGO_TERM_COLOR: always
