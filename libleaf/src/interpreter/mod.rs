@@ -20,14 +20,11 @@ use crate::{
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use itertools::Itertools;
-use std::ops::Range;
 use std::{collections::HashMap, ops::Deref, path::Path};
 
 pub(crate) struct Env {
     errctx: ErrCtx,
     call_pools: CallPoolsWrapper,
-    #[cfg(feature = "angry-errors")]
-    angry_errors: bool,
 }
 
 impl Env {
@@ -35,14 +32,7 @@ impl Env {
         Self {
             errctx: ErrCtx::new(),
             call_pools: CallPoolsWrapper::new(),
-            #[cfg(feature = "angry-errors")]
-            angry_errors: false,
         }
-    }
-
-    #[cfg(feature = "angry-errors")]
-    pub(crate) fn set_angry_errors_mode(&mut self, enabled: bool) {
-        self.angry_errors = enabled;
     }
 }
 
