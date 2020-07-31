@@ -1,6 +1,5 @@
-#[macro_use]
-extern crate lalrpop_util;
 extern crate codespan_reporting;
+extern crate lalrpop_util;
 extern crate libleafcore;
 extern crate term;
 

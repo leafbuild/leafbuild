@@ -1,5 +1,4 @@
-use crate::grammar::ast::Expr;
-use crate::interpreter::{types::TypeIdAndValue, EnvFrame, Value, ValueTypeMarker};
+use crate::interpreter::{types::TypeIdAndValue, Value, ValueTypeMarker};
 use std::ops::Range;
 
 pub(crate) fn op_add(

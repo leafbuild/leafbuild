@@ -34,7 +34,7 @@ FuncCall: AstFuncCall = {
 	<name:IdExpression> "(" <args:FuncArgs> <end:")"> => AstFuncCall::new(name, args, end.get_end())
 };
 
-pub FuncArgs:AstFuncCallArgs = {
+FuncArgs:AstFuncCallArgs = {
 	"\n"* <pos_args:PositionalFuncArgs> "," "\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new(pos_args,named_args),
 	"\n"* <pos_args:PositionalFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_positional(pos_args),
 	"\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_named(named_args),
@@ -46,18 +46,18 @@ PositionalFuncArgs: Vec<AstPositionalArg> = {
 	<arg1:PositionalFuncArg> <rest:("," "\n"* <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
 };
 
-pub PositionalFuncArg = { Expr };
+PositionalFuncArg = { Expr };
 
 #[inline]
 NamedFuncArgs: Vec<AstNamedArg> = {
 	<arg1:NamedFuncArg> <rest:("," "\n"* <NamedFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
 };
 
-pub NamedFuncArg: AstNamedArg = {
+NamedFuncArg: AstNamedArg = {
 	<name:IdExpression> ":" <value:Expr> => AstNamedArg::from((name, value))
 };
 
-pub Expr: Box<Expr> = { // (1)
+Expr: Box<Expr> = { // (1)
     Expr ExprOp Factor => Box::new(Expr::Op(<>)), // (2)
     Factor,
 };
@@ -113,7 +113,7 @@ AtrOp: AstAtrOp = {
 	"%=" => AstAtrOp::ModAtr,
 };
 
-pub IdExpression = { "id" };
+IdExpression = { "id" };
 
 extern {
     type Location = usize;
