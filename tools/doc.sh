@@ -28,6 +28,7 @@ case $1 in
   git remote add origin git@gitlab.com:leafbuild/leafbuild.git
   git add -A
   git commit -S -a -m "Update docs"
+  git branch gl-pages
   git switch gl-pages
   git push -f origin gl-pages
 
