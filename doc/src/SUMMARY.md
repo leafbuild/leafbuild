@@ -7,6 +7,7 @@
 - [Project Model](project_model.md)
 
 - [Reference](reference/reference.md)
+  - [Operations](reference/operations.md)
   - [Functions](reference/functions/index.md)
     - [Aliases](reference/functions/aliases.md)
     - [Project and Module related](reference/functions/project_and_module/index.md)

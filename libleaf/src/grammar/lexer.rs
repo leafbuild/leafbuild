@@ -264,7 +264,10 @@ impl<'input> Lexer<'input> {
                             })
                             .map(|(_, chr)| chr)
                             .collect();
-                        let (last_single_quote_index, _) = self.chars.next().unwrap(); // take the last ' out of the iterator
+                        let (last_single_quote_index, _) = match self.chars.next() /* try to take the last ' out of the iterator*/{
+                            Some(x) => x,
+                            None => {return Err(LexicalError::StringStartedButNotEnded {start_loc: initial_position})}
+                        };
 
                         // and remove the last 2 single quotes
                         s.pop();
@@ -305,7 +308,10 @@ impl<'input> Lexer<'input> {
                         chr
                     })
                     .collect();
-                self.chars.next(); // take the '\'' out of the iterator
+                match self.chars.next()  /* try to take the '\'' out of the iterator*/{
+                    Some((_, '\'')) => {},
+                    _ => {return Err(LexicalError::StringStartedButNotEnded {start_loc: initial_position})}
+                }
                 Ok((
                     initial_position,
                     Tok::Str(
