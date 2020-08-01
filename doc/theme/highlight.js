@@ -2128,6 +2128,8 @@ hljs.registerLanguage('leafbuild', function () {
       beginKeywords:
           // syntax
           'let ' +
+          // types
+          'i32 i64 u32 u64 string error void ' +
           // functions
           'project module executable library print'
     };
