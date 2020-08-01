@@ -3,7 +3,6 @@
 # This file is a template, and might need editing before it works on your project.
 # Official language image. Look for the different tagged releases at:
 # https://hub.docker.com/r/library/rust/tags/
-image: "rust:latest"
 
 # Optional: Pick zero or more services to be used on all builds.
 # Only needed when using a docker container to run your tests in.
@@ -21,6 +20,7 @@ image: "rust:latest"
 
 # Use cargo to test the project
 test:cargo:
+  image: "rust:latest"
   script:
     - rustc --version && cargo --version  # Print version info for debugging
     - cargo test --workspace --verbose
@@ -31,6 +31,7 @@ test:cargo:
 # Full project: https://gitlab.com/pages/plain-html
 
 pages:
+  image: "alpine:latest"
   stage: deploy
   script:
   - echo 'Nothing to do...'
@@ -38,5 +39,5 @@ pages:
     paths:
     - public
   only:
-  - master
+  - gl-pages
 

@@ -16,12 +16,21 @@ case $1 in
   popd || exit $?
   ;;
 "push")
-  rm -rf public
-  mkdir -p public
   pushd doc || exit $?
   mdbook build
   cd book || exit $?
-  cp -r ./* ../../public/
+
+  mkdir -p .public
+  mv ./* .nojekyll .public
+  mv .public public
+
+  git init
+  git remote add origin git@gitlab.com:leafbuild/leafbuild.git
+  git add -A
+  git commit -S -a -m "Update docs"
+  git switch gl-pages
+  git push -f origin gl-pages
+
   popd || exit $?
   ;;
 "build_highlighter")
