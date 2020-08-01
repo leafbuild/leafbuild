@@ -3,7 +3,7 @@
 image::https://gitlab.com/leafbuild/leafbuild/badges/master/pipeline.svg[]
 
 An early-in-development meta build system for C/C++ projects written in Rust;
-focused on usability. See https://leafbuild.gitlab.io/leafbuild[the documentation]
+focused on usability. See https://leafbuild.gitlab.io/docs[the documentation]
 for more.
 
 == Support
