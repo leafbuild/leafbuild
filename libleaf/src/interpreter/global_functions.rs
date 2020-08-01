@@ -39,13 +39,13 @@ fn get_print_executor() -> CallExecutor {
 #[inline]
 fn get_module_executor() -> CallExecutor {
     CallExecutor::new("module".to_string(), |args, frame, _| {
-        Value::new(Box::new(0))
+        Value::new(Box::new(()))
     })
 }
 
 #[inline]
 fn get_project_executor() -> CallExecutor {
     CallExecutor::new("module".to_string(), |args, frame, _| {
-        Value::new(Box::new(0))
+        Value::new(Box::new(()))
     })
 }

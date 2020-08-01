@@ -3,24 +3,22 @@ pub(crate) mod errors;
 pub(crate) mod ops;
 pub(crate) mod types;
 
-use crate::grammar::ast::AstDeclaration;
-use crate::interpreter::errors::push_diagnostic_ctx;
-use crate::interpreter::ops::OpsErrorType;
-use crate::interpreter::types::ErrorValue;
 use crate::{
     grammar::{
         self,
         ast::{
-            AstAssignment, AstAtrOp, AstFuncCall, AstFuncCallArgs, AstLoc, AstProgram,
-            AstPropertyAccess, AstStatement,
+            AstAssignment, AstAtrOp, AstDeclaration, AstFuncCall, AstFuncCallArgs, AstLoc,
+            AstProgram, AstPropertyAccess, AstStatement,
         },
         lexer::LexicalError,
         TokLoc,
     },
     handle::Handle,
-    interpreter::errors::ErrCtx,
-    interpreter::types::TypeIdAndValue,
-    interpreter::types::{resolve_num_property_access, resolve_str_property_access, TypeId},
+    interpreter::{
+        errors::{push_diagnostic_ctx, ErrCtx},
+        ops::OpsErrorType,
+        types::{resolve_num_property_access, resolve_str_property_access, TypeId, TypeIdAndValue},
+    },
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 use itertools::Itertools;
@@ -76,11 +74,19 @@ impl Env {
     }
 }
 
+pub(crate) enum EnvFrameType {
+    Workspace,
+    Project,
+    Module,
+    Unknown, // default value, uninitialized
+}
+
 pub(crate) struct EnvFrame<'env> {
     env_ref: &'env Env,
     variables: HashMap<String, Variable<Box<dyn ValueTypeMarker>>>,
     env_frame_returns: EnvFrameReturns,
     file_id: usize,
+    fr_type: EnvFrameType,
 }
 
 impl<'env> EnvFrame<'env> {
@@ -243,11 +249,6 @@ where
     }
 
     #[inline]
-    pub fn get_value_mut(&mut self) -> &mut T {
-        &mut self.value
-    }
-
-    #[inline]
     pub fn stringify(&self) -> String {
         self.value.stringify()
     }
@@ -321,6 +322,7 @@ pub(crate) fn interpret<'env>(
         env_frame_returns: EnvFrameReturns::empty(),
         env_ref: env,
         file_id,
+        fr_type: EnvFrameType::Unknown,
     };
 
     statements.iter().for_each(|statement| {
