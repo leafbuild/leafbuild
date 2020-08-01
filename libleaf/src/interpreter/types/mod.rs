@@ -12,6 +12,7 @@ pub(crate) enum TypeIdAndValue<'a> {
     U64(&'a u64),
     String(&'a String),
     Void,
+    Error,
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -23,6 +24,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::U64(v) => format!("{}", v),
             TypeIdAndValue::String(v) => (*v).clone(),
             TypeIdAndValue::Void => "(void)".to_string(),
+            TypeIdAndValue::Error => "(error)".to_string(),
         }
     }
 
@@ -35,6 +37,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::U64(_) => TypeId::U64,
             TypeIdAndValue::String(_) => TypeId::String,
             TypeIdAndValue::Void => TypeId::Void,
+            TypeIdAndValue::Error => TypeId::Error,
         }
     }
 }
@@ -53,6 +56,7 @@ pub(crate) enum TypeId {
     U64,
     String,
     Void,
+    Error,
 }
 
 impl TypeId {
@@ -64,27 +68,18 @@ impl TypeId {
             TypeId::U64 => "u64",
             TypeId::String => "string",
             TypeId::Void => "void",
+            TypeId::Error => "error",
         }
     }
 }
 
 impl Display for TypeId {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(
-            f,
-            "{}",
-            match self {
-                TypeId::I32 => "i32",
-                TypeId::I64 => "i64",
-                TypeId::U32 => "u32",
-                TypeId::U64 => "u64",
-                TypeId::String => "string",
-                TypeId::Void => "void",
-            }
-        )
+        write!(f, "{}", self.typename())
     }
 }
 
 include!("int.rs");
 include!("string.rs");
 include!("void.rs");
+include!("error.rs");

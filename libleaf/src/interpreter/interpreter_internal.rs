@@ -106,7 +106,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                 Ok(val) => {
                     *val.reference = new_val;
                 }
-                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
+                Err(err) => errors::push_diagnostic_ctx(errctx, err.diagnostic),
             }
         }
         AstAtrOp::AddAtr => {
@@ -123,7 +123,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                     )
                     .unwrap_or_else(|err| {
                         errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(()))
+                        Value::new(Box::new(types::ErrorValue::new()))
                     });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
@@ -143,7 +143,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                     )
                     .unwrap_or_else(|err| {
                         errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(()))
+                        Value::new(Box::new(types::ErrorValue::new()))
                     });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
@@ -163,7 +163,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                     )
                     .unwrap_or_else(|err| {
                         errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(()))
+                        Value::new(Box::new(types::ErrorValue::new()))
                     });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
@@ -183,7 +183,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                     )
                     .unwrap_or_else(|err| {
                         errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(()))
+                        Value::new(Box::new(types::ErrorValue::new()))
                     });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
@@ -203,7 +203,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                     )
                     .unwrap_or_else(|err| {
                         errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(()))
+                        Value::new(Box::new(types::ErrorValue::new()))
                     });
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),

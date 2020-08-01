@@ -23,6 +23,96 @@ impl OpsError {
     }
 }
 
+macro_rules! op_match {
+    ($a:expr, $a_rng:expr, $op:tt, $b:expr, $b_rng:expr, $file_id:expr $(, $($x:pat => $y:expr),*)?) => {
+        match (
+            $a.get_value().get_type_id_and_value(),
+            $b.get_value().get_type_id_and_value(),
+        ) {
+            $($($x => $y),*,)?
+            (TypeIdAndValue::I32(leftval), tright) => match tright {
+                TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval $op *rightval))),
+                TypeIdAndValue::I64(rightval) => {
+                    Ok(Value::new(Box::new(*leftval as i64 $op *rightval)))
+                }
+                _ => Err(OpsError::new(
+                    OpsErrorType::Incompatible,
+                    Diagnostic::error()
+                        .with_message("Incompatible operands")
+                        .with_labels(vec![
+                            Label::primary($file_id, $a_rng)
+                                .with_message(TypeIdAndValue::I32(leftval).degrade().typename()),
+                            Label::secondary($file_id, $b_rng)
+                                .with_message(tright.degrade().typename()),
+                        ]),
+                )),
+            },
+            (TypeIdAndValue::I64(leftval), tright) => match tright {
+                TypeIdAndValue::I32(rightval) => {
+                    Ok(Value::new(Box::new(*leftval $op (*rightval as i64))))
+                }
+                TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval $op *rightval))),
+                _ => Err(OpsError::new(
+                    OpsErrorType::Incompatible,
+                    Diagnostic::error()
+                        .with_message("Incompatible operands")
+                        .with_labels(vec![
+                            Label::primary($file_id, $a_rng)
+                                .with_message(TypeIdAndValue::I64(leftval).degrade().typename()),
+                            Label::secondary($file_id, $b_rng)
+                                .with_message(tright.degrade().typename()),
+                        ]),
+                )),
+            },
+            (TypeIdAndValue::U32(leftval), tright) => match tright {
+                TypeIdAndValue::U32(rightval) => Ok(Value::new(Box::new(*leftval $op *rightval))),
+                TypeIdAndValue::U64(rightval) => {
+                    Ok(Value::new(Box::new(*leftval as u64 $op *rightval)))
+                }
+                _ => Err(OpsError::new(
+                    OpsErrorType::Incompatible,
+                    Diagnostic::error()
+                        .with_message("Incompatible operands")
+                        .with_labels(vec![
+                            Label::primary($file_id, $a_rng)
+                                .with_message(TypeIdAndValue::U32(leftval).degrade().typename()),
+                            Label::secondary($file_id, $b_rng)
+                                .with_message(tright.degrade().typename()),
+                        ]),
+                )),
+            },
+            (TypeIdAndValue::U64(leftval), tright) => match tright {
+                TypeIdAndValue::U32(rightval) => {
+                    Ok(Value::new(Box::new(*leftval $op (*rightval as u64))))
+                }
+                TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval $op *rightval))),
+                _ => Err(OpsError::new(
+                    OpsErrorType::Incompatible,
+                    Diagnostic::error()
+                        .with_message("Incompatible operands")
+                        .with_labels(vec![
+                            Label::primary($file_id, $a_rng)
+                                .with_message(TypeIdAndValue::U64(leftval).degrade().typename()),
+                            Label::secondary($file_id, $b_rng)
+                                .with_message(tright.degrade().typename()),
+                        ]),
+                )),
+            },
+            (tleft, tright) => Err(OpsError::new(
+                OpsErrorType::Incompatible,
+                Diagnostic::error()
+                    .with_message("Incompatible operands")
+                    .with_labels(vec![
+                        Label::primary($file_id, $a_rng)
+                            .with_message(tleft.degrade().typename()),
+                        Label::secondary($file_id, $b_rng)
+                            .with_message(tright.degrade().typename()),
+                    ]),
+            )),
+        }
+    };
+}
+
 pub(crate) fn op_add(
     ls: &Value<Box<dyn ValueTypeMarker>>,
     left_range: Range<usize>,
@@ -30,95 +120,17 @@ pub(crate) fn op_add(
     right_range: Range<usize>,
     file_id: usize,
 ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
-    match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
-    ) {
-        (TypeIdAndValue::String(left), tright) => Ok(Value::new(Box::new(format!(
-            "{}{}",
-            left,
-            tright.stringify()
-        )))),
-        (tleft, TypeIdAndValue::String(right)) => Ok(Value::new(Box::new(format!(
-            "{}{}",
-            tleft.stringify(),
-            right
-        )))),
-        (TypeIdAndValue::I32(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval + *rightval))),
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval as i64 + *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::I64(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => {
-                Ok(Value::new(Box::new(*leftval + (*rightval as i64))))
-            }
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval + *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U32(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => Ok(Value::new(Box::new(*leftval + *rightval))),
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval as u64 + *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U64(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => {
-                Ok(Value::new(Box::new(*leftval + (*rightval as u64))))
-            }
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval + *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (tleft, tright) => Err(OpsError::new(
-            OpsErrorType::Incompatible,
-            Diagnostic::error()
-                .with_message("Incompatible operands")
-                .with_labels(vec![
-                    Label::primary(file_id, left_range).with_message(tleft.degrade().typename()),
-                    Label::secondary(file_id, right_range)
-                        .with_message(tright.degrade().typename()),
-                ]),
-        )),
-    }
+    op_match!(ls, left_range, +, rs, right_range, file_id,
+    (TypeIdAndValue::String(left), tright) => Ok(Value::new(Box::new(format!(
+        "{}{}",
+        left,
+        tright.stringify()
+    )))),
+    (tleft, TypeIdAndValue::String(right)) => Ok(Value::new(Box::new(format!(
+        "{}{}",
+        tleft.stringify(),
+        right
+    )))))
 }
 
 pub(crate) fn op_sub(
@@ -128,85 +140,7 @@ pub(crate) fn op_sub(
     right_range: Range<usize>,
     file_id: usize,
 ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
-    match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
-    ) {
-        (TypeIdAndValue::I32(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval - *rightval))),
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval as i64 - *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::I64(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => {
-                Ok(Value::new(Box::new(*leftval - (*rightval as i64))))
-            }
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval - *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U32(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => Ok(Value::new(Box::new(*leftval - *rightval))),
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval as u64 - *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U64(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => {
-                Ok(Value::new(Box::new(*leftval - (*rightval as u64))))
-            }
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval - *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (tleft, tright) => Err(OpsError::new(
-            OpsErrorType::Incompatible,
-            Diagnostic::error()
-                .with_message("Incompatible operands")
-                .with_labels(vec![
-                    Label::primary(file_id, left_range).with_message(tleft.degrade().typename()),
-                    Label::secondary(file_id, right_range)
-                        .with_message(tright.degrade().typename()),
-                ]),
-        )),
-    }
+    op_match!(ls, left_range, -, rs, right_range, file_id)
 }
 pub(crate) fn op_mul(
     ls: &Value<Box<dyn ValueTypeMarker>>,
@@ -215,85 +149,7 @@ pub(crate) fn op_mul(
     right_range: Range<usize>,
     file_id: usize,
 ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
-    match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
-    ) {
-        (TypeIdAndValue::I32(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval * *rightval))),
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval as i64 * *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::I64(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => {
-                Ok(Value::new(Box::new(*leftval * (*rightval as i64))))
-            }
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval * *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U32(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => Ok(Value::new(Box::new(*leftval * *rightval))),
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval as u64 * *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U64(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => {
-                Ok(Value::new(Box::new(*leftval * (*rightval as u64))))
-            }
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval * *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (tleft, tright) => Err(OpsError::new(
-            OpsErrorType::Incompatible,
-            Diagnostic::error()
-                .with_message("Incompatible operands")
-                .with_labels(vec![
-                    Label::primary(file_id, left_range).with_message(tleft.degrade().typename()),
-                    Label::secondary(file_id, right_range)
-                        .with_message(tright.degrade().typename()),
-                ]),
-        )),
-    }
+    op_match!(ls, left_range, *, rs, right_range, file_id)
 }
 pub(crate) fn op_div(
     ls: &Value<Box<dyn ValueTypeMarker>>,
@@ -302,85 +158,7 @@ pub(crate) fn op_div(
     right_range: Range<usize>,
     file_id: usize,
 ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
-    match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
-    ) {
-        (TypeIdAndValue::I32(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval / *rightval))),
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval as i64 / *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::I64(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => {
-                Ok(Value::new(Box::new(*leftval / (*rightval as i64))))
-            }
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval / *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U32(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => Ok(Value::new(Box::new(*leftval / *rightval))),
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval as u64 / *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U64(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => {
-                Ok(Value::new(Box::new(*leftval / (*rightval as u64))))
-            }
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval / *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (tleft, tright) => Err(OpsError::new(
-            OpsErrorType::Incompatible,
-            Diagnostic::error()
-                .with_message("Incompatible operands")
-                .with_labels(vec![
-                    Label::primary(file_id, left_range).with_message(tleft.degrade().typename()),
-                    Label::secondary(file_id, right_range)
-                        .with_message(tright.degrade().typename()),
-                ]),
-        )),
-    }
+    op_match!(ls, left_range, /, rs, right_range, file_id)
 }
 pub(crate) fn op_mod(
     ls: &Value<Box<dyn ValueTypeMarker>>,
@@ -389,83 +167,5 @@ pub(crate) fn op_mod(
     right_range: Range<usize>,
     file_id: usize,
 ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
-    match (
-        ls.get_value().get_type_id_and_value(),
-        rs.get_value().get_type_id_and_value(),
-    ) {
-        (TypeIdAndValue::I32(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval % *rightval))),
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval as i64 % *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::I64(leftval), tright) => match tright {
-            TypeIdAndValue::I32(rightval) => {
-                Ok(Value::new(Box::new(*leftval % (*rightval as i64))))
-            }
-            TypeIdAndValue::I64(rightval) => Ok(Value::new(Box::new(*leftval % *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::I64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U32(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => Ok(Value::new(Box::new(*leftval % *rightval))),
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval as u64 % *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U32(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (TypeIdAndValue::U64(leftval), tright) => match tright {
-            TypeIdAndValue::U32(rightval) => {
-                Ok(Value::new(Box::new(*leftval % (*rightval as u64))))
-            }
-            TypeIdAndValue::U64(rightval) => Ok(Value::new(Box::new(*leftval % *rightval))),
-            _ => Err(OpsError::new(
-                OpsErrorType::Incompatible,
-                Diagnostic::error()
-                    .with_message("Incompatible operands")
-                    .with_labels(vec![
-                        Label::primary(file_id, left_range)
-                            .with_message(TypeIdAndValue::U64(leftval).degrade().typename()),
-                        Label::secondary(file_id, right_range)
-                            .with_message(tright.degrade().typename()),
-                    ]),
-            )),
-        },
-        (tleft, tright) => Err(OpsError::new(
-            OpsErrorType::Incompatible,
-            Diagnostic::error()
-                .with_message("Incompatible operands")
-                .with_labels(vec![
-                    Label::primary(file_id, left_range).with_message(tleft.degrade().typename()),
-                    Label::secondary(file_id, right_range)
-                        .with_message(tright.degrade().typename()),
-                ]),
-        )),
-    }
+    op_match!(ls, left_range, %, rs, right_range, file_id)
 }

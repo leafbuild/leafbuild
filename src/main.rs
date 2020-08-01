@@ -42,6 +42,7 @@ fn main() {
         Some(path) => Path::new(path),
         None => wd.as_path(),
     };
+    #[allow(unused_mut)]
     let mut config: EnvConfig = EnvConfig::new();
     #[cfg(feature = "angry-errors")]
     config.set_angry_errors(matches.is_present("Angry errors"));

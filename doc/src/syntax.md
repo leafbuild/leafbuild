@@ -80,7 +80,7 @@ let e = a // e = 0
 ```
 
 ### Assigning a value to a variable
-It's the same as declaring one; values can change their type.
+It's the same as declaring one; values cannot change their type, unless the type changes into [the error type](reference/special_types/error.md).
 
 ## Accessing properties
 

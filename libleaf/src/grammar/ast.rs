@@ -71,7 +71,7 @@ impl Expr {
                     Ok(v) => v,
                     Err(err) => {
                         errors::push_diagnostic(frame, err.get_diagnostic());
-                        Value::new(Box::new(()))
+                        Value::new(Box::new(interpreter::types::ErrorValue::new()))
                     }
                 }
             }

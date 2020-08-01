@@ -1,10 +1,11 @@
 #[path = "errors/errors_ctx.rs"]
 pub(crate) mod errors;
 pub(crate) mod ops;
-mod types;
+pub(crate) mod types;
 
 use crate::grammar::ast::AstDeclaration;
 use crate::interpreter::errors::push_diagnostic_ctx;
+use crate::interpreter::types::ErrorValue;
 use crate::{
     grammar::{
         self,
@@ -376,6 +377,7 @@ pub(crate) struct CallPoolsWrapper {
     num_pool: CallPool,
     string_pool: CallPool,
     void_pool: CallPool,
+    error_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -386,6 +388,7 @@ impl CallPoolsWrapper {
             num_pool: types::get_num_call_pool(),
             string_pool: types::get_string_call_pool(),
             void_pool: CallPool::new(vec![]),
+            error_pool: CallPool::new(vec![]),
         }
     }
     #[inline]
@@ -409,11 +412,17 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_error_pool(&self) -> &CallPool {
+        &self.error_pool
+    }
+
+    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => &self.get_num_pool(),
             TypeId::String => &self.get_string_pool(),
             TypeId::Void => &self.get_void_pool(),
+            TypeId::Error => &self.get_error_pool(),
         }
     }
 }
@@ -500,6 +509,7 @@ pub(crate) fn property_access(
         }
         types::TypeId::String => resolve_str_property_access(&base, property_name),
         types::TypeId::Void => Value::new(Box::new(())),
+        types::TypeId::Error => Value::new(Box::new(types::ErrorValue::new())),
     }
 }
 

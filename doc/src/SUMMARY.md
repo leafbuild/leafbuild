@@ -17,6 +17,7 @@
     - [Executables-related](reference/functions/executables/index.md)
       - [executable()](reference/functions/executables/executable.md)
   - [Special types](reference/special_types/index.md)
+    - [The `error` type](reference/special_types/error.md)
     - [The `author` type](reference/special_types/author.md)
     - [The `maintainer` type](reference/special_types/maintainer.md)
     - [The `library` type](reference/special_types/library.md)
