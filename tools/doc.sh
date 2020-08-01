@@ -16,15 +16,12 @@ case $1 in
   popd || exit $?
   ;;
 "push")
+  rm -rf public
+  mkdir -p public
   pushd doc || exit $?
   mdbook build
   cd book || exit $?
-  git init
-  git remote add origin https://github.com/leafbuild/leafbuild.git
-  git add -A
-  git commit -a -m "Update docs"
-  git branch gh-pages
-  git push origin gh-pages -f
+  cp -r ./* ../../public/
   popd || exit $?
   ;;
 "build_highlighter")
