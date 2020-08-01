@@ -5,8 +5,8 @@ multilingual = false
 src = "src"
 title = "The Leaf Build System"
 
-git-repository-url = "https://github.com/dblanovschi/leafbuild"
-git-repository-icon = "fa-github"
+git-repository-url = "https://gitlab.com/leafbuild/leafbuild"
+git-repository-icon = "fa-gitlab"
 
 [output.html]
 default-theme = "navy"
