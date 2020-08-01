@@ -5,6 +5,7 @@ pub(crate) mod types;
 
 use crate::grammar::ast::AstDeclaration;
 use crate::interpreter::errors::push_diagnostic_ctx;
+use crate::interpreter::ops::OpsErrorType;
 use crate::interpreter::types::ErrorValue;
 use crate::{
     grammar::{
@@ -29,6 +30,8 @@ use std::{collections::HashMap, ops::Deref, path::Path};
 pub struct EnvConfig {
     #[cfg(feature = "angry-errors")]
     angry_errors_enabled: bool,
+
+    error_cascade_enabled: bool,
 }
 
 impl EnvConfig {
@@ -36,12 +39,20 @@ impl EnvConfig {
         Self {
             #[cfg(feature = "angry-errors")]
             angry_errors_enabled: false,
+
+            error_cascade_enabled: true,
         }
     }
     #[cfg(feature = "angry-errors")]
     #[inline]
     pub fn set_angry_errors(&mut self, enabled: bool) -> &mut EnvConfig {
         self.angry_errors_enabled = enabled;
+        self
+    }
+
+    #[inline]
+    pub fn set_error_cascade(&mut self, enabled: bool) -> &mut EnvConfig {
+        self.error_cascade_enabled = enabled;
         self
     }
 }
@@ -55,7 +66,7 @@ pub(crate) struct Env {
 impl Env {
     pub(crate) fn new(cfg: EnvConfig) -> Self {
         Self {
-            errctx: ErrCtx::new(cfg.angry_errors_enabled),
+            errctx: ErrCtx::new(cfg.angry_errors_enabled, cfg.error_cascade_enabled),
             call_pools: CallPoolsWrapper::new(),
             config: cfg,
         }

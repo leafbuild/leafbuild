@@ -32,9 +32,11 @@ fn main() {
             .takes_value(false)
             .about(&angry_errors_help),
     ).arg(
-        Arg::with_name("")
-    )
-        ;
+        Arg::with_name("Disable error cascade")
+            .long("disable-error-cascade")
+            .takes_value(false)
+            .about("Disables error cascades")
+    );
 
     let matches = app.get_matches();
     let wd = std::env::current_dir().unwrap();
@@ -43,7 +45,7 @@ fn main() {
         None => wd.as_path(),
     };
     #[allow(unused_mut)]
-    let mut config: EnvConfig = EnvConfig::new();
+    let mut config = EnvConfig::new();
     #[cfg(feature = "angry-errors")]
     config.set_angry_errors(matches.is_present("Angry errors"));
     if matches.is_present("Angry errors") && !(cfg!(feature = "angry-errors")) {
@@ -51,6 +53,11 @@ fn main() {
             "\x1B[4;33m[WARN]\x1B[0m Cannot use --angry-errors without the angry-errors feature"
         );
     }
+
+    if matches.is_present("Disable error cascade") {
+        config.set_error_cascade(false);
+    }
+
     let mut handle = Handle::new(config);
     interpreter::start_on(&proj_path, &mut handle);
 }

@@ -1,5 +1,5 @@
 use crate::interpreter::errors;
-use crate::interpreter::ops::OpsError;
+use crate::interpreter::ops::{OpsError, OpsErrorType};
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
@@ -70,7 +70,15 @@ impl Expr {
                 match v {
                     Ok(v) => v,
                     Err(err) => {
-                        errors::push_diagnostic(frame, err.get_diagnostic());
+                        let should_print_err = match err.get_type() {
+                            OpsErrorType::Incompatible => true,
+                            OpsErrorType::IncompatibleError => {
+                                frame.get_errctx().get_error_cascade()
+                            }
+                        };
+                        if should_print_err {
+                            errors::push_diagnostic(frame, err.get_diagnostic());
+                        }
                         Value::new(Box::new(interpreter::types::ErrorValue::new()))
                     }
                 }

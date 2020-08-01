@@ -98,6 +98,16 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
 
     let errctx = env_frame.get_errctx();
     let file_id = env_frame.get_file_id();
+    let err_handler: &dyn Fn(ops::OpsError) -> Value<Box<dyn ValueTypeMarker>> = &|err| {
+        let should_print_err = match err.get_type() {
+            OpsErrorType::Incompatible => true,
+            OpsErrorType::IncompatibleError => errctx.get_error_cascade(),
+        };
+        if should_print_err {
+            errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
+        }
+        Value::new(Box::new(types::ErrorValue::new()))
+    };
     match &assignment.get_op() {
         AstAtrOp::Atr => {
             let new_val = value.eval_in_env(env_frame);
@@ -121,10 +131,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                         file_id,
                     )
-                    .unwrap_or_else(|err| {
-                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(types::ErrorValue::new()))
-                    });
+                    .unwrap_or_else(err_handler);
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -141,10 +148,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                         file_id,
                     )
-                    .unwrap_or_else(|err| {
-                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(types::ErrorValue::new()))
-                    });
+                    .unwrap_or_else(err_handler);
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -161,10 +165,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                         file_id,
                     )
-                    .unwrap_or_else(|err| {
-                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(types::ErrorValue::new()))
-                    });
+                    .unwrap_or_else(err_handler);
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }
@@ -181,10 +182,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         value.get_rng(),
                         file_id,
                     )
-                    .unwrap_or_else(|err| {
-                        errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-                        Value::new(Box::new(types::ErrorValue::new()))
-                    });
+                    .unwrap_or_else(err_handler);
                 }
                 Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
             }

@@ -10,18 +10,24 @@ use codespan_reporting::{
 pub(crate) struct ErrCtx {
     files: SimpleFiles<String, String>,
     angry_errors: bool,
+    error_cascade: bool,
 }
 
 impl ErrCtx {
-    pub(crate) fn new(angry_errors: bool) -> Self {
+    pub(crate) fn new(angry_errors: bool, error_cascade: bool) -> Self {
         Self {
             files: SimpleFiles::new(),
             angry_errors,
+            error_cascade,
         }
     }
 
     pub(crate) fn new_file(&mut self, name: String, src: String) -> usize {
         self.files.add(name, src)
+    }
+
+    pub(crate) fn get_error_cascade(&self) -> bool {
+        self.error_cascade
     }
 }
 

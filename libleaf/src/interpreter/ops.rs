@@ -6,6 +6,7 @@ use std::ops::Range;
 #[derive(Copy, Clone)]
 pub(crate) enum OpsErrorType {
     Incompatible,
+    IncompatibleError,
 }
 
 pub(crate) struct OpsError {
@@ -17,7 +18,9 @@ impl OpsError {
     fn new(type_: OpsErrorType, diagnostic: Diagnostic<usize>) -> OpsError {
         Self { type_, diagnostic }
     }
-
+    pub(crate) fn get_type(&self) -> &OpsErrorType {
+        &self.type_
+    }
     pub(crate) fn get_diagnostic(self) -> Diagnostic<usize> {
         self.diagnostic
     }
@@ -29,6 +32,28 @@ macro_rules! op_match {
             $a.get_value().get_type_id_and_value(),
             $b.get_value().get_type_id_and_value(),
         ) {
+            (TypeIdAndValue::Error, tright) => Err(OpsError::new(
+                    OpsErrorType::IncompatibleError,
+                    Diagnostic::error()
+                        .with_message("Incompatible operands(one is an error)")
+                        .with_labels(vec![
+                            Label::primary($file_id, $a_rng)
+                                .with_message(TypeId::Error.typename()),
+                            Label::secondary($file_id, $b_rng)
+                                .with_message(tright.degrade().typename()),
+                        ]),
+            )),
+            (tleft, TypeIdAndValue::Error) => Err(OpsError::new(
+                    OpsErrorType::IncompatibleError,
+                    Diagnostic::error()
+                        .with_message("Incompatible operands(one is an error)")
+                        .with_labels(vec![
+                            Label::primary($file_id, $a_rng)
+                                .with_message(tleft.degrade().typename()),
+                            Label::secondary($file_id, $b_rng)
+                                .with_message(TypeId::Error.typename()),
+                        ]),
+            )),
             $($($x => $y),*,)?
             (TypeIdAndValue::I32(leftval), tright) => match tright {
                 TypeIdAndValue::I32(rightval) => Ok(Value::new(Box::new(*leftval $op *rightval))),
