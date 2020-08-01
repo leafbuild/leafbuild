@@ -1,9 +1,9 @@
 = The Leaf Build system
 
-image::https://github.com/leafbuild/leafbuild/workflows/Build-Rust/badge.svg[]
+image::https://gitlab.com/leafbuild/leafbuild/badges/master/pipeline.svg[]
 
 An early-in-development meta build system for C/C++ projects written in Rust;
-focused on usability. See https://leafbuild.github.io/leafbuild[the documentation]
+focused on usability. See https://leafbuild.gitlab.io/leafbuild[the documentation]
 for more.
 
 == Support

@@ -21,5 +21,5 @@ Supported C++ compilers:
 - gcc
 - clang
 
-[src_generators_link]: https://github.com/leafbuild/leafbuild/tree/master/libleafcore/src/generators
-[src_compilers_link]: https://github.com/leafbuild/leafbuild/tree/master/libleafcore/src/compilers
+[src_generators_link]: https://gitlab.com/leafbuild/leafbuild/tree/master/libleafcore/src/generators
+[src_compilers_link]: https://gitlab.com/leafbuild/leafbuild/tree/master/libleafcore/src/compilers
