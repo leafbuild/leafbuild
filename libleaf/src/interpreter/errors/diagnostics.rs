@@ -5,6 +5,7 @@ use codespan_reporting::{
     term,
     term::termcolor::{ColorChoice, StandardStream},
 };
+use std::ops::Range;
 
 /// the error context
 pub(crate) struct ErrCtx {
@@ -12,6 +13,8 @@ pub(crate) struct ErrCtx {
     angry_errors: bool,
     error_cascade: bool,
 }
+
+pub(crate) type Location = Range<usize>;
 
 impl ErrCtx {
     pub(crate) fn new(angry_errors: bool, error_cascade: bool) -> Self {

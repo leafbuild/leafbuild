@@ -1,4 +1,4 @@
-#[path = "errors/errors_ctx.rs"]
+#[path = "errors/diagnostics.rs"]
 pub(crate) mod errors;
 pub(crate) mod ops;
 pub(crate) mod types;
@@ -163,20 +163,38 @@ where
 {
     name: String,
     value: Value<T>,
+    creation_loc: errors::Location,
+    last_assignment_loc: errors::Location,
 }
 
 impl<T> Variable<T>
 where
     T: ValueTypeMarker + Sized,
 {
-    pub(crate) fn new(name: String, value: Value<T>) -> Self {
-        Self { name, value }
+    pub(crate) fn new(name: String, value: Value<T>, decl_loc: errors::Location) -> Self {
+        let last_assignment_loc = decl_loc.clone();
+        Self {
+            name,
+            value,
+            creation_loc: decl_loc,
+            last_assignment_loc,
+        }
     }
+    #[inline]
     pub(crate) fn get_value(&self) -> &Value<T> {
         &self.value
     }
+    #[inline]
     pub(crate) fn get_value_mut(&mut self) -> &mut Value<T> {
         &mut self.value
+    }
+    #[inline]
+    pub(crate) fn get_creation_loc(&self) -> &errors::Location {
+        &self.creation_loc
+    }
+    #[inline]
+    pub(crate) fn get_last_assignment_loc(&self) -> &errors::Location {
+        &self.last_assignment_loc
     }
 }
 
@@ -233,6 +251,7 @@ pub(crate) struct Value<T>
 where
     T: ValueTypeMarker,
 {
+    base_type_id: TypeId,
     value: T,
 }
 
@@ -241,8 +260,18 @@ where
     T: ValueTypeMarker,
 {
     pub fn new(value: T) -> Self {
-        Self { value }
+        let base_type_id = value.get_type_id();
+        Self {
+            value,
+            base_type_id,
+        }
     }
+
+    #[inline]
+    pub(crate) fn get_base_type(&self) -> &TypeId {
+        &self.base_type_id
+    }
+
     #[inline]
     pub fn get_value(&self) -> &T {
         &self.value

@@ -5,14 +5,13 @@ use crate::{
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
-use std::ops::Range;
 
 pub(crate) trait AstLoc {
     fn get_begin(&self) -> usize;
 
     fn get_end(&self) -> usize;
 
-    fn get_rng(&self) -> Range<usize>;
+    fn get_rng(&self) -> errors::Location;
 }
 
 pub enum Atom {
@@ -36,7 +35,7 @@ impl AstLoc for Atom {
         }
     }
 
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         match self {
             Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.as_rng(),
         }
@@ -205,7 +204,7 @@ impl AstLoc for Expr {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         match self {
             Expr::Atom(atm) => atm.get_rng(),
             Expr::FuncCall(call) => call.get_rng(),
@@ -258,7 +257,7 @@ impl AstLoc for AstPropertyAccess {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
@@ -358,7 +357,7 @@ impl AstLoc for AstFuncCall {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
@@ -421,7 +420,7 @@ impl AstLoc for AstPositionalArg {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.value.get_rng()
     }
 }
@@ -458,7 +457,7 @@ impl AstLoc for AstNamedArg {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
@@ -521,7 +520,7 @@ impl AstLoc for AstMethodCall {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
@@ -569,7 +568,7 @@ impl AstLoc for AstAssignment {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
@@ -615,7 +614,7 @@ impl AstLoc for AstDeclaration {
         self.value.get_end()
     }
 
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
@@ -658,7 +657,7 @@ impl AstLoc for AstStatement {
     }
 
     #[inline]
-    fn get_rng(&self) -> Range<usize> {
+    fn get_rng(&self) -> errors::Location {
         self.get_begin()..self.get_end()
     }
 }
