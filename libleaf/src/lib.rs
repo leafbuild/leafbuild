@@ -1,6 +1,6 @@
 extern crate codespan_reporting;
 extern crate lalrpop_util;
-extern crate libleafcore;
+extern crate libutils;
 extern crate term;
 
 pub mod grammar;

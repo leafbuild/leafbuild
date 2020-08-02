@@ -1,9 +1,7 @@
-extern crate itertools;
-extern crate toml;
-extern crate which;
-
-pub mod utils;
-
-pub mod compilers;
-
-pub mod generators;
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        assert_eq!(2 + 2, 4);
+    }
+}

@@ -15,7 +15,7 @@ angry-errors = []
 
 [dependencies]
 itertools = "0.9"
-libleafcore = { path = "../libleafcore" }
+libutils = { path = "../libutils" }
 lalrpop-util = "0.19"
 regex = "1"
 codespan-reporting = "0.9"

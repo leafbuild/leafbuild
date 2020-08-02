@@ -300,14 +300,29 @@ impl<'input> Lexer<'input> {
             Some((_, _)) => {
                 // parse simple ' ... ' string
                 let mut last_index = 0;
-                let s: String = self
-                    .chars
-                    .peeking_take_while(|(_, chr)| *chr != '\'')
-                    .map(|(index, chr)| {
-                        last_index = index;
-                        chr
-                    })
-                    .collect();
+                let mut prev_chr: char = '0'; // doesn't really matter
+                let mut prev_escaped: bool = false;
+                let s: String = Self::str_escape(
+                    self.chars
+                        .peeking_take_while(|(_, chr)| {
+                            if !(*chr != '\'' || prev_chr == '\\' && prev_escaped) {
+                                // *chr == '\'' && (prev_chr == '\\' && !prev_escaped || prev_chr != '\\'), but clippy changed it to this
+                                false
+                            } else {
+                                if *chr == '\\' {
+                                    prev_escaped = !prev_escaped;
+                                } else {
+                                    prev_escaped = false;
+                                }
+                                prev_chr = *chr;
+                                true
+                            }
+                        })
+                        .map(|(index, chr)| {
+                            last_index = index;
+                            chr
+                        }),
+                );
                 match self.chars.next()  /* try to take the '\'' out of the iterator*/{
                     Some((_, '\'')) => {},
                     _ => {return Err(LexicalError::StringStartedButNotEnded {start_loc: initial_position})}
@@ -330,14 +345,17 @@ impl<'input> Lexer<'input> {
         }
     }
 
+    #[inline]
     fn octdigit_value(chr: char) -> i32 {
         (chr as u8 - b'0') as i32
     }
 
+    #[inline]
     fn decdigit_value(chr: char) -> i32 {
         (chr as u8 - b'0') as i32
     }
 
+    #[inline]
     fn hexdigit_value(chr: char) -> i32 {
         let chr = chr as u8;
         (match chr {
@@ -346,6 +364,27 @@ impl<'input> Lexer<'input> {
             b'A'..=b'F' => chr - b'A',
             _ => 0,
         }) as i32
+    }
+
+    #[inline]
+    fn str_escape<T: Iterator<Item = char>>(s: T) -> String {
+        let mut prev: char = '0';
+        let mut prev_escaped: bool = true;
+        let mut result = String::new();
+        for (_, chr) in s.enumerate() {
+            if chr == '\\' {
+                if prev == '\\' && !prev_escaped {
+                    result += &chr.to_string();
+                }
+                prev_escaped = !prev_escaped;
+            } else {
+                result += &chr.to_string();
+                prev_escaped = true;
+            }
+
+            prev = chr;
+        }
+        result
     }
 }
 

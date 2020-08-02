@@ -2102,16 +2102,23 @@ hljs.registerLanguage('leafbuild', function () {
 
   /** @type LanguageFn */
   function leafbuild(hljs) {
+    let BACKSLASH_ESCAPE = {
+      begin: '\\\\[\\s\\S]', relevance: 0
+    };
+    let APOS_STRING_MODE = {
+      className: 'string',
+      begin: '\'',
+      end: '\'',
+      illegal: '\\n',
+      contains: [BACKSLASH_ESCAPE]
+    };
     let STRINGS = {
       className: 'string',
       variants: [
         {
           begin: '\'\'\'.*', end: '\'\'\''
         },
-        {
-          begin: '\'[^\'\\n]+', end: '\'',
-          illegal: '\\n'
-        }
+        APOS_STRING_MODE
       ]
     };
     let NUMBERS = {

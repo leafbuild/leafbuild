@@ -328,7 +328,7 @@ version = "0.1.0"
 dependencies = [
  "clap 3.0.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libleaf 0.1.0",
- "libleafcore 0.1.0",
+ "libutils 0.1.0",
  "meson 0.1.0",
 ]
 
@@ -345,7 +345,7 @@ dependencies = [
  "itertools 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lalrpop 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lalrpop-util 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "libleafcore 0.1.0",
+ "libutils 0.1.0",
  "regex 1.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
  "term 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "termcolor 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -353,7 +353,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "libleafcore"
+name = "libutils"
 version = "0.1.0"
 dependencies = [
  "itertools 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -377,6 +377,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "meson"
 version = "0.1.0"
+dependencies = [
+ "codespan-reporting 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "itertools 0.9.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lalrpop 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lalrpop-util 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libutils 0.1.0",
+ "regex 1.3.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "term 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "termcolor 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "unindent 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "new_debug_unreachable"

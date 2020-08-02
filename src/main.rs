@@ -1,6 +1,5 @@
 extern crate clap;
 extern crate libleaf;
-extern crate libleafcore;
 
 use clap::{App, Arg};
 use libleaf::interpreter::EnvConfig;

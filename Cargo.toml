@@ -8,20 +8,20 @@ edition = "2018"
 
 [features]
 default = [
-#	"angry-errors"
+	#"meson"
 ]
 
 angry-errors = ["libleaf/angry-errors"]
 
 [dependencies]
 libleaf = { path = "libleaf" }
-libleafcore = { path = "libleafcore" }
+libutils = { path = "libutils" }
 meson = { path = "meson", optional = true }
 clap = "3.0.0-beta.1"
 
 [workspace]
 members = [
-	"libleafcore",
+	"libutils",
 	"libleaf",
 	"meson",
 ]

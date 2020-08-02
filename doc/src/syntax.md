@@ -40,12 +40,15 @@ Examples of values:
 ```
 
 ### String values
-A simple string begins and ends with `'`, and may not contain newlines.
+A simple string begins and ends with `'`, and may have escaped apostrophes;
+should not contain newlines.
 You can also use multiline strings; those begin and end with `'''`.
 
 Examples:
 ```leafbuild
 'A simple single line string',
+
+'A simple string with \'escaped\' apostropes'
 
 '''A
 multiline

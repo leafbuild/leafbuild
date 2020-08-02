@@ -1,0 +1,3 @@
+= libutils
+
+Some utils that can be used for other C/C++ build systems as well.
