@@ -10,6 +10,7 @@ pub(crate) enum TypeIdAndValue<'a> {
     I64(&'a i64),
     U32(&'a u32),
     U64(&'a u64),
+    Bool(&'a bool),
     String(&'a String),
     Void,
     Error,
@@ -22,6 +23,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::I64(v) => format!("{}", v),
             TypeIdAndValue::U32(v) => format!("{}", v),
             TypeIdAndValue::U64(v) => format!("{}", v),
+            TypeIdAndValue::Bool(v) => format!("{}", v),
             TypeIdAndValue::String(v) => (*v).clone(),
             TypeIdAndValue::Void => "(void)".to_string(),
             TypeIdAndValue::Error => "(error)".to_string(),
@@ -35,6 +37,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::I64(_) => TypeId::I64,
             TypeIdAndValue::U32(_) => TypeId::U32,
             TypeIdAndValue::U64(_) => TypeId::U64,
+            TypeIdAndValue::Bool(_) => TypeId::Bool,
             TypeIdAndValue::String(_) => TypeId::String,
             TypeIdAndValue::Void => TypeId::Void,
             TypeIdAndValue::Error => TypeId::Error,
@@ -54,6 +57,7 @@ pub(crate) enum TypeId {
     I64,
     U32,
     U64,
+    Bool,
     String,
     Void,
     Error,
@@ -66,6 +70,7 @@ impl TypeId {
             TypeId::I64 => "i64",
             TypeId::U32 => "u32",
             TypeId::U64 => "u64",
+            TypeId::Bool => "bool",
             TypeId::String => "string",
             TypeId::Void => "void",
             TypeId::Error => "error",
@@ -80,6 +85,7 @@ impl Display for TypeId {
 }
 
 include!("int.rs");
+include!("bool.rs");
 include!("string.rs");
 include!("void.rs");
 include!("error.rs");

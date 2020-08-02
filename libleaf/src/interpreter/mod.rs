@@ -3,6 +3,7 @@ pub(crate) mod errors;
 pub(crate) mod ops;
 pub(crate) mod types;
 
+use crate::grammar::ast::Expr;
 use crate::{
     grammar::{
         self,
@@ -283,6 +284,19 @@ where
     }
 }
 
+pub(crate) struct LaterValue<'a> {
+    val_expr: &'a Expr,
+}
+
+impl<'a> LaterValue<'a> {
+    pub(crate) fn new(val_expr: &'a Expr) -> Self {
+        Self { val_expr }
+    }
+    pub(crate) fn compute(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
+        self.val_expr.eval_in_env(frame)
+    }
+}
+
 /// A value reference
 pub(crate) struct ValRef<'a, T>
 where
@@ -417,6 +431,7 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
 pub(crate) struct CallPoolsWrapper {
     global_pool: CallPool,
     num_pool: CallPool,
+    bool_pool: CallPool,
     string_pool: CallPool,
     void_pool: CallPool,
     error_pool: CallPool,
@@ -429,8 +444,9 @@ impl CallPoolsWrapper {
             global_pool: get_global_functions(),
             num_pool: types::get_num_call_pool(),
             string_pool: types::get_string_call_pool(),
-            void_pool: CallPool::new(vec![]),
-            error_pool: CallPool::new(vec![]),
+            bool_pool: types::get_bool_call_pool(),
+            void_pool: types::get_void_call_pool(),
+            error_pool: types::get_error_call_pool(),
         }
     }
     #[inline]
@@ -441,6 +457,11 @@ impl CallPoolsWrapper {
     #[inline]
     pub(crate) fn get_num_pool(&self) -> &CallPool {
         &self.num_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_bool_pool(&self) -> &CallPool {
+        &self.bool_pool
     }
 
     #[inline]
@@ -465,6 +486,7 @@ impl CallPoolsWrapper {
             TypeId::String => &self.get_string_pool(),
             TypeId::Void => &self.get_void_pool(),
             TypeId::Error => &self.get_error_pool(),
+            TypeId::Bool => &self.get_bool_pool(),
         }
     }
 }
@@ -546,12 +568,13 @@ pub(crate) fn property_access(
     let base = property.get_base().eval_in_env(frame);
     let property_name = property.get_property_name();
     match base.get_value().get_type_id() {
-        types::TypeId::I32 | types::TypeId::I64 | types::TypeId::U32 | types::TypeId::U64 => {
+        TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => {
             resolve_num_property_access(&base, property_name)
         }
-        types::TypeId::String => resolve_str_property_access(&base, property_name),
-        types::TypeId::Void => Value::new(Box::new(())),
-        types::TypeId::Error => Value::new(Box::new(types::ErrorValue::new())),
+        TypeId::String => resolve_str_property_access(&base, property_name),
+        TypeId::Void => Value::new(Box::new(())),
+        TypeId::Error => Value::new(Box::new(types::ErrorValue::new())),
+        TypeId::Bool => Value::new(Box::new(())),
     }
 }
 

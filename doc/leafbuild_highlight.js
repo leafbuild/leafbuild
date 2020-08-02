@@ -42,6 +42,8 @@ export default function(hljs) {
         'let ' +
         // types
         'i32 i64 u32 u64 string error void ' +
+        // bool literals
+        'true false ' +
         // functions
         'project module executable library print'
   };

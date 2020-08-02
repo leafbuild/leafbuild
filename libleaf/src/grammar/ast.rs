@@ -1,5 +1,6 @@
-use crate::interpreter::errors;
+use crate::interpreter::errors::Location;
 use crate::interpreter::ops::{OpsError, OpsErrorType};
+use crate::interpreter::{errors, LaterValue};
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
@@ -16,6 +17,7 @@ pub(crate) trait AstLoc {
 
 pub enum Atom {
     Number((i32, TokLoc)),
+    Bool((bool, TokLoc)),
     Str((String, TokLoc)),
     Id((String, TokLoc)),
 }
@@ -24,20 +26,29 @@ impl AstLoc for Atom {
     #[inline]
     fn get_begin(&self) -> usize {
         match self {
-            Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.get_begin(),
+            Atom::Bool((_, loc))
+            | Atom::Number((_, loc))
+            | Atom::Id((_, loc))
+            | Atom::Str((_, loc)) => loc.get_begin(),
         }
     }
 
     #[inline]
     fn get_end(&self) -> usize {
         match self {
-            Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.get_end(),
+            Atom::Bool((_, loc))
+            | Atom::Number((_, loc))
+            | Atom::Id((_, loc))
+            | Atom::Str((_, loc)) => loc.get_end(),
         }
     }
 
     fn get_rng(&self) -> errors::Location {
         match self {
-            Atom::Number((_, loc)) | Atom::Id((_, loc)) | Atom::Str((_, loc)) => loc.as_rng(),
+            Atom::Bool((_, loc))
+            | Atom::Number((_, loc))
+            | Atom::Id((_, loc))
+            | Atom::Str((_, loc)) => loc.as_rng(),
         }
     }
 }
@@ -45,6 +56,7 @@ impl AstLoc for Atom {
 pub enum Expr {
     Atom(Atom),
     Op(Box<Expr>, Opcode, Box<Expr>),
+    UnaryOp(UnaryOpcode, Box<Expr>),
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
     PropertyAccess(AstPropertyAccess),
@@ -55,6 +67,7 @@ impl Expr {
     pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
             Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
+            Expr::Atom(Atom::Bool((v, _loc))) => Value::new(Box::new(*v)),
             Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
             Expr::Atom(Atom::Id((id, _loc))) => frame
                 .get_value_for_variable(&id.clone())
@@ -66,6 +79,24 @@ impl Expr {
             }
             Expr::Op(left, opcode, right) => {
                 let v = opcode.compute_result_for(left, right, frame);
+                match v {
+                    Ok(v) => v,
+                    Err(err) => {
+                        let should_print_err = match err.get_type() {
+                            OpsErrorType::Incompatible => true,
+                            OpsErrorType::IncompatibleError => {
+                                frame.get_errctx().get_error_cascade()
+                            }
+                        };
+                        if should_print_err {
+                            errors::push_diagnostic(frame, err.get_diagnostic());
+                        }
+                        Value::new(Box::new(interpreter::types::ErrorValue::new()))
+                    }
+                }
+            }
+            Expr::UnaryOp(opcode, right) => {
+                let v = opcode.compute_result_for(right, frame);
                 match v {
                     Ok(v) => v,
                     Err(err) => {
@@ -124,6 +155,18 @@ impl Expr {
                                 frame,
                             ))]),
                 )),
+                Atom::Bool((_v, loc)) => Err(TakeRefError::new(
+                    Diagnostic::error()
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
+                        .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
+                            .with_message(errors::get_error(
+                                "cannot take a reference from a bool",
+                                frame,
+                            ))]),
+                )),
             },
             Expr::FuncCall(_) => Err(TakeRefError::new(
                 Diagnostic::error()
@@ -169,12 +212,28 @@ impl Expr {
                     ))
                     .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
                         .with_message(errors::get_error(
-                            "cannot take a reference from an arithmetic expression",
+                            "cannot take a reference from an non-id expression",
+                            frame,
+                        ))]),
+            )),
+            Expr::UnaryOp(_, _) => Err(TakeRefError::new(
+                Diagnostic::error()
+                    .with_message(errors::get_error(
+                        "cannot take a reference from a non-id",
+                        frame,
+                    ))
+                    .with_labels(vec![Label::primary(frame.get_file_id(), self.get_rng())
+                        .with_message(errors::get_error(
+                            "cannot take a reference from an non-id expression",
                             frame,
                         ))]),
             )),
             Expr::ParenExpr(_, e, _) => e.eval_ref(frame),
         }
+    }
+
+    fn later_eval(&self) -> LaterValue {
+        LaterValue::new(self)
     }
 }
 
@@ -188,6 +247,7 @@ impl AstLoc for Expr {
             Expr::Op(expr, _, _) => expr.get_begin(),
             Expr::PropertyAccess(prop_access) => prop_access.get_begin(),
             Expr::ParenExpr(begin, _, _) => *begin,
+            Expr::UnaryOp(op, _) => op.get_begin(),
         }
     }
 
@@ -200,6 +260,7 @@ impl AstLoc for Expr {
             Expr::Op(expr, _, _) => expr.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_end(),
             Expr::ParenExpr(_, _, end) => *end,
+            Expr::UnaryOp(_, expr) => expr.get_end(),
         }
     }
 
@@ -210,6 +271,7 @@ impl AstLoc for Expr {
             Expr::FuncCall(call) => call.get_rng(),
             Expr::MethodCall(call) => call.get_rng(),
             Expr::Op(expr1, _, expr2) => expr1.get_begin()..expr2.get_end(),
+            Expr::UnaryOp(op, expr) => op.get_begin()..expr.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
             Expr::ParenExpr(begin, _, end) => *begin..*end,
         }
@@ -268,6 +330,16 @@ pub enum Opcode {
     Add,
     Sub,
     Mod,
+    And,
+    Or,
+    In,
+    NotIn,
+    Equal,
+    G,
+    L,
+    GE,
+    LE,
+    NE,
 }
 
 impl Opcode {
@@ -313,6 +385,112 @@ impl Opcode {
                 rs.get_rng(),
                 frame.get_file_id(),
             ),
+            Opcode::And => interpreter::ops::op_and(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.later_eval(),
+                rs.get_rng(),
+                frame,
+                frame.get_file_id(),
+            ),
+            Opcode::Or => interpreter::ops::op_or(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.later_eval(),
+                rs.get_rng(),
+                frame,
+                frame.get_file_id(),
+            ),
+            Opcode::In => Ok(Value::new(Box::new(()))),
+            Opcode::NotIn => Ok(Value::new(Box::new(()))),
+            Opcode::Equal => interpreter::ops::op_eq(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+                frame.get_file_id(),
+            ),
+            Opcode::G => interpreter::ops::op_g(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+                frame.get_file_id(),
+            ),
+            Opcode::L => interpreter::ops::op_l(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+                frame.get_file_id(),
+            ),
+            Opcode::GE => interpreter::ops::op_ge(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+                frame.get_file_id(),
+            ),
+            Opcode::LE => interpreter::ops::op_le(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+                frame.get_file_id(),
+            ),
+            Opcode::NE => interpreter::ops::op_neq(
+                &ls.eval_in_env(frame),
+                ls.get_rng(),
+                &rs.eval_in_env(frame),
+                rs.get_rng(),
+                frame.get_file_id(),
+            ),
+        }
+    }
+}
+
+pub enum UnaryOpcode {
+    Not(TokLoc),
+    Neg(TokLoc),
+}
+
+impl UnaryOpcode {
+    pub(crate) fn compute_result_for(
+        &self,
+        expr: &Expr,
+        frame: &mut EnvFrame,
+    ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
+        match self {
+            UnaryOpcode::Not(lc) => interpreter::ops::op_unary_not(
+                &expr.eval_in_env(frame),
+                expr.get_rng(),
+                frame.get_file_id(),
+            ),
+            UnaryOpcode::Neg(lc) => interpreter::ops::op_unary_neg(
+                &expr.eval_in_env(frame),
+                expr.get_rng(),
+                frame.get_file_id(),
+            ),
+        }
+    }
+}
+
+impl AstLoc for UnaryOpcode {
+    fn get_begin(&self) -> usize {
+        match self {
+            UnaryOpcode::Not(loc) | UnaryOpcode::Neg(loc) => loc.get_begin(),
+        }
+    }
+
+    fn get_end(&self) -> usize {
+        match self {
+            UnaryOpcode::Not(loc) | UnaryOpcode::Neg(loc) => loc.get_end(),
+        }
+    }
+
+    fn get_rng(&self) -> Location {
+        match self {
+            UnaryOpcode::Not(loc) | UnaryOpcode::Neg(loc) => loc.as_rng(),
         }
     }
 }

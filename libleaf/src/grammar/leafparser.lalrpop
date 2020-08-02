@@ -6,6 +6,7 @@ use crate::{
 			Atom,
 			Expr,
 			Opcode,
+			UnaryOpcode,
 			AstFuncCall,
 			AstFuncCallArgs,
 			AstPositionalArg,
@@ -38,7 +39,7 @@ FuncArgs:AstFuncCallArgs = {
 	"\n"* <pos_args:PositionalFuncArgs> "," "\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new(pos_args,named_args),
 	"\n"* <pos_args:PositionalFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_positional(pos_args),
 	"\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_named(named_args),
-	("\n"*) => AstFuncCallArgs::empty(),
+	"\n"* => AstFuncCallArgs::empty(),
 };
 
 #[inline]
@@ -57,14 +58,57 @@ NamedFuncArg: AstNamedArg = {
 	<name:IdExpression> ":" <value:Expr> => AstNamedArg::from((name, value))
 };
 
-Expr: Box<Expr> = { // (1)
-    Expr ExprOp Factor => Box::new(Expr::Op(<>)), // (2)
+AddExpr: Box<Expr> = { // (1)
+    AddExpr AddOp Factor => Box::new(Expr::Op(<>)), // (2)
     Factor,
 };
 
-ExprOp: Opcode = { // (3)
+AddOp: Opcode = { // (3)
     "+" => Opcode::Add,
     "-" => Opcode::Sub,
+};
+
+CheckExpr: Box<Expr> = {
+	AddExpr RelOp AddExpr => Box::new(Expr::Op(<>)),
+	AddExpr,
+	UnaryNot CheckExpr => Box::new(Expr::UnaryOp(<>)),
+};
+
+UnaryNot: UnaryOpcode = {
+	"not" => UnaryOpcode::Not(<>),
+}
+
+AndConditionalExpr: Box<Expr> = {
+	AndConditionalExpr AndOp CheckExpr => Box::new(Expr::Op(<>)),
+	CheckExpr,
+};
+
+AndOp: Opcode = {
+	"and" => Opcode::And,
+};
+
+OrConditionalExpr: Box<Expr> = {
+	OrConditionalExpr OrOp AndConditionalExpr => Box::new(Expr::Op(<>)),
+	AndConditionalExpr,
+};
+
+OrOp: Opcode = {
+	"or" => Opcode::Or,
+};
+
+RelOp: Opcode = {
+	"==" => Opcode::Equal,
+	">" => Opcode::G,
+	"<" => Opcode::L,
+	">=" => Opcode::GE,
+	"<=" => Opcode::LE,
+	"!=" => Opcode::NE,
+	"in" => Opcode::In,
+	"not" "in" => Opcode::NotIn,
+};
+
+Expr: Box<Expr> = {
+	OrConditionalExpr,
 };
 
 Factor: Box<Expr> = {
@@ -81,6 +125,7 @@ FactorOp: Opcode = {
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
     "str" => Box::new(Expr::Atom(Atom::Str(<>))),
+    "bool_lit" => Box::new(Expr::Atom(Atom::Bool(<>))),
     <begin:"("> <value:Expr> <end:")"> => Box::new(Expr::ParenExpr(begin.get_begin(), value, end.get_end())),
     <MethodCall> => Box::new(Expr::MethodCall(<>)),
     <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
@@ -134,12 +179,25 @@ extern {
         "%" => lexer::Tok::Mod(<TokLoc>),
         "(" => lexer::Tok::POPEN(<TokLoc>),
         ")" => lexer::Tok::PCLOSE(<TokLoc>),
+        "and" => lexer::Tok::And(<TokLoc>),
+        "or" => lexer::Tok::Or(<TokLoc>),
+        "==" => lexer::Tok::Equal(<TokLoc>),
+        ">=" => lexer::Tok::GE(<TokLoc>),
+        "<=" => lexer::Tok::LE(<TokLoc>),
+        ">" => lexer::Tok::L(<TokLoc>),
+        "<" => lexer::Tok::G(<TokLoc>),
+        "!=" => lexer::Tok::NE(<TokLoc>),
+
+        "in" => lexer::Tok::In(<TokLoc>),
+        "not" => lexer::Tok::Not(<TokLoc>),
 
         "let" => lexer::Tok::Let(<TokLoc>),
 
+		"bool_lit" => lexer::Tok::Bool(<bool>, <TokLoc>),
         "num" => lexer::Tok::Number(<i32>, <TokLoc>),
         "id" => lexer::Tok::Identifier(<String>, <TokLoc>),
         "str" => lexer::Tok::Str(<String>, <TokLoc>),
+
         ":" => lexer::Tok::Colon(<TokLoc>),
         "," => lexer::Tok::Comma(<TokLoc>),
         "." => lexer::Tok::Dot(<TokLoc>),

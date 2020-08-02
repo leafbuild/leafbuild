@@ -15,3 +15,7 @@ impl ValueTypeMarker for () {
         TypeIdAndValue::Void
     }
 }
+
+pub(crate) fn get_void_call_pool() -> CallPool {
+    CallPool::new(vec![])
+}

@@ -26,30 +26,73 @@ impl TokLoc {
 
 #[derive(Clone, Debug)]
 pub enum Tok {
+    /// \n
     Newline,
+    /// true | false
+    Bool(bool, TokLoc),
+    /// number
     Number(i32, TokLoc),
+    /// identifier
     Identifier(String, TokLoc),
+    /// string
     Str(String, TokLoc),
 
+    /// +
     Add(TokLoc),
+    /// \-
     Sub(TokLoc),
+    /// *
     Mul(TokLoc),
+    /// /
     Div(TokLoc),
+    /// %
     Mod(TokLoc),
 
+    /// +=
     AddEq(TokLoc),
+    /// -=
     SubEq(TokLoc),
+    /// *=
     MulEq(TokLoc),
+    /// /=
     DivEq(TokLoc),
+    /// %=
     ModEq(TokLoc),
+    /// =
     Eq(TokLoc),
 
+    /// (
     POPEN(TokLoc),
+    /// )
     PCLOSE(TokLoc),
+    /// :
     Colon(TokLoc),
+    /// ,
     Comma(TokLoc),
+    /// .
     Dot(TokLoc),
+    /// let
     Let(TokLoc),
+    /// in
+    In(TokLoc),
+    /// not
+    Not(TokLoc),
+    /// and
+    And(TokLoc),
+    /// or
+    Or(TokLoc),
+    /// ==
+    Equal(TokLoc),
+    /// !=
+    NE(TokLoc),
+    /// <=
+    LE(TokLoc),
+    /// >=
+    GE(TokLoc),
+    /// <
+    L(TokLoc),
+    /// >
+    G(TokLoc),
 }
 
 impl Display for Tok {
@@ -117,6 +160,12 @@ impl<'input> Lexer<'input> {
             initial_position,
             match &result as &str {
                 "let" => Tok::Let(loc),
+                "and" => Tok::And(loc),
+                "or" => Tok::Or(loc),
+                "in" => Tok::In(loc),
+                "not" => Tok::Not(loc),
+                "true" => Tok::Bool(true, loc),
+                "false" => Tok::Bool(false, loc),
                 _ => Tok::Identifier(result, loc),
             },
             next_position,
@@ -402,10 +451,10 @@ macro_rules! single_char_token {
     };
 }
 
-/// When we met a '+', '-', '*', '/' or '%', depending on what the next character is, '=' or not,
+/// When we met a '+', '-', '*', '/', '%', '>', '<', depending on what the next character is, '=' or not,
 /// we will return Tok::$x if it is or Tok::$y if it is not, $slf being self and $i being the
 /// index of the '+', '-', '*', '/' or '%', used in <Lexer as Iterator>::next
-macro_rules! possibly_assignment_op {
+macro_rules! possibly_eq_after {
     ($slf:expr, $x:ident, $y:ident, $i:expr) => {
         match $slf.chars.peek() {
             Some((_, '=')) => {
@@ -444,12 +493,14 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((i, '.')) => return single_char_token!(Dot, i),
                 Some((i, '(')) => return single_char_token!(POPEN, i),
                 Some((i, ')')) => return single_char_token!(PCLOSE, i),
-                Some((i, '+')) => return possibly_assignment_op!(self, AddEq, Add, i),
-                Some((i, '-')) => return possibly_assignment_op!(self, SubEq, Sub, i),
-                Some((i, '*')) => return possibly_assignment_op!(self, MulEq, Mul, i),
-                Some((i, '/')) => return possibly_assignment_op!(self, DivEq, Div, i),
-                Some((i, '%')) => return possibly_assignment_op!(self, ModEq, Mod, i),
-                Some((i, '=')) => return single_char_token!(Eq, i),
+                Some((i, '+')) => return possibly_eq_after!(self, AddEq, Add, i),
+                Some((i, '-')) => return possibly_eq_after!(self, SubEq, Sub, i),
+                Some((i, '*')) => return possibly_eq_after!(self, MulEq, Mul, i),
+                Some((i, '/')) => return possibly_eq_after!(self, DivEq, Div, i),
+                Some((i, '%')) => return possibly_eq_after!(self, ModEq, Mod, i),
+                Some((i, '>')) => return possibly_eq_after!(self, GE, G, i),
+                Some((i, '<')) => return possibly_eq_after!(self, LE, L, i),
+                Some((i, '=')) => return possibly_eq_after!(self, Equal, Eq, i),
                 Some((i, chr)) if chr.is_ascii_alphabetic() || chr == '_' => {
                     return Some(self.parse_identifier(i, chr));
                 }

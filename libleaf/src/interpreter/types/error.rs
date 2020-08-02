@@ -23,3 +23,7 @@ impl ValueTypeMarker for ErrorValue {
         TypeIdAndValue::Error
     }
 }
+
+pub(crate) fn get_error_call_pool() -> CallPool {
+    CallPool::new(vec![])
+}

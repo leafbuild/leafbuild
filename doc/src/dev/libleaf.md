@@ -44,7 +44,10 @@ Implemented only on types that can be used as values and stored in variables.
 
 Here are the types that implement it:
 - `i32`, `i64`, `u32` and `u64`
+- `bool`
 - `String`
+- `()` - the void type
+- `the error type`
 
 The implementations of it can be found in the `interpreter::types` module.
 

@@ -39,6 +39,13 @@ Examples of values:
 0x12349abcdef, // hex number
 ```
 
+### Booleans
+`true` and `false`, just like in C++, or C with the `<stdbool.h>` header.
+
+```leafbuild
+true, false
+```
+
 ### String values
 A simple string begins and ends with `'`, and may have escaped apostrophes;
 should not contain newlines.
