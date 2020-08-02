@@ -329,6 +329,7 @@ dependencies = [
  "clap 3.0.0-beta.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "libleaf 0.1.0",
  "libleafcore 0.1.0",
+ "meson 0.1.0",
 ]
 
 [[package]]
@@ -372,6 +373,10 @@ dependencies = [
 name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "meson"
+version = "0.1.0"
 
 [[package]]
 name = "new_debug_unreachable"

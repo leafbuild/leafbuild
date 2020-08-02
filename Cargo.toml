@@ -16,10 +16,12 @@ angry-errors = ["libleaf/angry-errors"]
 [dependencies]
 libleaf = { path = "libleaf" }
 libleafcore = { path = "libleafcore" }
+meson = { path = "meson", optional = true }
 clap = "3.0.0-beta.1"
 
 [workspace]
 members = [
 	"libleafcore",
 	"libleaf",
+	"meson",
 ]
