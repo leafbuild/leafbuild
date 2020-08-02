@@ -24,5 +24,7 @@ test:cargo:
   script:
     - rustc --version && cargo --version  # Print version info for debugging
     - cargo test --workspace --verbose
+  variables:
+    GIT_SUBMODULE_STRATEGY: recursive
 
 
