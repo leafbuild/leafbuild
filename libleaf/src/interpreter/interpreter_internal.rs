@@ -62,22 +62,16 @@ fn eval_call(
     match executor {
         Some(exe) => (exe.func)(args, env_frame, base_value),
         None => {
-            errors::push_diagnostic(
+            diagnostics::push_diagnostic(
+                CannotFindCallError::new(
+                    call_loc.as_rng(),
+                    call_name,
+                    match base_value {
+                        Some(v) => Some(v.value.get_type_id()),
+                        None => None,
+                    },
+                ),
                 env_frame,
-                Diagnostic::error()
-                    .with_message(errors::get_error("Cannot find call", env_frame))
-                    .with_labels(vec![Label::primary(env_frame.file_id, call_loc.as_rng())
-                        .with_message(errors::get_error_string(
-                            match base_value {
-                                Some(val) => format!(
-                                    "cannot find method '{}' for type `{}`",
-                                    call_name,
-                                    val.get_value().get_type_id().typename(),
-                                ),
-                                None => format!("cannot find function '{}'", call_name),
-                            },
-                            env_frame,
-                        ))]),
             );
             (get_print_executor().func)(args, env_frame, base_value)
         }
@@ -87,46 +81,30 @@ fn eval_call(
 fn run_declaration_in_env_frame(decl: &AstDeclaration, env_frame: &mut EnvFrame) {
     let value = decl.get_value().eval_in_env(env_frame);
     let name = decl.get_name();
-    env_frame.variables.insert(
-        name.clone(),
-        Variable::new(name.clone(), value, decl.get_rng()),
-    );
+    env_frame
+        .variables
+        .insert(name.clone(), Variable::new(name.clone(), value));
 }
 
 fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFrame) {
     let value = assignment.get_value();
     let bound_name_expr = assignment.get_bound();
 
-    let errctx = env_frame.get_errctx();
-    let file_id = env_frame.get_file_id();
-    let err_handler: &dyn Fn(ops::OpsError) -> Value<Box<dyn ValueTypeMarker>> = &|err| {
-        let should_print_err = match err.get_type() {
-            OpsErrorType::Incompatible => true,
-            OpsErrorType::IncompatibleError => errctx.get_error_cascade(),
-        };
-        if should_print_err {
-            errors::push_diagnostic_ctx(errctx, err.get_diagnostic());
-        }
-        Value::new(Box::new(types::ErrorValue::new()))
-    };
+    let ctx = env_frame.get_diagnostics_ctx();
     let incompatible_assignment_handler: &dyn Fn(
         ValRef<Box<dyn ValueTypeMarker>>,
         Value<Box<dyn ValueTypeMarker>>,
-        errors::Location,
+        Location,
     ) = &|val, new_val, rng| {
-        errors::push_diagnostic_ctx(
-            errctx,
-            Diagnostic::error()
-                .with_message("Incompatible assignment")
-                .with_labels(vec![
-                    Label::primary(file_id, bound_name_expr.get_rng())
-                        .with_message(val.reference.base_type_id.typename()),
-                    Label::secondary(file_id, rng).with_message(new_val.base_type_id.typename()),
-                ])
-                .with_notes(vec![format!(
-                    "it will keep it's previous value of `{}`",
-                    val.reference.value.stringify()
-                )]),
+        diagnostics::push_diagnostic_ctx(
+            IncompatibleAssignmentError::new(
+                bound_name_expr.get_rng(),
+                rng,
+                val.reference.get_value().stringify(),
+                val.reference.base_type_id.typename(),
+                new_val.base_type_id.typename(),
+            ),
+            ctx,
         );
     };
     match &assignment.get_op() {
@@ -144,7 +122,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         incompatible_assignment_handler(val, new_val, value.get_rng());
                     }
                 }
-                Err(err) => errors::push_diagnostic_ctx(errctx, err.diagnostic),
+                Err(err) => diagnostics::push_diagnostic_ctx(err, ctx),
             }
         }
         AstAtrOp::AddAtr => {
@@ -157,9 +135,8 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                        file_id,
-                    )
-                    .unwrap_or_else(err_handler);
+                        ctx,
+                    );
                     if is_assignable(
                         val.reference.get_base_type(),
                         &new_val.get_value().get_type_id(),
@@ -169,7 +146,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         incompatible_assignment_handler(val, new_val, assignment.get_rng());
                     }
                 }
-                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
+                Err(err) => diagnostics::push_diagnostic(err, env_frame),
             }
         }
         AstAtrOp::SubAtr => {
@@ -182,9 +159,8 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                        file_id,
-                    )
-                    .unwrap_or_else(err_handler);
+                        ctx,
+                    );
                     if is_assignable(
                         val.reference.get_base_type(),
                         &new_val.get_value().get_type_id(),
@@ -194,7 +170,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         incompatible_assignment_handler(val, new_val, assignment.get_rng());
                     }
                 }
-                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
+                Err(err) => diagnostics::push_diagnostic(err, env_frame),
             }
         }
         AstAtrOp::MulAtr => {
@@ -207,9 +183,8 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                        file_id,
-                    )
-                    .unwrap_or_else(err_handler);
+                        ctx,
+                    );
                     if is_assignable(
                         val.reference.get_base_type(),
                         &new_val.get_value().get_type_id(),
@@ -219,7 +194,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         incompatible_assignment_handler(val, new_val, assignment.get_rng());
                     }
                 }
-                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
+                Err(err) => diagnostics::push_diagnostic(err, env_frame),
             }
         }
         AstAtrOp::DivAtr => {
@@ -232,9 +207,8 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                        file_id,
-                    )
-                    .unwrap_or_else(err_handler);
+                        ctx,
+                    );
                     if is_assignable(
                         val.reference.get_base_type(),
                         &new_val.get_value().get_type_id(),
@@ -244,7 +218,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         incompatible_assignment_handler(val, new_val, assignment.get_rng());
                     }
                 }
-                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
+                Err(err) => diagnostics::push_diagnostic(err, env_frame),
             }
         }
         AstAtrOp::ModAtr => {
@@ -257,9 +231,8 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         bound_name_expr.get_rng(),
                         &right_val,
                         value.get_rng(),
-                        file_id,
-                    )
-                    .unwrap_or_else(err_handler);
+                        ctx,
+                    );
                     if is_assignable(
                         val.reference.get_base_type(),
                         &new_val.get_value().get_type_id(),
@@ -269,7 +242,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
                         incompatible_assignment_handler(val, new_val, assignment.get_rng());
                     }
                 }
-                Err(err) => errors::push_diagnostic(env_frame, err.diagnostic),
+                Err(err) => diagnostics::push_diagnostic(err, env_frame),
             }
         }
     };

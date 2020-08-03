@@ -1,25 +1,27 @@
-#[path = "errors/diagnostics.rs"]
-pub(crate) mod errors;
+#[path = "diagnostics/diagnostics.rs"]
+pub(crate) mod diagnostics;
 pub(crate) mod ops;
 pub(crate) mod types;
 
-use crate::grammar::ast::Expr;
-use crate::interpreter::types::{resolve_map_property_access, resolve_vec_property_access};
+use crate::interpreter::diagnostics::errors::{IncompatibleAssignmentError, SyntaxError, CannotFindCallError};
+use crate::interpreter::diagnostics::{errors, Location};
 use crate::{
     grammar::{
         self,
         ast::{
             AstAssignment, AstAtrOp, AstDeclaration, AstFuncCall, AstFuncCallArgs, AstLoc,
-            AstProgram, AstPropertyAccess, AstStatement,
+            AstProgram, AstPropertyAccess, AstStatement, Expr,
         },
         lexer::LexicalError,
         TokLoc,
     },
     handle::Handle,
     interpreter::{
-        errors::{push_diagnostic_ctx, ErrCtx},
-        ops::OpsErrorType,
-        types::{resolve_num_property_access, resolve_str_property_access, TypeId, TypeIdAndValue},
+        diagnostics::{push_diagnostic_ctx, DiagnosticsCtx},
+        types::{
+            resolve_map_property_access, resolve_num_property_access, resolve_str_property_access,
+            resolve_vec_property_access, TypeId, TypeIdAndValue,
+        },
     },
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
@@ -28,7 +30,6 @@ use lalrpop_util::ParseError;
 use std::{collections::HashMap, ops::Deref, path::Path};
 
 pub struct EnvConfig {
-    #[cfg(feature = "angry-errors")]
     angry_errors_enabled: bool,
 
     error_cascade_enabled: bool,
@@ -37,13 +38,10 @@ pub struct EnvConfig {
 impl EnvConfig {
     pub fn new() -> Self {
         Self {
-            #[cfg(feature = "angry-errors")]
             angry_errors_enabled: false,
-
             error_cascade_enabled: true,
         }
     }
-    #[cfg(feature = "angry-errors")]
     #[inline]
     pub fn set_angry_errors(&mut self, enabled: bool) -> &mut EnvConfig {
         self.angry_errors_enabled = enabled;
@@ -58,7 +56,7 @@ impl EnvConfig {
 }
 
 pub(crate) struct Env {
-    errctx: ErrCtx,
+    diagnostics_ctx: DiagnosticsCtx,
     call_pools: CallPoolsWrapper,
     config: EnvConfig,
 }
@@ -66,7 +64,10 @@ pub(crate) struct Env {
 impl Env {
     pub(crate) fn new(cfg: EnvConfig) -> Self {
         Self {
-            errctx: ErrCtx::new(cfg.angry_errors_enabled, cfg.error_cascade_enabled),
+            diagnostics_ctx: DiagnosticsCtx::new(
+                cfg.angry_errors_enabled,
+                cfg.error_cascade_enabled,
+            ),
             call_pools: CallPoolsWrapper::new(),
             config: cfg,
         }
@@ -102,8 +103,8 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
-    pub(crate) fn get_errctx(&self) -> &'env ErrCtx {
-        &self.env_ref.errctx
+    pub(crate) fn get_diagnostics_ctx(&self) -> &'env DiagnosticsCtx {
+        &self.env_ref.diagnostics_ctx
     }
 
     #[inline]
@@ -165,22 +166,14 @@ where
 {
     name: String,
     value: Value<T>,
-    creation_loc: errors::Location,
-    last_assignment_loc: errors::Location,
 }
 
 impl<T> Variable<T>
 where
     T: ValueTypeMarker + Sized,
 {
-    pub(crate) fn new(name: String, value: Value<T>, decl_loc: errors::Location) -> Self {
-        let last_assignment_loc = decl_loc.clone();
-        Self {
-            name,
-            value,
-            creation_loc: decl_loc,
-            last_assignment_loc,
-        }
+    pub(crate) fn new(name: String, value: Value<T>) -> Self {
+        Self { name, value }
     }
     #[inline]
     pub(crate) fn get_value(&self) -> &Value<T> {
@@ -189,14 +182,6 @@ where
     #[inline]
     pub(crate) fn get_value_mut(&mut self) -> &mut Value<T> {
         &mut self.value
-    }
-    #[inline]
-    pub(crate) fn get_creation_loc(&self) -> &errors::Location {
-        &self.creation_loc
-    }
-    #[inline]
-    pub(crate) fn get_last_assignment_loc(&self) -> &errors::Location {
-        &self.last_assignment_loc
     }
 }
 
@@ -296,7 +281,7 @@ where
         self.value.get_type_id()
     }
 
-    fn get_type_id_and_value<'a>(&'a self) -> TypeIdAndValue<'a> {
+    fn get_type_id_and_value(&self) -> TypeIdAndValue {
         self.value.get_type_id_and_value()
     }
 }
@@ -357,18 +342,8 @@ where
     }
 }
 
-pub(crate) struct TakeRefError {
-    diagnostic: Diagnostic<usize>,
-}
-
-impl TakeRefError {
-    pub(crate) fn new(diagnostic: Diagnostic<usize>) -> Self {
-        Self { diagnostic }
-    }
-}
-
 pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
-    env.errctx.new_file(file, src)
+    env.diagnostics_ctx.new_file(file, src)
 }
 
 pub(crate) fn interpret<'env>(
@@ -408,39 +383,32 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
             interpret(&mut handle.env, &program, file_id).push_to(handle);
         }
         Err(e) => {
-            let (range, description) = match e {
+            let syntax_error = match e {
                 ParseError::InvalidToken { location } => {
-                    (location..location + 1, "invalid token".to_string())
+                    SyntaxError::new(location..location + 1, "invalid token")
                 }
-                ParseError::UnrecognizedEOF { location, expected } => (
+                ParseError::UnrecognizedEOF { location, expected } => SyntaxError::new(
                     location..location + 1,
                     format!("unrecognized EOF, expected {:?}", expected),
                 ),
-                ParseError::UnrecognizedToken { token, expected } => (
+                ParseError::UnrecognizedToken { token, expected } => SyntaxError::new(
                     token.0..token.2,
                     format!("Unexpected token {}, expected {:?}", token.1, expected),
                 ),
                 ParseError::ExtraToken { token } => {
-                    (token.0..token.2, format!("extra token: {}", token.1))
+                    SyntaxError::new(token.0..token.2, format!("extra token: {}", token.1))
                 }
                 ParseError::User { error } => match error {
-                    LexicalError::UnrecognizedToken { location } => (
+                    LexicalError::UnrecognizedToken { location } => SyntaxError::new(
                         location..location + 1,
-                        "Unexpected character at beginning of token".to_string(),
+                        "Unexpected character at beginning of token",
                     ),
                     LexicalError::StringStartedButNotEnded { start_loc } => {
-                        (start_loc..src_len, "No end of string found".to_string())
+                        SyntaxError::new(start_loc..src_len, "No end of string found")
                     }
                 },
             };
-            push_diagnostic_ctx(
-                &handle.env.errctx,
-                Diagnostic::error()
-                    .with_message("Syntax error")
-                    .with_labels(vec![Label::primary(file_id, range).with_message(
-                        errors::get_error_ctx(description, &handle.env.errctx),
-                    )]),
-            )
+            push_diagnostic_ctx(syntax_error, &handle.env.diagnostics_ctx)
         }
     }
 }

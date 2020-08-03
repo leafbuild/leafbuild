@@ -11,10 +11,10 @@ const VERSION: &str = env!("CARGO_PKG_VERSION");
 fn main() {
     let angry_errors_help = format!(
         "Makes all error messages uppercase{}",
-        if cfg!(feature = "angry-errors") {
+        if cfg!(feature = "angry-diagnostics") {
             ""
         } else {
-            "(requires the `angry-errors` feature)"
+            "(requires the `angry-diagnostics` feature)"
         }
     );
     let app = App::new("leafbuild").version(VERSION).author("Dinu Blanovschi <dinu.blanovschi@criptext.com>").about("Automates C/C++ builds").arg(
@@ -26,8 +26,8 @@ fn main() {
                         file for the SRCFILE define",
         ),
     ).arg(
-        Arg::with_name("Angry errors")
-            .long("angry-errors")
+        Arg::with_name("Angry diagnostics")
+            .long("angry-diagnostics")
             .takes_value(false)
             .about(&angry_errors_help),
     ).arg(
@@ -45,11 +45,11 @@ fn main() {
     };
     #[allow(unused_mut)]
     let mut config = EnvConfig::new();
-    #[cfg(feature = "angry-errors")]
-    config.set_angry_errors(matches.is_present("Angry errors"));
-    if matches.is_present("Angry errors") && !(cfg!(feature = "angry-errors")) {
+    #[cfg(feature = "angry-diagnostics")]
+    config.set_angry_errors(matches.is_present("Angry diagnostics"));
+    if matches.is_present("Angry diagnostics") && !(cfg!(feature = "angry-diagnostics")) {
         println!(
-            "\x1B[4;33m[WARN]\x1B[0m Cannot use --angry-errors without the angry-errors feature"
+            "\x1B[4;33m[WARN]\x1B[0m Cannot use --angry-diagnostics without the angry-diagnostics feature"
         );
     }
 
