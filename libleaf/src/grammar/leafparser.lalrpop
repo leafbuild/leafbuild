@@ -112,8 +112,8 @@ Expr: Box<Expr> = {
 };
 
 Factor: Box<Expr> = {
-    Factor FactorOp Term => Box::new(Expr::Op(<>)),
-    Term,
+    Factor FactorOp TermWithUnaryOps => Box::new(Expr::Op(<>)),
+    TermWithUnaryOps,
 };
 
 FactorOp: Opcode = {
@@ -121,6 +121,11 @@ FactorOp: Opcode = {
     "/" => Opcode::Div,
     "%" => Opcode::Mod,
 };
+
+TermWithUnaryOps: Box<Expr> = {
+	UnaryNeg Term => Box::new(Expr::UnaryOp(<>)),
+	Term,
+}
 
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
@@ -131,6 +136,10 @@ Term: Box<Expr> = {
     <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
     <FuncCall> => Box::new(Expr::FuncCall(<>)),
     <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
+};
+
+UnaryNeg: UnaryOpcode = {
+	"-" => UnaryOpcode::Neg(<>),
 };
 
 PropertyAccess: AstPropertyAccess = {

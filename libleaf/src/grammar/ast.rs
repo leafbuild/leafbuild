@@ -461,12 +461,12 @@ impl UnaryOpcode {
         frame: &mut EnvFrame,
     ) -> Result<Value<Box<dyn ValueTypeMarker>>, OpsError> {
         match self {
-            UnaryOpcode::Not(lc) => interpreter::ops::op_unary_not(
+            UnaryOpcode::Not(_lc) => interpreter::ops::op_unary_not(
                 &expr.eval_in_env(frame),
                 expr.get_rng(),
                 frame.get_file_id(),
             ),
-            UnaryOpcode::Neg(lc) => interpreter::ops::op_unary_neg(
+            UnaryOpcode::Neg(_lc) => interpreter::ops::op_unary_neg(
                 &expr.eval_in_env(frame),
                 expr.get_rng(),
                 frame.get_file_id(),
