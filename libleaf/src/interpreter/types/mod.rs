@@ -1,10 +1,13 @@
 use crate::interpreter::{CallExecutor, CallPool, Value, ValueTypeMarker};
 
+use itertools::Itertools;
+use std::cmp::Ordering;
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 
-#[derive(PartialOrd, PartialEq, Debug)]
+// #[derive(PartialOrd, PartialEq, Debug)]
 pub(crate) enum TypeIdAndValue<'a> {
     I32(&'a i32),
     I64(&'a i64),
@@ -14,6 +17,40 @@ pub(crate) enum TypeIdAndValue<'a> {
     String(&'a String),
     Void,
     Error,
+    Vec(&'a Vec<Value<Box<dyn ValueTypeMarker>>>),
+    Map(&'a HashMap<String, Value<Box<dyn ValueTypeMarker>>>),
+}
+
+impl<'a> PartialEq for TypeIdAndValue<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
+}
+
+impl<'a> PartialOrd for TypeIdAndValue<'a> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        unimplemented!()
+    }
+
+    fn lt(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn le(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn gt(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
+
+    fn ge(&self, other: &Self) -> bool {
+        unimplemented!()
+    }
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -27,6 +64,8 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::String(v) => (*v).clone(),
             TypeIdAndValue::Void => "(void)".to_string(),
             TypeIdAndValue::Error => "(error)".to_string(),
+            TypeIdAndValue::Vec(v) => v.stringify(),
+            TypeIdAndValue::Map(v) => v.stringify(),
         }
     }
 
@@ -41,13 +80,9 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::String(_) => TypeId::String,
             TypeIdAndValue::Void => TypeId::Void,
             TypeIdAndValue::Error => TypeId::Error,
+            TypeIdAndValue::Vec(_) => TypeId::Vec,
+            TypeIdAndValue::Map(_) => TypeId::Map,
         }
-    }
-}
-
-impl<'a> Display for TypeIdAndValue<'a> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), fmt::Error> {
-        write!(f, "{:?}", self)
     }
 }
 
@@ -61,6 +96,8 @@ pub(crate) enum TypeId {
     String,
     Void,
     Error,
+    Vec,
+    Map,
 }
 
 impl TypeId {
@@ -74,6 +111,8 @@ impl TypeId {
             TypeId::String => "string",
             TypeId::Void => "void",
             TypeId::Error => "error",
+            TypeId::Vec => "vec",
+            TypeId::Map => "map",
         }
     }
 }
@@ -89,3 +128,5 @@ include!("bool.rs");
 include!("string.rs");
 include!("void.rs");
 include!("error.rs");
+include!("vec.rs");
+include!("map.rs");

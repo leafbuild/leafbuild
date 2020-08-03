@@ -169,11 +169,11 @@ AtrOp: AstAtrOp = {
 };
 
 ArrayLit: Box<Expr> = {
-	<b:"{"> <arg1:Expr> <rest:("," "\n"* <Expr>)*> ","? <e:"}"> => Box::new(Expr::Atom(Atom::ArrayLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
+	<b:"{"> "\n"*  <arg1:Expr> <rest:("," "\n"* <Expr>)*> ","? "\n"* <e:"}"> => Box::new(Expr::Atom(Atom::ArrayLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
 };
 
 MapLit: Box<Expr> = {
-	<b:"{"> <arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*>  ","? <e:"}"> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
+	<b:"{"> "\n"* <arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*>  ","? "\n"*  <e:"}"> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
 };
 
 IdExpression = { "id" };

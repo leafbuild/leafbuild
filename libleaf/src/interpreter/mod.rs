@@ -4,6 +4,7 @@ pub(crate) mod ops;
 pub(crate) mod types;
 
 use crate::grammar::ast::Expr;
+use crate::interpreter::types::{resolve_map_property_access, resolve_vec_property_access};
 use crate::{
     grammar::{
         self,
@@ -277,10 +278,26 @@ where
     pub fn get_value(&self) -> &T {
         &self.value
     }
+}
 
-    #[inline]
-    pub fn stringify(&self) -> String {
+impl<T> ValueTypeMarker for Value<T>
+where
+    T: ValueTypeMarker,
+{
+    fn stringify(&self) -> String {
         self.value.stringify()
+    }
+
+    fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>> {
+        self.value.clone_to_value()
+    }
+
+    fn get_type_id(&self) -> TypeId {
+        self.value.get_type_id()
+    }
+
+    fn get_type_id_and_value<'a>(&'a self) -> TypeIdAndValue<'a> {
+        self.value.get_type_id_and_value()
     }
 }
 
@@ -435,6 +452,8 @@ pub(crate) struct CallPoolsWrapper {
     string_pool: CallPool,
     void_pool: CallPool,
     error_pool: CallPool,
+    vec_pool: CallPool,
+    map_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -447,6 +466,8 @@ impl CallPoolsWrapper {
             bool_pool: types::get_bool_call_pool(),
             void_pool: types::get_void_call_pool(),
             error_pool: types::get_error_call_pool(),
+            vec_pool: types::get_vec_call_pool(),
+            map_pool: types::get_map_call_pool(),
         }
     }
     #[inline]
@@ -480,6 +501,16 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_vec_pool(&self) -> &CallPool {
+        &self.vec_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_map_pool(&self) -> &CallPool {
+        &self.map_pool
+    }
+
+    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => &self.get_num_pool(),
@@ -487,6 +518,8 @@ impl CallPoolsWrapper {
             TypeId::Void => &self.get_void_pool(),
             TypeId::Error => &self.get_error_pool(),
             TypeId::Bool => &self.get_bool_pool(),
+            TypeId::Vec => &self.get_vec_pool(),
+            TypeId::Map => &self.get_map_pool(),
         }
     }
 }
@@ -575,6 +608,8 @@ pub(crate) fn property_access(
         TypeId::Void => Value::new(Box::new(())),
         TypeId::Error => Value::new(Box::new(types::ErrorValue::new())),
         TypeId::Bool => Value::new(Box::new(())),
+        TypeId::Vec => resolve_vec_property_access(&base, property_name),
+        TypeId::Map => resolve_map_property_access(&base, property_name),
     }
 }
 

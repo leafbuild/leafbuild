@@ -6,6 +6,7 @@ use crate::{
     interpreter::{self, EnvFrame, TakeRefError, ValRef, Value, ValueTypeMarker},
 };
 use codespan_reporting::diagnostic::{Diagnostic, Label};
+use std::collections::HashMap;
 
 pub(crate) trait AstLoc {
     fn get_begin(&self) -> usize;
@@ -20,6 +21,7 @@ pub enum Atom {
     Bool((bool, TokLoc)),
     Str((String, TokLoc)),
     Id((String, TokLoc)),
+    #[allow(clippy::vec_box)] // needed by the way the grammar works
     ArrayLit((Vec<Box<Expr>>, TokLoc)),
     MapLit((Vec<AstNamedExpr>, TokLoc)),
 }
@@ -81,8 +83,18 @@ impl Expr {
                 .get_value_for_variable(&id.clone())
                 .get_value()
                 .clone_to_value(),
-            Expr::Atom(Atom::ArrayLit(_)) => Value::new(Box::new(())),
-            Expr::Atom(Atom::MapLit(_)) => Value::new(Box::new(())),
+            Expr::Atom(Atom::ArrayLit((v, _loc))) => {
+                let mut val = Vec::with_capacity(v.capacity());
+                v.iter().for_each(|x| val.push(x.eval_in_env(frame)));
+                Value::new(Box::new(val))
+            }
+            Expr::Atom(Atom::MapLit((v, _loc))) => {
+                let mut val = HashMap::with_capacity(v.capacity());
+                v.iter().for_each(|x: &AstNamedExpr| {
+                    val.insert(x.name.0.clone(), x.value.eval_in_env(frame));
+                });
+                Value::new(Box::new(val))
+            }
             Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
             Expr::MethodCall(call_expr) => {
                 interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
