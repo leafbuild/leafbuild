@@ -20,6 +20,8 @@ pub enum Atom {
     Bool((bool, TokLoc)),
     Str((String, TokLoc)),
     Id((String, TokLoc)),
+    ArrayLit((Vec<Box<Expr>>, TokLoc)),
+    MapLit((Vec<AstNamedExpr>, TokLoc)),
 }
 
 impl AstLoc for Atom {
@@ -29,7 +31,9 @@ impl AstLoc for Atom {
             Atom::Bool((_, loc))
             | Atom::Number((_, loc))
             | Atom::Id((_, loc))
-            | Atom::Str((_, loc)) => loc.get_begin(),
+            | Atom::Str((_, loc))
+            | Atom::ArrayLit((_, loc))
+            | Atom::MapLit((_, loc)) => loc.get_begin(),
         }
     }
 
@@ -39,7 +43,9 @@ impl AstLoc for Atom {
             Atom::Bool((_, loc))
             | Atom::Number((_, loc))
             | Atom::Id((_, loc))
-            | Atom::Str((_, loc)) => loc.get_end(),
+            | Atom::Str((_, loc))
+            | Atom::ArrayLit((_, loc))
+            | Atom::MapLit((_, loc)) => loc.get_end(),
         }
     }
 
@@ -48,7 +54,9 @@ impl AstLoc for Atom {
             Atom::Bool((_, loc))
             | Atom::Number((_, loc))
             | Atom::Id((_, loc))
-            | Atom::Str((_, loc)) => loc.as_rng(),
+            | Atom::Str((_, loc))
+            | Atom::ArrayLit((_, loc))
+            | Atom::MapLit((_, loc)) => loc.as_rng(),
         }
     }
 }
@@ -73,6 +81,8 @@ impl Expr {
                 .get_value_for_variable(&id.clone())
                 .get_value()
                 .clone_to_value(),
+            Expr::Atom(Atom::ArrayLit(_)) => Value::new(Box::new(())),
+            Expr::Atom(Atom::MapLit(_)) => Value::new(Box::new(())),
             Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
             Expr::MethodCall(call_expr) => {
                 interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
@@ -164,6 +174,30 @@ impl Expr {
                         .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
                             .with_message(errors::get_error(
                                 "cannot take a reference from a bool",
+                                frame,
+                            ))]),
+                )),
+                Atom::ArrayLit((_v, loc)) => Err(TakeRefError::new(
+                    Diagnostic::error()
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
+                        .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
+                            .with_message(errors::get_error(
+                                "cannot take a reference from an array literal",
+                                frame,
+                            ))]),
+                )),
+                Atom::MapLit((_v, loc)) => Err(TakeRefError::new(
+                    Diagnostic::error()
+                        .with_message(errors::get_error(
+                            "cannot take a reference from a non-id",
+                            frame,
+                        ))
+                        .with_labels(vec![Label::primary(frame.get_file_id(), loc.as_rng())
+                            .with_message(errors::get_error(
+                                "cannot take a reference from a map literal",
                                 frame,
                             ))]),
                 )),
@@ -542,13 +576,13 @@ impl AstLoc for AstFuncCall {
 
 pub struct AstFuncCallArgs {
     positional_args: Vec<AstPositionalArg>,
-    named_args: Vec<AstNamedArg>,
+    named_args: Vec<AstNamedExpr>,
 }
 
 impl AstFuncCallArgs {
     pub fn new(
         positional_args: Vec<AstPositionalArg>,
-        named_args: Vec<AstNamedArg>,
+        named_args: Vec<AstNamedExpr>,
     ) -> AstFuncCallArgs {
         AstFuncCallArgs {
             positional_args,
@@ -560,7 +594,7 @@ impl AstFuncCallArgs {
         Self::new(positional_args, vec![])
     }
 
-    pub fn new_only_named(named_args: Vec<AstNamedArg>) -> AstFuncCallArgs {
+    pub fn new_only_named(named_args: Vec<AstNamedExpr>) -> AstFuncCallArgs {
         Self::new(vec![], named_args)
     }
 
@@ -571,7 +605,7 @@ impl AstFuncCallArgs {
     pub fn get_positional_args(&self) -> &Vec<AstPositionalArg> {
         &self.positional_args
     }
-    pub fn get_named_args(&self) -> &Vec<AstNamedArg> {
+    pub fn get_named_args(&self) -> &Vec<AstNamedExpr> {
         &self.named_args
     }
 }
@@ -609,12 +643,12 @@ impl From<Box<Expr>> for AstPositionalArg {
     }
 }
 
-pub struct AstNamedArg {
+pub struct AstNamedExpr {
     name: (String, TokLoc),
     value: Box<Expr>,
 }
 
-impl AstNamedArg {
+impl AstNamedExpr {
     pub fn get_name(&self) -> &String {
         &self.name.0
     }
@@ -623,7 +657,7 @@ impl AstNamedArg {
     }
 }
 
-impl AstLoc for AstNamedArg {
+impl AstLoc for AstNamedExpr {
     #[inline]
     fn get_begin(&self) -> usize {
         self.name.1.get_begin()
@@ -640,7 +674,7 @@ impl AstLoc for AstNamedArg {
     }
 }
 
-impl From<((String, TokLoc), Box<Expr>)> for AstNamedArg {
+impl From<((String, TokLoc), Box<Expr>)> for AstNamedExpr {
     fn from(v: ((String, TokLoc), Box<Expr>)) -> Self {
         let (name, value) = v;
         Self { name, value }

@@ -9,6 +9,11 @@ pub struct TokLoc {
 }
 
 impl TokLoc {
+    #[inline]
+    pub(crate) fn new(begin: usize, end: usize) -> TokLoc {
+        TokLoc { begin, end }
+    }
+    #[inline]
     pub(crate) fn as_rng(&self) -> Range<usize> {
         self.begin..self.end
     }
@@ -65,6 +70,10 @@ pub enum Tok {
     POPEN(TokLoc),
     /// )
     PCLOSE(TokLoc),
+    /// {
+    BOPEN(TokLoc),
+    /// }
+    BCLOSE(TokLoc),
     /// :
     Colon(TokLoc),
     /// ,
@@ -493,6 +502,8 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((i, '.')) => return single_char_token!(Dot, i),
                 Some((i, '(')) => return single_char_token!(POPEN, i),
                 Some((i, ')')) => return single_char_token!(PCLOSE, i),
+                Some((i, '{')) => return single_char_token!(BOPEN, i),
+                Some((i, '}')) => return single_char_token!(BCLOSE, i),
                 Some((i, '+')) => return possibly_eq_after!(self, AddEq, Add, i),
                 Some((i, '-')) => return possibly_eq_after!(self, SubEq, Sub, i),
                 Some((i, '*')) => return possibly_eq_after!(self, MulEq, Mul, i),

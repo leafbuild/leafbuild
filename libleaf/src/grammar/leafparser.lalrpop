@@ -10,7 +10,7 @@ use crate::{
 			AstFuncCall,
 			AstFuncCallArgs,
 			AstPositionalArg,
-			AstNamedArg,
+			AstNamedExpr,
 			AstMethodCall,
 			AstStatement,
 			AstAssignment,
@@ -50,12 +50,12 @@ PositionalFuncArgs: Vec<AstPositionalArg> = {
 PositionalFuncArg = { Expr };
 
 #[inline]
-NamedFuncArgs: Vec<AstNamedArg> = {
-	<arg1:NamedFuncArg> <rest:("," "\n"* <NamedFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
+NamedFuncArgs: Vec<AstNamedExpr> = {
+	<arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
 };
 
-NamedFuncArg: AstNamedArg = {
-	<name:IdExpression> ":" <value:Expr> => AstNamedArg::from((name, value))
+NamedExpr: AstNamedExpr = {
+	<name:IdExpression> ":" <value:Expr> => AstNamedExpr::from((name, value))
 };
 
 AddExpr: Box<Expr> = { // (1)
@@ -76,7 +76,7 @@ CheckExpr: Box<Expr> = {
 
 UnaryNot: UnaryOpcode = {
 	"not" => UnaryOpcode::Not(<>),
-}
+};
 
 AndConditionalExpr: Box<Expr> = {
 	AndConditionalExpr AndOp CheckExpr => Box::new(Expr::Op(<>)),
@@ -125,7 +125,7 @@ FactorOp: Opcode = {
 TermWithUnaryOps: Box<Expr> = {
 	UnaryNeg Term => Box::new(Expr::UnaryOp(<>)),
 	Term,
-}
+};
 
 Term: Box<Expr> = {
     "num" => Box::new(Expr::Atom(Atom::Number(<>))),
@@ -136,6 +136,7 @@ Term: Box<Expr> = {
     <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
     <FuncCall> => Box::new(Expr::FuncCall(<>)),
     <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
+    ArrayLit, MapLit,
 };
 
 UnaryNeg: UnaryOpcode = {
@@ -167,6 +168,14 @@ AtrOp: AstAtrOp = {
 	"%=" => AstAtrOp::ModAtr,
 };
 
+ArrayLit: Box<Expr> = {
+	<b:"{"> <arg1:Expr> <rest:("," "\n"* <Expr>)*> ","? <e:"}"> => Box::new(Expr::Atom(Atom::ArrayLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
+};
+
+MapLit: Box<Expr> = {
+	<b:"{"> <arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*>  ","? <e:"}"> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
+};
+
 IdExpression = { "id" };
 
 extern {
@@ -188,6 +197,8 @@ extern {
         "%" => lexer::Tok::Mod(<TokLoc>),
         "(" => lexer::Tok::POPEN(<TokLoc>),
         ")" => lexer::Tok::PCLOSE(<TokLoc>),
+        "{" => lexer::Tok::BOPEN(<TokLoc>),
+        "}" => lexer::Tok::BCLOSE(<TokLoc>),
         "and" => lexer::Tok::And(<TokLoc>),
         "or" => lexer::Tok::Or(<TokLoc>),
         "==" => lexer::Tok::Equal(<TokLoc>),
