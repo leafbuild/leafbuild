@@ -2,8 +2,13 @@ use crate::{
     grammar::lexer::TokLoc,
     interpreter::{
         self,
-        diagnostics::{self, errors::TakeRefError, Location},
-        EnvFrame, LaterValue, ValRef, Value, ValueTypeMarker,
+        diagnostics::{
+            self,
+            errors::{ExprLocAndType, InvalidIndexBaseError, InvalidIndexError, TakeRefError},
+            Location,
+        },
+        types::{ErrorValue, TypeId, TypeIdAndValue},
+        EnvFrame, LaterValue, ValRefMut, Value, ValueTypeMarker,
     },
 };
 use std::collections::HashMap;
@@ -71,6 +76,12 @@ pub enum Expr {
     MethodCall(AstMethodCall),
     PropertyAccess(AstPropertyAccess),
     ParenExpr(usize, Box<Expr>, usize),
+    Indexed {
+        base: Box<Expr>,
+        bracket_open: TokLoc,
+        index: Box<Expr>,
+        bracket_close: TokLoc,
+    },
 }
 
 impl Expr {
@@ -79,10 +90,9 @@ impl Expr {
             Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
             Expr::Atom(Atom::Bool((v, _loc))) => Value::new(Box::new(*v)),
             Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
-            Expr::Atom(Atom::Id((id, _loc))) => frame
-                .get_value_for_variable(&id.clone())
-                .get_value()
-                .clone_to_value(),
+            Expr::Atom(Atom::Id((id, _loc))) => {
+                frame.get_value_for_variable(&id.clone()).clone_to_value()
+            }
             Expr::Atom(Atom::ArrayLit((v, _loc))) => {
                 let mut val = Vec::with_capacity(v.capacity());
                 v.iter().for_each(|x| val.push(x.eval_in_env(frame)));
@@ -103,16 +113,74 @@ impl Expr {
             Expr::UnaryOp(opcode, right) => opcode.compute_result_for(right, frame),
             Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
             Expr::ParenExpr(_, e, _) => e.eval_in_env(frame),
+            Expr::Indexed { base, index, .. } => Value::new(Box::new(
+                match base.eval_in_env(frame).get_type_id_and_value() {
+                    TypeIdAndValue::Vec(v) => {
+                        let index_result = index
+                            .eval_in_env(frame)
+                            .get_value()
+                            .get_type_id_and_value()
+                            .cast_to_usize();
+                        match index_result {
+                            Ok(index) => {
+                                if index < v.len() {
+                                    v[index].clone_to_value()
+                                } else {
+                                    return Value::new(Box::new(ErrorValue::new()));
+                                }
+                            }
+                            Err(t) => {
+                                diagnostics::push_diagnostic(
+                                    InvalidIndexError::new(
+                                        ExprLocAndType::new(base.get_rng(), TypeId::Vec.typename()),
+                                        ExprLocAndType::new(index.get_rng(), t.typename()),
+                                    ),
+                                    frame,
+                                );
+                                return Value::new(Box::new(ErrorValue::new()));
+                            }
+                        }
+                    }
+                    TypeIdAndValue::Map(v) => {
+                        let index_val = index.eval_in_env(frame);
+                        let index_typeid_and_value = index_val.get_value().get_type_id_and_value();
+                        let index_result = index_typeid_and_value.get_string();
+                        match index_result {
+                            Ok(index) => v[index].clone_to_value(),
+                            Err(t) => {
+                                diagnostics::push_diagnostic(
+                                    InvalidIndexError::new(
+                                        ExprLocAndType::new(base.get_rng(), TypeId::Vec.typename()),
+                                        ExprLocAndType::new(index.get_rng(), t.typename()),
+                                    ),
+                                    frame,
+                                );
+                                return Value::new(Box::new(ErrorValue::new()));
+                            }
+                        }
+                    }
+                    t => {
+                        diagnostics::push_diagnostic(
+                            InvalidIndexBaseError::new(ExprLocAndType::new(
+                                base.get_rng(),
+                                t.degrade().typename(),
+                            )),
+                            frame,
+                        );
+                        return Value::new(Box::new(ErrorValue::new()));
+                    }
+                },
+            )),
         }
     }
 
-    pub(crate) fn eval_ref<'a>(
+    pub(crate) fn eval_mut_ref<'a>(
         &self,
         frame: &'a mut EnvFrame,
-    ) -> Result<ValRef<'a, Box<dyn ValueTypeMarker>>, TakeRefError> {
+    ) -> Result<ValRefMut<'a, Box<dyn ValueTypeMarker>>, TakeRefError> {
         match self {
             Expr::Atom(atom) => match atom {
-                Atom::Id((name, _)) => Ok(ValRef::new(
+                Atom::Id((name, _)) => Ok(ValRefMut::new(
                     frame
                         .get_variables_mut()
                         .get_mut(name)
@@ -137,7 +205,10 @@ impl Expr {
             Expr::UnaryOp(_, _) => {
                 Err(TakeRefError::new(self.get_rng(), "an expression like this"))
             }
-            Expr::ParenExpr(_, e, _) => e.eval_ref(frame),
+            Expr::ParenExpr(_, e, _) => e.eval_mut_ref(frame),
+            Expr::Indexed { base, index, .. } => {
+                Err(TakeRefError::new(self.get_rng(), "an expression like this"))
+            }
         }
     }
 
@@ -157,6 +228,7 @@ impl AstLoc for Expr {
             Expr::PropertyAccess(prop_access) => prop_access.get_begin(),
             Expr::ParenExpr(begin, _, _) => *begin,
             Expr::UnaryOp(op, _) => op.get_begin(),
+            Expr::Indexed { base, .. } => base.get_begin(),
         }
     }
 
@@ -170,6 +242,10 @@ impl AstLoc for Expr {
             Expr::PropertyAccess(prop_access) => prop_access.get_end(),
             Expr::ParenExpr(_, _, end) => *end,
             Expr::UnaryOp(_, expr) => expr.get_end(),
+            Expr::Indexed {
+                bracket_close: bracket_closed,
+                ..
+            } => bracket_closed.get_end(),
         }
     }
 
@@ -183,6 +259,11 @@ impl AstLoc for Expr {
             Expr::UnaryOp(op, expr) => op.get_begin()..expr.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
             Expr::ParenExpr(begin, _, end) => *begin..*end,
+            Expr::Indexed {
+                base: b,
+                bracket_close: e,
+                ..
+            } => b.get_begin()..e.get_end(),
         }
     }
 }

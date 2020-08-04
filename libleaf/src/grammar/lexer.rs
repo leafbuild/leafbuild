@@ -70,6 +70,10 @@ pub enum Tok {
     POPEN(TokLoc),
     /// )
     PCLOSE(TokLoc),
+    /// [
+    BracketOpen(TokLoc),
+    /// ]
+    BracketClose(TokLoc),
     /// {
     BOPEN(TokLoc),
     /// }
@@ -502,6 +506,8 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((i, '.')) => return single_char_token!(Dot, i),
                 Some((i, '(')) => return single_char_token!(POPEN, i),
                 Some((i, ')')) => return single_char_token!(PCLOSE, i),
+                Some((i, '[')) => return single_char_token!(BracketOpen, i),
+                Some((i, ']')) => return single_char_token!(BracketClose, i),
                 Some((i, '{')) => return single_char_token!(BOPEN, i),
                 Some((i, '}')) => return single_char_token!(BCLOSE, i),
                 Some((i, '+')) => return possibly_eq_after!(self, AddEq, Add, i),

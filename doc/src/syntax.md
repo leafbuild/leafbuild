@@ -64,6 +64,51 @@ example
 '''
 ```
 
+### Vectors
+```leafbuild
+{v0, v1, v2, ...}
+```
+
+Where `v0`, `v1`, `v2`, ... can be of any type.
+
+#### Getting a value out of a vector
+
+Same as in C/C++:
+
+```leafbuild
+{1, 2, 3}[0] = 1
+{1, 2, 3}[1] = 2
+{1, 2, 3}[2] = 3
+```
+
+### Maps
+```leafbuild
+{k0: v0, k1: v1, k2: v2, ...}
+```
+
+Where `v0`, `v1`, `v2`, ... can be of any type, and `k0`, `k1`, `k2` should be names.
+Example:
+
+```leafbuild
+{
+    a: 1,
+    b: 2+3,
+    c: '1',
+    d: '''
+        A
+        B
+        C
+       '''
+}
+```
+
+#### Getting a value out of a map
+Same as with vectors, but pass a string with the key instead of the index.
+```leafbuild
+{a: 1,b: 2+3,c: '1'}['a'] = 1
+{a: 1,b: 2+3,c: '1'}['b'] = 5
+{a: 1,b: 2+3,c: '1'}['c'] = '1'
+```
 
 ## Variables
 

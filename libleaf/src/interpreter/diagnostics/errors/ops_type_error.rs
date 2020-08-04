@@ -1,17 +1,3 @@
-pub(crate) struct ExprLocAndType {
-    loc: Location,
-    type_: String,
-}
-
-impl ExprLocAndType {
-    pub(crate) fn new(loc: Location, type_: impl Into<String>) -> Self {
-        Self {
-            loc,
-            type_: type_.into(),
-        }
-    }
-}
-
 /// Returned when operands to an operation are invalid.
 pub(crate) struct OpsTypeError {
     /// is None for unary operations.

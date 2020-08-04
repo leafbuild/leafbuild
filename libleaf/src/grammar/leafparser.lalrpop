@@ -71,7 +71,6 @@ AddOp: Opcode = { // (3)
 CheckExpr: Box<Expr> = {
 	AddExpr RelOp AddExpr => Box::new(Expr::Op(<>)),
 	AddExpr,
-	UnaryNot CheckExpr => Box::new(Expr::UnaryOp(<>)),
 };
 
 UnaryNot: UnaryOpcode = {
@@ -124,6 +123,7 @@ FactorOp: Opcode = {
 
 TermWithUnaryOps: Box<Expr> = {
 	UnaryNeg Term => Box::new(Expr::UnaryOp(<>)),
+	UnaryNot Term => Box::new(Expr::UnaryOp(<>)),
 	Term,
 };
 
@@ -136,6 +136,7 @@ Term: Box<Expr> = {
     <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
     <FuncCall> => Box::new(Expr::FuncCall(<>)),
     <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
+    <base:Term> <br_open:"["> <ind:Expr> <br_close:"]"> => Box::new(Expr::Indexed{base, bracket_open: br_open, index: ind, bracket_close: br_close}),
     ArrayLit, MapLit,
 };
 
@@ -197,6 +198,8 @@ extern {
         "%" => lexer::Tok::Mod(<TokLoc>),
         "(" => lexer::Tok::POPEN(<TokLoc>),
         ")" => lexer::Tok::PCLOSE(<TokLoc>),
+        "[" => lexer::Tok::BracketOpen(<TokLoc>),
+        "]" => lexer::Tok::BracketClose(<TokLoc>),
         "{" => lexer::Tok::BOPEN(<TokLoc>),
         "}" => lexer::Tok::BCLOSE(<TokLoc>),
         "and" => lexer::Tok::And(<TokLoc>),

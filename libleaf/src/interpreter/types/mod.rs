@@ -21,6 +21,25 @@ pub(crate) enum TypeIdAndValue<'a> {
     Map(&'a HashMap<String, Value<Box<dyn ValueTypeMarker>>>),
 }
 
+impl<'a> TypeIdAndValue<'a> {
+    pub(crate) fn cast_to_usize(&self) -> Result<usize, TypeId> {
+        match self {
+            TypeIdAndValue::I32(v) => Ok(**v as usize),
+            TypeIdAndValue::I64(v) => Ok(**v as usize),
+            TypeIdAndValue::U32(v) => Ok(**v as usize),
+            TypeIdAndValue::U64(v) => Ok(**v as usize),
+            v => Err(v.degrade()),
+        }
+    }
+
+    pub(crate) fn get_string(&'a self) -> Result<&'a String, TypeId> {
+        match self {
+            TypeIdAndValue::String(s) => Ok(*s),
+            v => Err(v.degrade()),
+        }
+    }
+}
+
 impl<'a> PartialEq for TypeIdAndValue<'a> {
     fn eq(&self, other: &Self) -> bool {
         unimplemented!()

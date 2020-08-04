@@ -92,7 +92,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
 
     let ctx = env_frame.get_diagnostics_ctx();
     let incompatible_assignment_handler: &dyn Fn(
-        ValRef<Box<dyn ValueTypeMarker>>,
+        ValRefMut<Box<dyn ValueTypeMarker>>,
         Value<Box<dyn ValueTypeMarker>>,
         Location,
     ) = &|val, new_val, rng| {
@@ -110,7 +110,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
     match &assignment.get_op() {
         AstAtrOp::Atr => {
             let new_val = value.eval_in_env(env_frame);
-            let expr = bound_name_expr.eval_ref(env_frame);
+            let expr = bound_name_expr.eval_mut_ref(env_frame);
             match expr {
                 Ok(val) => {
                     if is_assignable(
@@ -127,7 +127,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         }
         AstAtrOp::AddAtr => {
             let right_val = value.eval_in_env(env_frame);
-            let expr = bound_name_expr.eval_ref(env_frame);
+            let expr = bound_name_expr.eval_mut_ref(env_frame);
             match expr {
                 Ok(val) => {
                     let new_val = ops::op_add(
@@ -151,7 +151,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         }
         AstAtrOp::SubAtr => {
             let right_val = value.eval_in_env(env_frame);
-            let expr = bound_name_expr.eval_ref(env_frame);
+            let expr = bound_name_expr.eval_mut_ref(env_frame);
             match expr {
                 Ok(val) => {
                     let new_val = ops::op_sub(
@@ -175,7 +175,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         }
         AstAtrOp::MulAtr => {
             let right_val = value.eval_in_env(env_frame);
-            let expr = bound_name_expr.eval_ref(env_frame);
+            let expr = bound_name_expr.eval_mut_ref(env_frame);
             match expr {
                 Ok(val) => {
                     let new_val = ops::op_mul(
@@ -199,7 +199,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         }
         AstAtrOp::DivAtr => {
             let right_val = value.eval_in_env(env_frame);
-            let expr = bound_name_expr.eval_ref(env_frame);
+            let expr = bound_name_expr.eval_mut_ref(env_frame);
             match expr {
                 Ok(val) => {
                     let new_val = ops::op_div(
@@ -223,7 +223,7 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
         }
         AstAtrOp::ModAtr => {
             let right_val = value.eval_in_env(env_frame);
-            let expr = bound_name_expr.eval_ref(env_frame);
+            let expr = bound_name_expr.eval_mut_ref(env_frame);
             match expr {
                 Ok(val) => {
                     let new_val = ops::op_mod(

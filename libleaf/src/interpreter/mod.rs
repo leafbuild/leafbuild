@@ -3,7 +3,9 @@ pub(crate) mod diagnostics;
 pub(crate) mod ops;
 pub(crate) mod types;
 
-use crate::interpreter::diagnostics::errors::{IncompatibleAssignmentError, SyntaxError, CannotFindCallError};
+use crate::interpreter::diagnostics::errors::{
+    CannotFindCallError, IncompatibleAssignmentError, SyntaxError,
+};
 use crate::interpreter::diagnostics::{errors, Location};
 use crate::{
     grammar::{
@@ -299,15 +301,15 @@ impl<'a> LaterValue<'a> {
     }
 }
 
-/// A value reference
-pub(crate) struct ValRef<'a, T>
+/// A mutable value reference
+pub(crate) struct ValRefMut<'a, T>
 where
     T: ValueTypeMarker,
 {
     reference: &'a mut Value<T>,
 }
 
-impl<'a, T> ValRef<'a, T>
+impl<'a, T> ValRefMut<'a, T>
 where
     T: ValueTypeMarker,
 {
@@ -316,7 +318,7 @@ where
     }
 }
 
-impl<'a, T> ValueTypeMarker for ValRef<'a, T>
+impl<'a, T> ValueTypeMarker for ValRefMut<'a, T>
 where
     T: ValueTypeMarker,
 {
