@@ -11,6 +11,7 @@ const SYNTAX_ERROR: usize = 5;
 const TAKE_REF_ERROR: usize = 6;
 const INVALID_INDEX_BASE_ERROR: usize = 7;
 const INVALID_INDEX_ERROR: usize = 8;
+const INDEX_OUTSIDE_VECTOR_ERROR: usize = 9;
 
 pub(crate) struct ExprLocAndType {
     loc: Location,
@@ -27,7 +28,9 @@ impl ExprLocAndType {
 }
 
 include!("cannot_find_call.rs");
+include!("expected_type_error.rs");
 include!("incompatible_assignment.rs");
+include!("index_outside_vector.rs");
 include!("invalid_index.rs");
 include!("invalid_index_base.rs");
 include!("ops_type_error.rs");

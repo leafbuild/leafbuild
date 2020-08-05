@@ -105,9 +105,9 @@ Example:
 #### Getting a value out of a map
 Same as with vectors, but pass a string with the key instead of the index.
 ```leafbuild
-{a: 1,b: 2+3,c: '1'}['a'] = 1
-{a: 1,b: 2+3,c: '1'}['b'] = 5
-{a: 1,b: 2+3,c: '1'}['c'] = '1'
+{a: 1, b: 2+3, c: '1'}['a'] = 1
+{a: 1, b: 2+3, c: '1'}['b'] = 5
+{a: 1, b: 2+3, c: '1'}['c'] = '1'
 ```
 
 ## Variables
@@ -135,7 +135,19 @@ let e = a // e = 0
 ```
 
 ### Assigning a value to a variable
-It's the same as declaring one; values cannot change their type, unless the type changes into [the error type](reference/special_types/error.md).
+Like in C/C:
+```leafbuild
+let a = 0 // declare it
+a = 1 // assign 1 to it
+a += 1 // and add one to it; same as a = a + 1
+a -= 1 // subtract one; same as a = a - 1
+a *= 12 // multiply by 12; same as a = a * 12
+a /= 2 // divide by 2; same as a = a / 2
+a %= 3 // take modulo 3 and assign it back; same as a = a % 3
+``` 
+values cannot change their type, unless the type changes into
+[the error type](reference/special_types/error.md), in which case it can be assigned back
+to the type of the original value.
 
 ## Accessing properties
 
@@ -192,3 +204,20 @@ base_value.method_name(positional_args, kwargs)
 Note that `method_name(positional_args, kwargs)` works the same way functions do,
 so all the rules described in [calling functions](#calling-functions) apply here
 as well.
+
+# If(conditionals)
+
+Work the same as in C/C++, the only difference being you don't need the parentheses after an `if`.
+```leafbuild
+if condition {
+statements
+} else if condition2 {
+statements2
+} else if condition3 {
+statements3
+} /*...*/ {
+/*...*/
+} else {
+// in case all conditions above failed
+}
+```

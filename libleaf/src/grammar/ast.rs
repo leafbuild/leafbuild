@@ -4,7 +4,10 @@ use crate::{
         self,
         diagnostics::{
             self,
-            errors::{ExprLocAndType, InvalidIndexBaseError, InvalidIndexError, TakeRefError},
+            errors::{
+                ExprLocAndType, IndexOutsideVectorError, InvalidIndexBaseError, InvalidIndexError,
+                TakeRefError,
+            },
             Location,
         },
         types::{ErrorValue, TypeId, TypeIdAndValue},
@@ -12,13 +15,17 @@ use crate::{
     },
 };
 use std::collections::HashMap;
+use std::ops::Deref;
 
 pub(crate) trait AstLoc {
     fn get_begin(&self) -> usize;
 
     fn get_end(&self) -> usize;
 
-    fn get_rng(&self) -> diagnostics::Location;
+    #[inline]
+    fn get_rng(&self) -> diagnostics::Location {
+        self.get_begin()..self.get_end()
+    }
 }
 
 pub enum Atom {
@@ -113,10 +120,14 @@ impl Expr {
             Expr::UnaryOp(opcode, right) => opcode.compute_result_for(right, frame),
             Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
             Expr::ParenExpr(_, e, _) => e.eval_in_env(frame),
-            Expr::Indexed { base, index, .. } => Value::new(Box::new(
+            Expr::Indexed {
+                base,
+                index: index_expr,
+                ..
+            } => Value::new(Box::new(
                 match base.eval_in_env(frame).get_type_id_and_value() {
                     TypeIdAndValue::Vec(v) => {
-                        let index_result = index
+                        let index_result = index_expr
                             .eval_in_env(frame)
                             .get_value()
                             .get_type_id_and_value()
@@ -126,6 +137,15 @@ impl Expr {
                                 if index < v.len() {
                                     v[index].clone_to_value()
                                 } else {
+                                    diagnostics::push_diagnostic(
+                                        IndexOutsideVectorError::new(
+                                            base.get_rng(),
+                                            index_expr.get_rng(),
+                                            v.len(),
+                                            index,
+                                        ),
+                                        frame,
+                                    );
                                     return Value::new(Box::new(ErrorValue::new()));
                                 }
                             }
@@ -133,7 +153,7 @@ impl Expr {
                                 diagnostics::push_diagnostic(
                                     InvalidIndexError::new(
                                         ExprLocAndType::new(base.get_rng(), TypeId::Vec.typename()),
-                                        ExprLocAndType::new(index.get_rng(), t.typename()),
+                                        ExprLocAndType::new(index_expr.get_rng(), t.typename()),
                                     ),
                                     frame,
                                 );
@@ -142,7 +162,7 @@ impl Expr {
                         }
                     }
                     TypeIdAndValue::Map(v) => {
-                        let index_val = index.eval_in_env(frame);
+                        let index_val = index_expr.eval_in_env(frame);
                         let index_typeid_and_value = index_val.get_value().get_type_id_and_value();
                         let index_result = index_typeid_and_value.get_string();
                         match index_result {
@@ -151,7 +171,7 @@ impl Expr {
                                 diagnostics::push_diagnostic(
                                     InvalidIndexError::new(
                                         ExprLocAndType::new(base.get_rng(), TypeId::Vec.typename()),
-                                        ExprLocAndType::new(index.get_rng(), t.typename()),
+                                        ExprLocAndType::new(index_expr.get_rng(), t.typename()),
                                     ),
                                     frame,
                                 );
@@ -206,7 +226,7 @@ impl Expr {
                 Err(TakeRefError::new(self.get_rng(), "an expression like this"))
             }
             Expr::ParenExpr(_, e, _) => e.eval_mut_ref(frame),
-            Expr::Indexed { base, index, .. } => {
+            Expr::Indexed { .. } => {
                 Err(TakeRefError::new(self.get_rng(), "an expression like this"))
             }
         }
@@ -306,11 +326,6 @@ impl AstLoc for AstPropertyAccess {
     #[inline]
     fn get_end(&self) -> usize {
         self.property_name.1.get_end()
-    }
-
-    #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
     }
 }
 
@@ -521,11 +536,6 @@ impl AstLoc for AstFuncCall {
     fn get_end(&self) -> usize {
         self.end_pos
     }
-
-    #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
-    }
 }
 
 pub struct AstFuncCallArgs {
@@ -621,11 +631,6 @@ impl AstLoc for AstNamedExpr {
     fn get_end(&self) -> usize {
         self.value.get_end()
     }
-
-    #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
-    }
 }
 
 impl From<((String, TokLoc), Box<Expr>)> for AstNamedExpr {
@@ -684,11 +689,6 @@ impl AstLoc for AstMethodCall {
     fn get_end(&self) -> usize {
         self.end_pos
     }
-
-    #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
-    }
 }
 
 pub struct AstAssignment {
@@ -732,11 +732,6 @@ impl AstLoc for AstAssignment {
     fn get_end(&self) -> usize {
         self.value.get_end()
     }
-
-    #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
-    }
 }
 
 pub struct AstDeclaration {
@@ -779,10 +774,6 @@ impl AstLoc for AstDeclaration {
     fn get_end(&self) -> usize {
         self.value.get_end()
     }
-
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
-    }
 }
 
 pub enum AstAtrOp {
@@ -794,11 +785,188 @@ pub enum AstAtrOp {
     ModAtr,
 }
 
+pub struct AstIf {
+    /// location of "if"
+    loc: TokLoc,
+    condition: Box<Expr>,
+    statements: Vec<AstStatement>,
+
+    end_brace: TokLoc,
+}
+
+impl AstIf {
+    pub(crate) fn new(
+        loc: TokLoc,
+        condition: Box<Expr>,
+        statements: Vec<AstStatement>,
+        end_brace: TokLoc,
+    ) -> Self {
+        Self {
+            loc,
+            condition,
+            statements,
+            end_brace,
+        }
+    }
+
+    pub(crate) fn get_condition(&self) -> &Expr {
+        &self.condition
+    }
+    pub(crate) fn get_statements(&self) -> &Vec<AstStatement> {
+        &self.statements
+    }
+}
+
+impl AstLoc for AstIf {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.loc.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.end_brace.get_end()
+    }
+}
+
+pub struct AstElseIf {
+    /// location of "else"
+    loc: TokLoc,
+    if_: AstIf,
+}
+
+impl AstLoc for AstElseIf {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.loc.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.if_.get_end()
+    }
+}
+
+impl AstElseIf {
+    pub(crate) fn new(loc: TokLoc, if_: AstIf) -> Self {
+        Self { loc, if_ }
+    }
+
+    pub(crate) fn get_if(&self) -> &AstIf {
+        &self.if_
+    }
+}
+
+pub struct AstElse {
+    /// location of "else"
+    loc: TokLoc,
+    statements: Vec<AstStatement>,
+    end_brace: TokLoc,
+}
+
+impl AstLoc for AstElse {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        self.loc.get_begin()
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        self.end_brace.get_end()
+    }
+}
+
+impl AstElse {
+    pub(crate) fn new(loc: TokLoc, statements: Vec<AstStatement>, end_brace: TokLoc) -> Self {
+        Self {
+            loc,
+            statements,
+            end_brace,
+        }
+    }
+
+    pub(crate) fn get_statements(&self) -> &Vec<AstStatement> {
+        &self.statements
+    }
+}
+
+pub struct AstConditionalStatement {
+    initial_if: Box<AstIf>,
+    else_ifs: Vec<AstElseIf>,
+    else_: Box<Option<AstElse>>,
+}
+
+impl AstConditionalStatement {
+    pub(crate) fn new(initial_if: AstIf, else_ifs: Vec<AstElseIf>, else_: Option<AstElse>) -> Self {
+        Self {
+            initial_if: Box::new(initial_if),
+            else_ifs,
+            else_: Box::new(else_),
+        }
+    }
+
+    pub(crate) fn get_initial_if(&self) -> &AstIf {
+        &self.initial_if
+    }
+    pub(crate) fn get_else_ifs(&self) -> &Vec<AstElseIf> {
+        &self.else_ifs
+    }
+    pub(crate) fn get_else(&self) -> &Option<AstElse> {
+        &self.else_
+    }
+}
+
+impl AstLoc for AstConditionalStatement {
+    fn get_begin(&self) -> usize {
+        self.initial_if.loc.get_begin()
+    }
+
+    fn get_end(&self) -> usize {
+        match self.else_.deref() {
+            Some(els) => els.get_end(),
+            None => match self.else_ifs.last() {
+                Some(else_if) => else_if.get_end(),
+                None => self.initial_if.get_end(),
+            },
+        }
+    }
+}
+
+pub enum AstControlStatement {
+    Continue(TokLoc),
+    Break(TokLoc),
+}
+
+impl AstLoc for AstControlStatement {
+    #[inline]
+    fn get_begin(&self) -> usize {
+        match self {
+            AstControlStatement::Continue(loc) | AstControlStatement::Break(loc) => loc.get_begin(),
+        }
+    }
+
+    #[inline]
+    fn get_end(&self) -> usize {
+        match self {
+            AstControlStatement::Continue(loc) | AstControlStatement::Break(loc) => loc.get_end(),
+        }
+    }
+
+    #[inline]
+    fn get_rng(&self) -> Location {
+        match self {
+            AstControlStatement::Continue(loc) | AstControlStatement::Break(loc) => loc.as_rng(),
+        }
+    }
+}
+
 pub enum AstStatement {
     FuncCall(AstFuncCall),
     MethodCall(AstMethodCall),
     Declaration(AstDeclaration),
     Assignment(AstAssignment),
+    Conditional(AstConditionalStatement),
+    ControlStatement(AstControlStatement),
 }
 
 impl AstLoc for AstStatement {
@@ -809,6 +977,8 @@ impl AstLoc for AstStatement {
             AstStatement::MethodCall(call) => call.get_begin(),
             AstStatement::Declaration(decl) => decl.get_begin(),
             AstStatement::Assignment(assignment) => assignment.get_begin(),
+            AstStatement::ControlStatement(control_statement) => control_statement.get_begin(),
+            AstStatement::Conditional(conditional_statement) => conditional_statement.get_begin(),
         }
     }
 
@@ -819,12 +989,9 @@ impl AstLoc for AstStatement {
             AstStatement::MethodCall(call) => call.get_end(),
             AstStatement::Declaration(decl) => decl.get_end(),
             AstStatement::Assignment(assignment) => assignment.get_end(),
+            AstStatement::ControlStatement(control_statement) => control_statement.get_end(),
+            AstStatement::Conditional(conditional_statement) => conditional_statement.get_end(),
         }
-    }
-
-    #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
-        self.get_begin()..self.get_end()
     }
 }
 

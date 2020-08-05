@@ -34,41 +34,16 @@ impl<'a> TypeIdAndValue<'a> {
 
     pub(crate) fn get_string(&'a self) -> Result<&'a String, TypeId> {
         match self {
-            TypeIdAndValue::String(s) => Ok(*s),
+            TypeIdAndValue::String(s) => Ok(s),
             v => Err(v.degrade()),
         }
     }
-}
 
-impl<'a> PartialEq for TypeIdAndValue<'a> {
-    fn eq(&self, other: &Self) -> bool {
-        unimplemented!()
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        unimplemented!()
-    }
-}
-
-impl<'a> PartialOrd for TypeIdAndValue<'a> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        unimplemented!()
-    }
-
-    fn lt(&self, other: &Self) -> bool {
-        unimplemented!()
-    }
-
-    fn le(&self, other: &Self) -> bool {
-        unimplemented!()
-    }
-
-    fn gt(&self, other: &Self) -> bool {
-        unimplemented!()
-    }
-
-    fn ge(&self, other: &Self) -> bool {
-        unimplemented!()
+    pub(crate) fn get_bool(&'a self) -> Result<bool, TypeId> {
+        match self {
+            TypeIdAndValue::Bool(v) => Ok(**v),
+            v => Err(v.degrade()),
+        }
     }
 }
 
@@ -120,6 +95,7 @@ pub(crate) enum TypeId {
 }
 
 impl TypeId {
+    #[inline]
     pub(crate) fn typename(&self) -> &'static str {
         match self {
             TypeId::I32 => "i32",

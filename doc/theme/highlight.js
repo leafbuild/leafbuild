@@ -1249,7 +1249,7 @@ var hljs = (function () {
     /** @type {HLJSPlugin[]} */
     var plugins = [];
 
-    // safe/production mode - swallows more diagnostics, tries to keep running
+    // safe/production mode - swallows more errors, tries to keep running
     // even if a single syntax or parse hits a fatal error
     var SAFE_MODE = true;
     var fixMarkupRe = /(^(<[^>]+>|\t|)+|\n)/gm;
@@ -1953,7 +1953,7 @@ var hljs = (function () {
         console.error("Language definition for '{}' could not be registered.".replace("{}", languageName));
         // hard or soft error
         if (!SAFE_MODE) { throw error; } else { console.error(error); }
-        // languages that have serious diagnostics are replaced with essentially a
+        // languages that have serious errors are replaced with essentially a
         // "plaintext" stand-in so that the code blocks will still get normal
         // css classes applied to them - and one bad language won't break the
         // entire highlighter
@@ -2135,6 +2135,8 @@ hljs.registerLanguage('leafbuild', function () {
       beginKeywords:
           // syntax
           'let ' +
+          // control keywords
+          'continue break if else ' +
           // types
           'i32 i64 u32 u64 string error void ' +
           // bool literals

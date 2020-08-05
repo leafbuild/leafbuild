@@ -17,6 +17,11 @@ use crate::{
 			AstAtrOp,
 			AstPropertyAccess,
 			AstDeclaration,
+			AstConditionalStatement,
+			AstIf,
+			AstElseIf,
+			AstElse,
+			AstControlStatement,
 		},
 	},
 };
@@ -29,6 +34,8 @@ Statement: AstStatement = {
 	<FuncCall> "\n"+ => AstStatement::FuncCall(<>),
 	<Assignment> "\n"+ => AstStatement::Assignment(<>),
 	<Declaration> "\n"+ => AstStatement::Declaration(<>),
+	<ConditionalStatement> "\n"+ => AstStatement::Conditional(<>),
+	<ControlStatement> "\n"+ => AstStatement::ControlStatement(<>),
 };
 
 FuncCall: AstFuncCall = {
@@ -177,6 +184,29 @@ MapLit: Box<Expr> = {
 	<b:"{"> "\n"* <arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*>  ","? "\n"*  <e:"}"> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
 };
 
+#[inline]
+ConditionalStatement: AstConditionalStatement = {
+	<initial: If> <others: ("\n"* <ElseIf>)*> <else_statement: ("\n"* <Else>)?> => AstConditionalStatement::new(initial, others, else_statement),
+};
+
+If: AstIf = {
+	<"if"> <Expr> "\n"? "{" "\n"* <Statement+> <"}"> => AstIf::new(<>),
+};
+
+ElseIf: AstElseIf = {
+	<"else"> <If> => AstElseIf::new(<>),
+};
+
+Else: AstElse = {
+	<"else"> "\n"? "{" "\n"* <Statement+> <"}"> => AstElse::new(<>),
+};
+
+
+ControlStatement: AstControlStatement = {
+	"break" => AstControlStatement::Break(<>),
+	"continue" => AstControlStatement::Continue(<>),
+};
+
 IdExpression = { "id" };
 
 extern {
@@ -207,14 +237,18 @@ extern {
         "==" => lexer::Tok::Equal(<TokLoc>),
         ">=" => lexer::Tok::GE(<TokLoc>),
         "<=" => lexer::Tok::LE(<TokLoc>),
-        ">" => lexer::Tok::L(<TokLoc>),
-        "<" => lexer::Tok::G(<TokLoc>),
+        ">" => lexer::Tok::G(<TokLoc>),
+        "<" => lexer::Tok::L(<TokLoc>),
         "!=" => lexer::Tok::NE(<TokLoc>),
 
         "in" => lexer::Tok::In(<TokLoc>),
         "not" => lexer::Tok::Not(<TokLoc>),
 
         "let" => lexer::Tok::Let(<TokLoc>),
+        "if" => lexer::Tok::If(<TokLoc>),
+        "else" => lexer::Tok::Else(<TokLoc>),
+        "continue" => lexer::Tok::Continue(<TokLoc>),
+        "break" => lexer::Tok::Break(<TokLoc>),
 
 		"bool_lit" => lexer::Tok::Bool(<bool>, <TokLoc>),
         "num" => lexer::Tok::Number(<i32>, <TokLoc>),

@@ -273,8 +273,24 @@ macro_rules! rel_check_op {
                 Value::new(Box::new(ErrorValue::new()))
             },
             $($($x => $y),*,)?
-            (left, right) if left $op right => Value::new(Box::new(true)),
-            (_tleft, _tright) => Value::new(Box::new(false)),
+            (TypeIdAndValue::I32(a), TypeIdAndValue::I32(b)) => Value::new(Box::new((*a) $op (*b))),
+            (TypeIdAndValue::I32(a), TypeIdAndValue::I64(b)) => Value::new(Box::new((*a as i64) $op (*b))),
+            (TypeIdAndValue::I64(a), TypeIdAndValue::I32(b)) => Value::new(Box::new((*a) $op (*b as i64))),
+            (TypeIdAndValue::I64(a), TypeIdAndValue::I64(b)) => Value::new(Box::new((*a) $op (*b))),
+
+            (TypeIdAndValue::U32(a), TypeIdAndValue::U32(b)) => Value::new(Box::new((*a) $op (*b))),
+            (TypeIdAndValue::U32(a), TypeIdAndValue::U64(b)) => Value::new(Box::new((*a as u64) $op (*b))),
+            (TypeIdAndValue::U64(a), TypeIdAndValue::U32(b)) => Value::new(Box::new((*a) $op (*b as u64))),
+            (TypeIdAndValue::U64(a), TypeIdAndValue::U64(b)) => Value::new(Box::new((*a) $op (*b))),
+
+            (TypeIdAndValue::Bool(a), TypeIdAndValue::Bool(b)) => Value::new(Box::new((*a) $op (*b))),
+
+            (tleft, tright) => {
+                    diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
+                            ExprLocAndType::new($a_rng, tleft.degrade().typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
+                    ), $ctx);
+                    Value::new(Box::new(ErrorValue::new()))
+            }
         }
     };
 }

@@ -40,6 +40,8 @@ export default function(hljs) {
     beginKeywords:
         // syntax
         'let ' +
+        // control keywords
+        'continue break if else ' +
         // types
         'i32 i64 u32 u64 string error void ' +
         // bool literals

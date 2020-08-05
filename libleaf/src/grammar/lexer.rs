@@ -86,6 +86,14 @@ pub enum Tok {
     Dot(TokLoc),
     /// let
     Let(TokLoc),
+    /// if
+    If(TokLoc),
+    /// else
+    Else(TokLoc),
+    /// break
+    Break(TokLoc),
+    /// continue
+    Continue(TokLoc),
     /// in
     In(TokLoc),
     /// not
@@ -173,6 +181,10 @@ impl<'input> Lexer<'input> {
             initial_position,
             match &result as &str {
                 "let" => Tok::Let(loc),
+                "if" => Tok::If(loc),
+                "else" => Tok::Else(loc),
+                "break" => Tok::Break(loc),
+                "continue" => Tok::Continue(loc),
                 "and" => Tok::And(loc),
                 "or" => Tok::Or(loc),
                 "in" => Tok::In(loc),

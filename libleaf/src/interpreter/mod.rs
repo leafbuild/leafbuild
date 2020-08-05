@@ -3,8 +3,10 @@ pub(crate) mod diagnostics;
 pub(crate) mod ops;
 pub(crate) mod types;
 
+use crate::grammar::ast::{AstConditionalStatement, AstIf};
 use crate::interpreter::diagnostics::errors::{
-    CannotFindCallError, IncompatibleAssignmentError, SyntaxError,
+    CannotFindCallError, ExpectedTypeError, ExprLocAndType, IncompatibleAssignmentError,
+    SyntaxError,
 };
 use crate::interpreter::diagnostics::{errors, Location};
 use crate::{

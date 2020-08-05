@@ -12,6 +12,12 @@ fn run_in_env_frame(statement: &AstStatement, env_frame: &mut EnvFrame) {
         ),
         AstStatement::Declaration(decl) => run_declaration_in_env_frame(decl, env_frame),
         AstStatement::Assignment(assignment) => run_assignment_in_env_frame(assignment, env_frame),
+        AstStatement::Conditional(conditional) => {
+            run_conditional_in_env_frame(conditional, env_frame)
+        }
+        AstStatement::ControlStatement(_) => {
+            //TODO: will need loops to implement this
+        }
     };
 }
 
@@ -246,6 +252,49 @@ fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFr
             }
         }
     };
+}
+
+fn run_conditional_in_env_frame(conditional: &AstConditionalStatement, frame: &mut EnvFrame) {
+    if run_if(conditional.get_initial_if(), frame) {
+        return;
+    }
+    for else_if in conditional.get_else_ifs() {
+        if run_if(else_if.get_if(), frame) {
+            return;
+        }
+    }
+    if let Some(else_) = conditional.get_else() {
+        for stat in else_.get_statements() {
+            run_in_env_frame(stat, frame);
+        }
+    }
+}
+
+/// returns true if the condition evaluated to true and it executed the branch
+fn run_if(if_: &AstIf, frame: &mut EnvFrame) -> bool {
+    match if_
+        .get_condition()
+        .eval_in_env(frame)
+        .get_type_id_and_value()
+        .get_bool()
+        .unwrap_or_else(|tpid| {
+            diagnostics::push_diagnostic(
+                ExpectedTypeError::new(
+                    TypeId::Bool.typename(),
+                    ExprLocAndType::new(if_.get_condition().get_rng(), tpid.typename()),
+                ),
+                frame,
+            );
+            false
+        }) {
+        true => {
+            for stat in if_.get_statements() {
+                run_in_env_frame(stat, frame);
+            }
+            true
+        }
+        false => false,
+    }
 }
 
 fn is_assignable(prev_value_type: &TypeId, new_value_type: &TypeId) -> bool {
