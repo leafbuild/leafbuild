@@ -7,7 +7,7 @@ is already there:
 > Meson is an open source build system meant to be both extremely fast, and,
 >even more importantly, as user friendly as possible.
 >
-> -- <cite><a href="https://mesonbuild.com/index.html#overview">Meson overview</a></cite>
+> &mdash; <cite><a href="https://mesonbuild.com/index.html#overview">Meson overview</a></cite>
 
 Well it's not really that fast. In fact it takes about 1.5 - 2 seconds to
 *only print the version* in a new session, which I find outrageous.

@@ -9,8 +9,8 @@ git-repository-url = "https://gitlab.com/leafbuild/leafbuild"
 git-repository-icon = "fa-gitlab"
 
 [output.html]
-default-theme = "navy"
-preferred-dark-theme = "navy"
+default-theme = "coal"
+preferred-dark-theme = "coal"
 curly-quotes = true
 
 [output.html.fold]
