@@ -135,7 +135,7 @@ let e = a // e = 0
 ```
 
 ### Assigning a value to a variable
-Like in C/C:
+Like in C/C++:
 ```leafbuild
 let a = 0 // declare it
 a = 1 // assign 1 to it
