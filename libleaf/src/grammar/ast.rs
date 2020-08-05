@@ -1,3 +1,4 @@
+use crate::interpreter::diagnostics::errors::VariableNotFoundError;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{
@@ -97,9 +98,13 @@ impl Expr {
             Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
             Expr::Atom(Atom::Bool((v, _loc))) => Value::new(Box::new(*v)),
             Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
-            Expr::Atom(Atom::Id((id, _loc))) => {
-                frame.get_value_for_variable(&id.clone()).clone_to_value()
-            }
+            Expr::Atom(Atom::Id((id, loc))) => match frame.get_value_for_variable(&id.clone()) {
+                Some(v) => v.clone_to_value(),
+                None => {
+                    diagnostics::push_diagnostic(VariableNotFoundError::new(loc.as_rng()), frame);
+                    Value::new(Box::new(()))
+                }
+            },
             Expr::Atom(Atom::ArrayLit((v, _loc))) => {
                 let mut val = Vec::with_capacity(v.capacity());
                 v.iter().for_each(|x| val.push(x.eval_in_env(frame)));

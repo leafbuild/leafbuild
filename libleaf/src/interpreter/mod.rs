@@ -6,9 +6,9 @@ pub(crate) mod types;
 use crate::grammar::ast::{AstConditionalStatement, AstIf};
 use crate::interpreter::diagnostics::errors::{
     CannotFindCallError, ExpectedTypeError, ExprLocAndType, IncompatibleAssignmentError,
-    SyntaxError,
+    SyntaxError, VariableNotFoundError,
 };
-use crate::interpreter::diagnostics::{errors, Location};
+use crate::interpreter::diagnostics::{errors, push_diagnostic, Location};
 use crate::{
     grammar::{
         self,
@@ -97,13 +97,14 @@ pub(crate) struct EnvFrame<'env> {
 }
 
 impl<'env> EnvFrame<'env> {
-    pub(crate) fn get_value_for_variable(&self, id: &str) -> &Value<Box<dyn ValueTypeMarker>> {
-        self.variables
-            .iter()
-            .find(|&(var_name, _)| var_name == id)
-            .unwrap_or_else(|| panic!("No variable named {} found in stack", id))
-            .1
-            .get_value()
+    pub(crate) fn get_value_for_variable(
+        &self,
+        id: &str,
+    ) -> Option<&Value<Box<dyn ValueTypeMarker>>> {
+        match self.variables.iter().find(|&(var_name, _)| var_name == id) {
+            Some(var) => Some(var.1.get_value()),
+            None => None,
+        }
     }
 
     #[inline]

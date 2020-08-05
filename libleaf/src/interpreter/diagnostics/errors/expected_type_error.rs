@@ -16,6 +16,7 @@ impl LeafDiagnosticTrait for ExpectedTypeError {
     fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Found expression with unexpected result")
+            .with_code(EXPECTED_TYPE_ERROR)
             .with_labels(vec![LeafLabel::primary(
                 ctx.get_current_file(),
                 self.loc_and_type.loc,

@@ -12,6 +12,8 @@ const TAKE_REF_ERROR: usize = 6;
 const INVALID_INDEX_BASE_ERROR: usize = 7;
 const INVALID_INDEX_ERROR: usize = 8;
 const INDEX_OUTSIDE_VECTOR_ERROR: usize = 9;
+const EXPECTED_TYPE_ERROR: usize = 10;
+const VARIABLE_NOT_FOUND_ERROR: usize = 11;
 
 pub(crate) struct ExprLocAndType {
     loc: Location,
@@ -36,3 +38,4 @@ include!("invalid_index_base.rs");
 include!("ops_type_error.rs");
 include!("syntax_error.rs");
 include!("take_ref_error.rs");
+include!("variable_not_found.rs");
