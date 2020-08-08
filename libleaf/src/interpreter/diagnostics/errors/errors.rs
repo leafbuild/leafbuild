@@ -1,19 +1,36 @@
 use crate::interpreter::{
     diagnostics::{DiagnosticsCtx, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel, Location},
     types::TypeId,
+    DOCS_ROOT,
 };
 
-const CANNOT_FIND_CALL_ERROR: usize = 1;
-const INCOMPATIBLE_ASSIGNMENT_ERROR: usize = 2;
-const OPS_TYPE_ERROR: usize = 3;
-const OPS_TYPE_ERROR_ERROR: usize = 4;
-const SYNTAX_ERROR: usize = 5;
-const TAKE_REF_ERROR: usize = 6;
-const INVALID_INDEX_BASE_ERROR: usize = 7;
-const INVALID_INDEX_ERROR: usize = 8;
-const INDEX_OUTSIDE_VECTOR_ERROR: usize = 9;
-const EXPECTED_TYPE_ERROR: usize = 10;
-const VARIABLE_NOT_FOUND_ERROR: usize = 11;
+macro_rules! error_codes {
+    ($($name:ident),* $(,)?) => {
+        error_codes!(1, $($name,)*);
+    };
+    ($start:expr, $first:ident $(,)?) => {
+        const $first: usize = $start;
+    };
+    ($start:expr, $first:ident, $($others:ident),* $(,)?) => {
+        const $first: usize = $start;
+        error_codes!($start+1, $($others,)*);
+    };
+}
+
+error_codes!(
+    CANNOT_FIND_CALL_ERROR,
+    EXPECTED_TYPE_ERROR,
+    INCOMPATIBLE_ASSIGNMENT_ERROR,
+    INDEX_OUTSIDE_VECTOR_ERROR,
+    INVALID_INDEX_BASE_ERROR,
+    INVALID_INDEX_ERROR,
+    INVALID_NUMBER_OF_POSITIONAL_ARGUMENTS,
+    OPS_TYPE_ERROR,
+    OPS_TYPE_ERROR_ERROR,
+    SYNTAX_ERROR,
+    TAKE_REF_ERROR,
+    VARIABLE_NOT_FOUND_ERROR,
+);
 
 pub(crate) struct ExprLocAndType {
     loc: Location,
@@ -35,6 +52,7 @@ include!("incompatible_assignment.rs");
 include!("index_outside_vector.rs");
 include!("invalid_index.rs");
 include!("invalid_index_base.rs");
+include!("invalid_number_of_positional_arguments.rs");
 include!("ops_type_error.rs");
 include!("syntax_error.rs");
 include!("take_ref_error.rs");

@@ -61,12 +61,11 @@ fn eval_call(
     func_call_poll: &CallPool,
     base_value: Option<&Value<Box<dyn ValueTypeMarker>>>,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    let executor = func_call_poll
-        .executors
-        .iter()
-        .find(|executor| executor.name == call_name);
+    let executor = func_call_poll.executors.iter().find(|executor| {
+        executor.name == call_name || executor.aliases.iter().any(|name| *name == call_name)
+    });
     match executor {
-        Some(exe) => (exe.func)(args, env_frame, base_value),
+        Some(exe) => (exe.func)(call_loc.as_rng(), args, env_frame, base_value),
         None => {
             diagnostics::push_diagnostic(
                 CannotFindCallError::new(
@@ -79,7 +78,7 @@ fn eval_call(
                 ),
                 env_frame,
             );
-            (get_print_executor().func)(args, env_frame, base_value)
+            (functions::get_print_executor().func)(call_loc.as_rng(), args, env_frame, base_value)
         }
     }
 }

@@ -19,7 +19,10 @@ impl ValueTypeMarker for String {
 pub(crate) fn get_string_call_pool() -> CallPool {
     CallPool::new(vec![CallExecutor::new(
         "to_string".to_string(),
-        |_args, _frame, base| Value::new(Box::new(base.unwrap().get_value().deref().stringify())),
+        |_loc, _args, _frame, base| {
+            Value::new(Box::new(base.unwrap().get_value().deref().stringify()))
+        },
+        vec![],
     )])
 }
 

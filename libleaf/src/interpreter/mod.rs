@@ -1,37 +1,26 @@
-#[path = "diagnostics/diagnostics.rs"]
-pub(crate) mod diagnostics;
-pub(crate) mod ops;
-pub(crate) mod types;
+use std::{collections::HashMap, ops::Deref, path::Path};
 
-use crate::grammar::ast::{AstConditionalStatement, AstIf};
-use crate::interpreter::diagnostics::errors::{
-    CannotFindCallError, ExpectedTypeError, ExprLocAndType, IncompatibleAssignmentError,
-    SyntaxError, VariableNotFoundError,
-};
-use crate::interpreter::diagnostics::{errors, push_diagnostic, Location};
+use itertools::Itertools;
+use lalrpop_util::ParseError;
+
 use crate::{
-    grammar::{
-        self,
-        ast::{
-            AstAssignment, AstAtrOp, AstDeclaration, AstFuncCall, AstFuncCallArgs, AstLoc,
-            AstProgram, AstPropertyAccess, AstStatement, Expr,
-        },
-        lexer::LexicalError,
-        TokLoc,
-    },
+    grammar::{self, ast::*, lexer::LexicalError, TokLoc},
     handle::Handle,
     interpreter::{
-        diagnostics::{push_diagnostic_ctx, DiagnosticsCtx},
+        diagnostics::{errors::*, push_diagnostic_ctx, DiagnosticsCtx, Location},
         types::{
             resolve_map_property_access, resolve_num_property_access, resolve_str_property_access,
             resolve_vec_property_access, TypeId, TypeIdAndValue,
         },
     },
 };
-use codespan_reporting::diagnostic::{Diagnostic, Label};
-use itertools::Itertools;
-use lalrpop_util::ParseError;
-use std::{collections::HashMap, ops::Deref, path::Path};
+
+#[path = "diagnostics/diagnostics.rs"]
+pub(crate) mod diagnostics;
+pub(crate) mod ops;
+pub(crate) mod types;
+
+pub(crate) const DOCS_ROOT: &str = "https://leafbuild.gitlab.io/docs/";
 
 pub struct EnvConfig {
     angry_errors_enabled: bool,
@@ -81,10 +70,18 @@ impl Env {
     }
 }
 
+pub(crate) struct ProjectData {
+    name: String,
+}
+
+pub(crate) struct ModuleData {
+    name: String,
+}
+
 pub(crate) enum EnvFrameType {
     Workspace,
-    Project,
-    Module,
+    Project(ProjectData),
+    Module(ModuleData),
     Unknown, // default value, uninitialized
 }
 
@@ -508,6 +505,7 @@ impl CallPool {
 }
 
 type ExecutorClosure = dyn Fn(
+    Location,
     &AstFuncCallArgs,
     &mut EnvFrame,
     Option<&Value<Box<dyn ValueTypeMarker>>>,
@@ -515,14 +513,16 @@ type ExecutorClosure = dyn Fn(
 
 pub(crate) struct CallExecutor {
     name: String,
+    aliases: Vec<String>,
     func: Box<ExecutorClosure>,
 }
 
 impl CallExecutor {
-    pub(crate) fn new<F>(name: String, func: F) -> CallExecutor
+    pub(crate) fn new<F>(name: String, func: F, aliases: Vec<String>) -> CallExecutor
     where
         F: 'static
             + Fn(
+                Location,
                 &AstFuncCallArgs,
                 &mut EnvFrame,
                 Option<&Value<Box<dyn ValueTypeMarker>>>,
@@ -531,6 +531,7 @@ impl CallExecutor {
         Self {
             name,
             func: Box::new(func),
+            aliases,
         }
     }
 }

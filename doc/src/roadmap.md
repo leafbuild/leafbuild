@@ -21,7 +21,7 @@ The current state of the implementation, along with future plans.
 - [x] Variable assignment
 - [x] Function calls
 - [x] Method calls
-- [ ] Functions and methods alias system
+- [x] Functions and methods alias system
 - [x] If expressions
 - [ ] Ternary expressions
 - [ ] Loops

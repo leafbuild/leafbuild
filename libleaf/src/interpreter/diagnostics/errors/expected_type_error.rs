@@ -1,6 +1,7 @@
 pub(crate) struct ExpectedTypeError {
     expected_type: String,
     loc_and_type: ExprLocAndType,
+    docs_location: Option<String>,
 }
 
 impl ExpectedTypeError {
@@ -8,7 +9,13 @@ impl ExpectedTypeError {
         Self {
             expected_type: expected_type.into(),
             loc_and_type,
+            docs_location: None,
         }
+    }
+
+    pub(crate) fn with_docs_location(mut self, docs_location: impl Into<String>) -> Self {
+        self.docs_location = Some(docs_location.into());
+        self
     }
 }
 

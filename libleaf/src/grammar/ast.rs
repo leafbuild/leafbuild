@@ -1000,6 +1000,25 @@ impl AstLoc for AstStatement {
     }
 }
 
+impl<T> AstLoc for Vec<T>
+where
+    T: AstLoc,
+{
+    fn get_begin(&self) -> usize {
+        match self.first() {
+            Some(l) => l.get_begin(),
+            None => 0,
+        }
+    }
+
+    fn get_end(&self) -> usize {
+        match self.last() {
+            Some(l) => l.get_end(),
+            None => 0,
+        }
+    }
+}
+
 pub struct AstProgram {
     statements: Vec<AstStatement>,
 }

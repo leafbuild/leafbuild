@@ -2,27 +2,7 @@ use crate::{
 	grammar::{
 		lexer,
 		lexer::TokLoc,
-		ast::{
-			Atom,
-			Expr,
-			Opcode,
-			UnaryOpcode,
-			AstFuncCall,
-			AstFuncCallArgs,
-			AstPositionalArg,
-			AstNamedExpr,
-			AstMethodCall,
-			AstStatement,
-			AstAssignment,
-			AstAtrOp,
-			AstPropertyAccess,
-			AstDeclaration,
-			AstConditionalStatement,
-			AstIf,
-			AstElseIf,
-			AstElse,
-			AstControlStatement,
-		},
+		ast::*,
 	},
 };
 
