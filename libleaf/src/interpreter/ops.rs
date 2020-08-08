@@ -283,8 +283,6 @@ macro_rules! rel_check_op {
             (TypeIdAndValue::U64(a), TypeIdAndValue::U32(b)) => Value::new(Box::new((*a) $op (*b as u64))),
             (TypeIdAndValue::U64(a), TypeIdAndValue::U64(b)) => Value::new(Box::new((*a) $op (*b))),
 
-            (TypeIdAndValue::Bool(a), TypeIdAndValue::Bool(b)) => Value::new(Box::new((*a) $op (*b))),
-
             (tleft, tright) => {
                     diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
                             ExprLocAndType::new($a_rng, tleft.degrade().typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
@@ -295,6 +293,12 @@ macro_rules! rel_check_op {
     };
 }
 
+macro_rules! rel_check_op_allow_boolean {
+    ($a:expr, $a_rng:expr, $op:tt, $b:expr, $b_rng:expr, $ctx:expr $(, $($x:pat => $y:expr),*)?) => {
+    rel_check_op!($a, $a_rng, $op, $b, $b_rng, $ctx, (TypeIdAndValue::Bool(a), TypeIdAndValue::Bool(b)) => Value::new(Box::new((*a) $op (*b))) $(, $($x => $y)*)?)
+    };
+}
+
 pub(crate) fn op_eq(
     ls: &Value<Box<dyn ValueTypeMarker>>,
     left_range: Location,
@@ -302,7 +306,7 @@ pub(crate) fn op_eq(
     right_range: Location,
     ctx: &DiagnosticsCtx,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    rel_check_op!(ls, left_range, ==, rs, right_range, ctx)
+    rel_check_op_allow_boolean!(ls, left_range, ==, rs, right_range, ctx)
 }
 
 pub(crate) fn op_neq(
@@ -312,7 +316,7 @@ pub(crate) fn op_neq(
     right_range: Location,
     ctx: &DiagnosticsCtx,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    rel_check_op!(ls, left_range, !=, rs, right_range, ctx)
+    rel_check_op_allow_boolean!(ls, left_range, !=, rs, right_range, ctx)
 }
 
 pub(crate) fn op_l(
