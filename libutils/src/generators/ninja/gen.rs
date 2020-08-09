@@ -45,12 +45,6 @@ pub struct NinjaRuleArg {
     value: String,
 }
 
-impl NinjaRuleArg {
-    pub fn new(value: String) -> NinjaRuleArg {
-        NinjaRuleArg { value }
-    }
-}
-
 impl ToBuildSystemSyntax for NinjaRuleArg {
     fn for_build_system(&self) -> String {
         String::clone(&self.value)
@@ -58,6 +52,9 @@ impl ToBuildSystemSyntax for NinjaRuleArg {
 }
 
 impl RuleArg for NinjaRuleArg {
+    fn new(value: String) -> NinjaRuleArg {
+        NinjaRuleArg { value }
+    }
     fn get_value(&self) -> &String {
         &self.value
     }

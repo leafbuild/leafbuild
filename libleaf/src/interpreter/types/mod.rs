@@ -1,7 +1,6 @@
 use crate::interpreter::{CallExecutor, CallPool, Value, ValueTypeMarker};
 
 use itertools::Itertools;
-use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -118,10 +117,11 @@ impl Display for TypeId {
     }
 }
 
-include!("int.rs");
-include!("bool.rs");
-include!("string.rs");
-include!("void.rs");
-include!("error.rs");
+include!("primitives/int.rs");
+include!("primitives/bool.rs");
+include!("primitives/string.rs");
+include!("primitives/void.rs");
+include!("primitives/error.rs");
 include!("vec.rs");
 include!("map.rs");
+include!("executable.rs");

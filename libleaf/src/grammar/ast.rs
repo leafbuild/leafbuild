@@ -24,8 +24,19 @@ pub(crate) trait AstLoc {
     fn get_end(&self) -> usize;
 
     #[inline]
-    fn get_rng(&self) -> diagnostics::Location {
+    fn get_rng(&self) -> Location {
         self.get_begin()..self.get_end()
+    }
+}
+
+/// Present on array and map literal expression
+pub(crate) trait IndexedAstLoc {
+    fn get_begin_indexed(&self, index: usize) -> usize;
+    fn get_end_indexed(&self, index: usize) -> usize;
+
+    #[inline]
+    fn get_rng_indexed(&self, index: usize) -> Location {
+        self.get_begin_indexed(index)..self.get_end_indexed(index)
     }
 }
 
@@ -289,6 +300,41 @@ impl AstLoc for Expr {
                 bracket_close: e,
                 ..
             } => b.get_begin()..e.get_end(),
+        }
+    }
+}
+
+impl IndexedAstLoc for Expr {
+    fn get_begin_indexed(&self, index: usize) -> usize {
+        match self {
+            Expr::Atom(Atom::ArrayLit((lit, _))) => lit[index].get_begin(),
+            Expr::Atom(Atom::MapLit((lit, _))) => lit[index].get_begin(),
+            Expr::Atom(atm) => atm.get_begin(),
+            Expr::FuncCall(call) => call.get_begin(),
+            Expr::MethodCall(call) => call.get_begin(),
+            Expr::Op(expr, _, _) => expr.get_begin(),
+            Expr::PropertyAccess(prop_access) => prop_access.get_begin(),
+            Expr::ParenExpr(begin, _, _) => *begin,
+            Expr::UnaryOp(op, _) => op.get_begin(),
+            Expr::Indexed { base, .. } => base.get_begin(),
+        }
+    }
+
+    fn get_end_indexed(&self, index: usize) -> usize {
+        match self {
+            Expr::Atom(Atom::ArrayLit((lit, _))) => lit[index].get_end(),
+            Expr::Atom(Atom::MapLit((lit, _))) => lit[index].get_end(),
+            Expr::Atom(atm) => atm.get_end(),
+            Expr::FuncCall(call) => call.get_end(),
+            Expr::MethodCall(call) => call.get_end(),
+            Expr::Op(expr, _, _) => expr.get_end(),
+            Expr::PropertyAccess(prop_access) => prop_access.get_end(),
+            Expr::ParenExpr(_, _, end) => *end,
+            Expr::UnaryOp(_, expr) => expr.get_end(),
+            Expr::Indexed {
+                bracket_close: bracket_closed,
+                ..
+            } => bracket_closed.get_end(),
         }
     }
 }
@@ -1001,6 +1047,25 @@ impl AstLoc for AstStatement {
 }
 
 impl<T> AstLoc for Vec<T>
+where
+    T: AstLoc,
+{
+    fn get_begin(&self) -> usize {
+        match self.first() {
+            Some(l) => l.get_begin(),
+            None => 0,
+        }
+    }
+
+    fn get_end(&self) -> usize {
+        match self.last() {
+            Some(l) => l.get_end(),
+            None => 0,
+        }
+    }
+}
+
+impl<T> AstLoc for &[T]
 where
     T: AstLoc,
 {

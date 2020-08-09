@@ -1,7 +1,5 @@
-use std::{collections::HashMap, ops::Deref, path::Path};
-
-use itertools::Itertools;
 use lalrpop_util::ParseError;
+use std::{collections::HashMap, ops::Deref, path::Path};
 
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
@@ -26,6 +24,8 @@ pub struct EnvConfig {
     angry_errors_enabled: bool,
 
     error_cascade_enabled: bool,
+
+    output_directory: String,
 }
 
 impl EnvConfig {
@@ -33,8 +33,10 @@ impl EnvConfig {
         Self {
             angry_errors_enabled: false,
             error_cascade_enabled: true,
+            output_directory: "".to_string(),
         }
     }
+
     #[inline]
     pub fn set_angry_errors(&mut self, enabled: bool) -> &mut EnvConfig {
         self.angry_errors_enabled = enabled;
@@ -44,6 +46,12 @@ impl EnvConfig {
     #[inline]
     pub fn set_error_cascade(&mut self, enabled: bool) -> &mut EnvConfig {
         self.error_cascade_enabled = enabled;
+        self
+    }
+
+    #[inline]
+    pub fn set_output_directory(&mut self, output_directory: impl Into<String>) -> &mut EnvConfig {
+        self.output_directory = output_directory.into();
         self
     }
 }
@@ -64,9 +72,6 @@ impl Env {
             call_pools: CallPoolsWrapper::new(),
             config: cfg,
         }
-    }
-    pub(crate) fn modify_config(&mut self) -> &mut EnvConfig {
-        &mut self.config
     }
 }
 
@@ -192,6 +197,19 @@ pub(crate) trait ValueTypeMarker {
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>>;
     fn get_type_id(&self) -> types::TypeId;
     fn get_type_id_and_value(&self) -> types::TypeIdAndValue;
+
+    fn get_type_id_and_value_required(
+        &self,
+        required_type: TypeId,
+    ) -> Result<TypeIdAndValue, TypeId> {
+        let r = self.get_type_id_and_value();
+        let tp = r.degrade();
+        if tp == required_type {
+            Ok(r)
+        } else {
+            Err(tp)
+        }
+    }
 }
 
 impl<T> ValueTypeMarker for Box<T>

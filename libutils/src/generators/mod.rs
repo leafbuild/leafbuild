@@ -15,6 +15,7 @@ pub trait Rule: ToBuildSystemSyntax {
 }
 
 pub trait RuleArg: ToBuildSystemSyntax {
+    fn new(value: String) -> Self;
     fn get_value(&self) -> &String;
 }
 

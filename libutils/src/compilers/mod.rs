@@ -1,12 +1,45 @@
 //! # Stuff related to the compilers
 
+use std::env::VarError;
+use std::io;
+use std::string::FromUtf8Error;
+
 // c compilers
-mod cc;
+pub mod cc;
 
 // c++ compilers
-mod cxx;
+pub mod cxx;
 
-pub(crate) trait Compiler {
-    fn can_consume(filename: &str) -> bool;
-    fn can_compile(filename: &str) -> bool;
+#[derive(Debug)]
+pub enum GetCompilerError {
+    VarError(VarError),
+    ProcessError(io::Error),
+    InvalidUtf8(FromUtf8Error),
+    UnrecognizedCompilerFamily(String),
+}
+
+impl From<VarError> for GetCompilerError {
+    #[inline]
+    fn from(v: VarError) -> Self {
+        GetCompilerError::VarError(v)
+    }
+}
+
+impl From<io::Error> for GetCompilerError {
+    #[inline]
+    fn from(v: io::Error) -> Self {
+        GetCompilerError::ProcessError(v)
+    }
+}
+
+impl From<FromUtf8Error> for GetCompilerError {
+    #[inline]
+    fn from(v: FromUtf8Error) -> Self {
+        GetCompilerError::InvalidUtf8(v)
+    }
+}
+
+pub trait Compiler {
+    fn can_consume(&self, filename: &str) -> bool;
+    fn can_compile(&self, filename: &str) -> bool;
 }
