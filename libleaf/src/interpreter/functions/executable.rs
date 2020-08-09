@@ -36,9 +36,9 @@ fn get_executable_executor() -> CallExecutor {
                 TypeIdAndValue::Vec(vec) => vec
                     .iter()
                     .enumerate()
-                    .map(
+                    .filter_map(
                         |(idx, v)| match v.get_type_id_and_value_required(TypeId::String) {
-                            Ok(s) => s.get_string().unwrap().clone(),
+                            Ok(s) => Some(s.get_string().unwrap().clone()),
                             Err(tp) => {
                                 diagnostics::push_diagnostic(
                                     UnexpectedTypeInArray::new(
@@ -50,11 +50,10 @@ fn get_executable_executor() -> CallExecutor {
                                     .with_docs_location(EXECUTABLE_FUNCTION_DOCS),
                                     frame,
                                 );
-                                "__error".to_string() // return '__error' and filter those out before collecting
+                                None
                             }
                         },
                     )
-                    .filter(|x| *x != "__error")
                     .collect_vec(),
                 TypeIdAndValue::String(s) => vec![s.clone()],
                 tp => {
