@@ -17,10 +17,13 @@ use crate::{
         },
     },
 };
-use libutils::compilers::cc::CC;
-use libutils::compilers::cxx::CXX;
-use libutils::compilers::Compiler;
-use libutils::generators::{ninja::*, *};
+use libutils::{
+    compilers::{
+        cc::{get_cc, CC},
+        cxx::{get_cxx, CXX},
+    },
+    generators::{ninja::*, *},
+};
 
 #[path = "diagnostics/diagnostics.rs"]
 pub(crate) mod diagnostics;
@@ -93,6 +96,26 @@ pub(crate) struct EnvMut {
     cc: Option<CC>,
     /// the C++ compiler, if necessary
     cxx: Option<CXX>,
+
+    executables: Vec<Executable>,
+}
+
+impl EnvMut {
+    pub(crate) fn get_and_cache_cc(&mut self) -> &CC {
+        if self.cc.is_none() {
+            let cc = get_cc().expect("Cannot find CC");
+            self.cc = Some(cc);
+        }
+        self.cc.as_ref().unwrap()
+    }
+
+    pub(crate) fn get_and_cache_cxx(&mut self) -> &CXX {
+        if self.cxx.is_none() {
+            let cxx = get_cxx().expect("Cannot find CXX");
+            self.cxx = Some(cxx);
+        }
+        self.cxx.as_ref().unwrap()
+    }
 }
 
 pub(crate) struct Env {
@@ -115,6 +138,7 @@ impl Env {
                 exec_id: 0,
                 cc: None,
                 cxx: None,
+                executables: vec![],
             },
         }
     }
@@ -128,13 +152,22 @@ impl Env {
         let cc_compile = gen.new_rule("cc_compile", NinjaCommand::new("cc $in -c -o $out"));
         let cc_link = gen.new_rule("cc_link", NinjaCommand::new("cc $in -o $out"));
 
-        gen.new_target(
-            "exe.o",
-            &cc_compile,
-            vec![NinjaRuleArg::new("../src/main.c")],
-            vec![],
-        );
-        gen.new_target("exe", &cc_link, vec![NinjaRuleArg::new("exe.o")], vec![]);
+        self.mut_.executables.iter().for_each(|exe| {
+            let exe_args: Vec<NinjaRuleArg> = exe
+                .get_sources()
+                .iter()
+                .map(|src| {
+                    gen.new_target(
+                        format!("{}.o", src),
+                        &cc_compile,
+                        vec![NinjaRuleArg::new(format!("../{}", src))],
+                        vec![],
+                    );
+                    NinjaRuleArg::new(format!("{}.o", src))
+                })
+                .collect();
+            gen.new_target(exe.get_name(), &cc_link, exe_args, vec![]);
+        });
 
         gen.write_to(f)?;
 
@@ -241,7 +274,14 @@ impl From<EnvFrameData> for EnvFrameReturns {
 }
 
 impl EnvFrameReturns {
-    fn apply_changes_to_env(&self, env: &mut Env) {}
+    fn apply_changes_to_env(&self, env: &mut Env) {
+        self.exe_decls
+            .iter()
+            .for_each(|exe| env.mut_.executables.push(exe.clone()));
+        self.pub_exe_decls
+            .iter()
+            .for_each(|exe| env.mut_.executables.push(exe.clone()));
+    }
 }
 
 struct EnvLibDecl {

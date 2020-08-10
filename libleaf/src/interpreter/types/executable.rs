@@ -17,6 +17,9 @@ impl Executable {
     pub(crate) fn get_name(&self) -> &String {
         &self.name
     }
+    pub(crate) fn get_sources(&self) -> &Vec<String> {
+        &self.sources
+    }
 }
 
 pub(crate) struct ExeRef {

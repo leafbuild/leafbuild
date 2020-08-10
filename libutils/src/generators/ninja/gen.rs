@@ -199,11 +199,11 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
 impl<'buildsys> ToBuildSystemSyntax for NinjaGen<'buildsys> {
     fn for_build_system(&self) -> String {
         format!(
-            "{}\n{}",
+            "{}\n\n\n\n\n{}",
             self.rules
                 .iter()
                 .map(|r| { r.for_build_system() })
-                .join("\n"),
+                .join("\n\n"),
             self.targets
                 .iter()
                 .map(|t| {
