@@ -26,10 +26,37 @@ impl ValueTypeMarker for MapPair {
     }
 
     fn get_type_id(&self) -> TypeId {
-        unimplemented!()
+        TypeId::MapPair
     }
 
     fn get_type_id_and_value(&self) -> TypeIdAndValue {
-        unimplemented!()
+        TypeIdAndValue::MapPair(self)
+    }
+}
+
+pub(crate) fn get_map_pair_call_pool() -> CallPool {
+    CallPool::new(vec![])
+}
+
+pub(crate) fn resolve_map_pair_property_access(
+    base: Value<Box<dyn ValueTypeMarker>>,
+    name: &str,
+) -> Value<Box<dyn ValueTypeMarker>> {
+    match name {
+        "key" => base
+            .get_type_id_and_value_required(TypeId::MapPair)
+            .unwrap()
+            .get_map_pair()
+            .unwrap()
+            .key
+            .clone_to_value(),
+        "value" => base
+            .get_type_id_and_value_required(TypeId::MapPair)
+            .unwrap()
+            .get_map_pair()
+            .unwrap()
+            .value
+            .clone_to_value(),
+        other => panic!("Unknown property {} on map pair", other),
     }
 }

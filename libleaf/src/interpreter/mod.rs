@@ -5,7 +5,9 @@ use std::{collections::HashMap, ops::Deref, path::Path};
 
 use lalrpop_util::ParseError;
 
-use crate::interpreter::types::{resolve_executable_property_access, Executable, MapPair};
+use crate::interpreter::types::{
+    resolve_executable_property_access, resolve_map_pair_property_access, Executable, MapPair,
+};
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
     handle::Handle,
@@ -636,6 +638,7 @@ pub(crate) struct CallPoolsWrapper {
     vec_pool: CallPool,
     map_pool: CallPool,
     executable_pool: CallPool,
+    map_pair_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -651,6 +654,7 @@ impl CallPoolsWrapper {
             vec_pool: types::get_vec_call_pool(),
             map_pool: types::get_map_call_pool(),
             executable_pool: types::get_executable_call_pool(),
+            map_pair_pool: types::get_map_pair_call_pool(),
         }
     }
     #[inline]
@@ -699,6 +703,11 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_map_pair_pool(&self) -> &CallPool {
+        &self.map_pair_pool
+    }
+
+    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => self.get_num_pool(),
@@ -709,6 +718,7 @@ impl CallPoolsWrapper {
             TypeId::Vec => self.get_vec_pool(),
             TypeId::Map => self.get_map_pool(),
             TypeId::ExecutableReference => self.get_executable_pool(),
+            TypeId::MapPair => self.get_map_pair_pool(),
         }
     }
 }
@@ -804,6 +814,7 @@ pub(crate) fn property_access(
         TypeId::Vec => resolve_vec_property_access(base, property_name),
         TypeId::Map => resolve_map_property_access(base, property_name),
         TypeId::ExecutableReference => resolve_executable_property_access(base, property_name),
+        TypeId::MapPair => resolve_map_pair_property_access(base, property_name),
     }
 }
 

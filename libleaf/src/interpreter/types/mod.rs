@@ -19,6 +19,7 @@ pub(crate) enum TypeIdAndValue<'a> {
     Vec(&'a Vec<Value<Box<dyn ValueTypeMarker>>>),
     Map(&'a HashMap<String, Value<Box<dyn ValueTypeMarker>>>),
     ExecutableReference(&'a ExeRef),
+    MapPair(&'a MapPair),
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -45,6 +46,13 @@ impl<'a> TypeIdAndValue<'a> {
             v => Err(v.degrade()),
         }
     }
+
+    pub(crate) fn get_map_pair(&'a self) -> Result<&'a MapPair, TypeId> {
+        match self {
+            TypeIdAndValue::MapPair(v) => Ok(*v),
+            v => Err(v.degrade()),
+        }
+    }
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -61,6 +69,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::Vec(v) => v.stringify(),
             TypeIdAndValue::Map(v) => v.stringify(),
             TypeIdAndValue::ExecutableReference(v) => v.stringify(),
+            TypeIdAndValue::MapPair(v) => v.stringify(),
         }
     }
 
@@ -78,6 +87,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::Vec(_) => TypeId::Vec,
             TypeIdAndValue::Map(_) => TypeId::Map,
             TypeIdAndValue::ExecutableReference(_) => TypeId::ExecutableReference,
+            TypeIdAndValue::MapPair(_) => TypeId::MapPair,
         }
     }
 }
@@ -95,6 +105,7 @@ pub(crate) enum TypeId {
     Vec,
     Map,
     ExecutableReference,
+    MapPair,
 }
 
 impl TypeId {
@@ -112,6 +123,7 @@ impl TypeId {
             TypeId::Vec => "vec",
             TypeId::Map => "map",
             TypeId::ExecutableReference => "exe ref",
+            TypeId::MapPair => "map pair",
         }
     }
 }
