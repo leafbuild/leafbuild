@@ -24,16 +24,16 @@ The current state of the implementation, along with future plans.
 - [x] Functions and methods alias system
 - [x] If expressions
 - [ ] Ternary expressions
-- [ ] Loops
+- [x] Loops
 
 </div></td>
 <td><div>
 
 ### Functions
 - [x] `print()`
-- [ ] `project()`
-- [ ] `module()`
-- [ ] `executable()`
+- [x] `project()`
+- [x] `module()`
+- [x] `executable()`
 - [ ] `library()`
  
 </div></td> 
@@ -43,7 +43,7 @@ The current state of the implementation, along with future plans.
 <td><div>
 
 ### Types, methods & properties
-- [ ] executable
+- [x] executable
 - [ ] library
 
 </div></td>

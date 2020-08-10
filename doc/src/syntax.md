@@ -119,31 +119,31 @@ they are declared in is processed.
 Variables are declared with the `let` keyword:
 
 ```leafbuild
-let variable_name = value
+let variable_name = value;
 ```
 
 Examples:
 
 ```leafbuild
-let a = 0
-let b = 1
-let c = 'a string'
+let a = 0;
+let b = 1;
+let c = 'a string';
 let d = '''A
 multiline
-string'''
-let e = a // e = 0
+string''';
+let e = a; // e = 0
 ```
 
 ### Assigning a value to a variable
 Like in C/C++:
 ```leafbuild
-let a = 0 // declare it
-a = 1 // assign 1 to it
-a += 1 // and add one to it; same as a = a + 1
-a -= 1 // subtract one; same as a = a - 1
-a *= 12 // multiply by 12; same as a = a * 12
-a /= 2 // divide by 2; same as a = a / 2
-a %= 3 // take modulo 3 and assign it back; same as a = a % 3
+let a = 0; // declare it
+a = 1; // assign 1 to it
+a += 1; // and add one to it; same as a = a + 1
+a -= 1; // subtract one; same as a = a - 1
+a *= 12; // multiply by 12; same as a = a * 12
+a /= 2; // divide by 2; same as a = a / 2
+a %= 3; // take modulo 3 and assign it back; same as a = a % 3
 ``` 
 values cannot change their type, unless the type changes into
 [the error type](reference/special_types/error.md), in which case it can be assigned back
@@ -221,3 +221,54 @@ statements3
 // in case all conditions above failed
 }
 ```
+
+# Foreach (and repetition)
+```leafbuild
+foreach x in collection {
+    do_something_with x
+}
+```
+Where `collection` is either:
+- A vector and then x is the value of the current element
+- A map and then x is a `map_pair`; this type has 2 properties: `key` and `value`.
+The `key` property is always a string. The `value` could be anything.
+
+## Examples
+
+Foreach over vector:
+
+```leafbuild
+foreach x in {1, 2, 3, 4, 5} {
+    print(x);
+}
+// prints:
+/*
+-- 1
+-- 2
+-- 3
+-- 4
+-- 5
+*/
+```
+
+Foreach over map:
+```leafbuild
+foreach x in {a: 1, b: 2, c: 3, d: 4, e: 5} {
+    print(key: x.key, value: x.value);
+}
+// prints:
+/*
+-- key: 'a', value: 1
+-- key: 'b', value: 2
+-- key: 'c', value: 3
+-- key: 'd', value: 4
+-- key: 'e', value: 5
+*/
+// not necessarely in this order.
+```
+
+
+# All statements end with `;`
+Please note that all statements(assignments,
+function calls, method calls) SHOULD end with a `;`,
+like they do in C/C++.

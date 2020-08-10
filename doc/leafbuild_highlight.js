@@ -39,9 +39,9 @@ export default function(hljs) {
     className: 'keyword',
     beginKeywords:
         // syntax
-        'let ' +
+        'let in and or not' +
         // control keywords
-        'continue break if else ' +
+        'continue break if else foreach ' +
         // types
         'i32 i64 u32 u64 string error void ' +
         // bool literals
