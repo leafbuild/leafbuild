@@ -19,17 +19,30 @@ impl NinjaCommand {
 pub struct NinjaRule {
     name: String,
     command: NinjaCommand,
+    variables: Vec<NinjaVariable>,
 }
 
 impl ToBuildSystemSyntax for NinjaRule {
     fn for_build_system(&self) -> String {
-        format!("rule {}\n  command = {}", self.name, self.command.command)
+        format!(
+            "rule {}\n  {}",
+            self.name,
+            self.variables
+                .iter()
+                .map(|var| var.for_build_system())
+                .chain(
+                    [&self.command.command]
+                        .iter()
+                        .map(|cmd| { format!("command = {}", *cmd) })
+                )
+                .join("\n  ")
+        )
     }
 }
 
 impl Rule for NinjaRule {
     type ArgType = NinjaRuleArg;
-    type OptType = NinjaRuleOpt;
+    type VarType = NinjaVariable;
     type RefType = NinjaRuleRef;
 
     fn get_name(&self) -> &String {
@@ -64,18 +77,18 @@ impl RuleArg for NinjaRuleArg {
     }
 }
 
-pub struct NinjaRuleOpt {
+pub struct NinjaVariable {
     name: String,
     value: String,
 }
 
-impl ToBuildSystemSyntax for NinjaRuleOpt {
+impl ToBuildSystemSyntax for NinjaVariable {
     fn for_build_system(&self) -> String {
         format!("  {} = {}", self.name, self.value)
     }
 }
 
-impl RuleOpt for NinjaRuleOpt {
+impl RuleOpt for NinjaVariable {
     fn get_arg_name(&self) -> &String {
         &self.name
     }
@@ -89,7 +102,7 @@ pub struct NinjaTarget<'buildsys> {
     name: String,
     rule: &'buildsys NinjaRuleRef,
     rule_args: Vec<NinjaRuleArg>,
-    rule_opts: Vec<NinjaRuleOpt>,
+    rule_opts: Vec<NinjaVariable>,
 }
 
 impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
@@ -115,7 +128,7 @@ impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
         name: impl Into<String>,
         rule: &'buildsys NinjaRuleRef,
         rule_args: Vec<NinjaRuleArg>,
-        rule_opts: Vec<NinjaRuleOpt>,
+        rule_opts: Vec<NinjaVariable>,
     ) -> Self {
         Self {
             name: name.into(),
@@ -137,7 +150,7 @@ impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
         &self.rule_args
     }
 
-    fn get_opts(&self) -> &Vec<NinjaRuleOpt> {
+    fn get_opts(&self) -> &Vec<NinjaVariable> {
         &self.rule_opts
     }
 }
@@ -185,10 +198,16 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
             .push(NinjaGlobalValue::new(unique_name, value));
     }
 
-    fn new_rule(&mut self, unique_name: impl Into<String>, command: NinjaCommand) -> NinjaRuleRef {
+    fn new_rule(
+        &mut self,
+        unique_name: impl Into<String>,
+        command: NinjaCommand,
+        variables: Vec<NinjaVariable>,
+    ) -> NinjaRuleRef {
         let rule = NinjaRule {
             name: unique_name.into(),
             command,
+            variables,
         };
         self.rules.push(rule);
         NinjaRuleRef {
@@ -201,7 +220,7 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
         name: impl Into<String>,
         rule: &'buildsys <NinjaRule as Rule>::RefType,
         args: Vec<<NinjaRule as Rule>::ArgType>,
-        opts: Vec<<NinjaRule as Rule>::OptType>,
+        opts: Vec<<NinjaRule as Rule>::VarType>,
     ) -> &NinjaTarget<'buildsys> {
         let target = NinjaTarget::new_from(name, rule, args, opts);
         self.targets.push(target);

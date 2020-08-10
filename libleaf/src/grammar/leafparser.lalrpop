@@ -16,6 +16,7 @@ Statement: AstStatement = {
 	<Declaration> ";" => AstStatement::Declaration(<>),
 	<ConditionalStatement> => AstStatement::Conditional(<>),
 	<ControlStatement> => AstStatement::ControlStatement(<>),
+	<RepetitiveStatement> => AstStatement::Repetitive(<>),
 };
 
 FuncCall: AstFuncCall = {
@@ -181,6 +182,13 @@ Else: AstElse = {
 	<"else"> "{" <Statement+> <"}"> => AstElse::new(<>),
 };
 
+RepetitiveStatement: AstRepetitiveStatement = {
+    <foreach_tok: "foreach"> <for_in_expr: ForInExpr> "{" <statement:Statement*> <end:"}"> => AstRepetitiveStatement::new(<>),
+};
+
+ForInExpr: AstForInExpr = {
+    "id" "in" Expr => AstForInExpr::new(<>),
+};
 
 ControlStatement: AstControlStatement = {
 	"break" => AstControlStatement::Break(<>),
@@ -233,6 +241,7 @@ extern {
         "num" => lexer::Tok::Number(<i32>, <TokLoc>),
         "id" => lexer::Tok::Identifier(<String>, <TokLoc>),
         "str" => lexer::Tok::Str(<String>, <TokLoc>),
+        "foreach" => lexer::Tok::Foreach(<TokLoc>),
 
         ";" => lexer::Tok::Semicolon(<TokLoc>),
         ":" => lexer::Tok::Colon(<TokLoc>),

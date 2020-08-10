@@ -129,4 +129,5 @@ include!("primitives/void.rs");
 include!("primitives/error.rs");
 include!("vec.rs");
 include!("map.rs");
+include!("map_pair.rs");
 include!("executable.rs");

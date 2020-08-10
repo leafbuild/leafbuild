@@ -983,6 +983,76 @@ impl AstLoc for AstConditionalStatement {
     }
 }
 
+pub struct AstRepetitiveStatement {
+    foreach_tok: TokLoc,
+    for_in_expr: AstForInExpr,
+    statements: Vec<AstStatement>,
+    end: TokLoc,
+}
+
+impl AstRepetitiveStatement {
+    pub fn new(
+        foreach_tok: TokLoc,
+        for_in_expr: AstForInExpr,
+        statements: Vec<AstStatement>,
+        end: TokLoc,
+    ) -> AstRepetitiveStatement {
+        Self {
+            foreach_tok,
+            for_in_expr,
+            statements,
+            end,
+        }
+    }
+
+    pub(crate) fn get_for_in_expr(&self) -> &AstForInExpr {
+        &self.for_in_expr
+    }
+    pub(crate) fn get_statements(&self) -> &Vec<AstStatement> {
+        &self.statements
+    }
+}
+
+impl AstLoc for AstRepetitiveStatement {
+    fn get_begin(&self) -> usize {
+        self.for_in_expr.get_begin()
+    }
+
+    fn get_end(&self) -> usize {
+        self.end.get_end()
+    }
+}
+
+pub struct AstForInExpr {
+    name: (String, TokLoc),
+    in_tok: TokLoc,
+    expr: Box<Expr>,
+}
+
+impl AstForInExpr {
+    pub fn new(name: (String, TokLoc), in_tok: TokLoc, expr: Box<Expr>) -> AstForInExpr {
+        Self { name, in_tok, expr }
+    }
+
+    pub(crate) fn get_name(&self) -> &(String, TokLoc) {
+        &self.name
+    }
+
+    pub(crate) fn get_expr(&self) -> &Expr {
+        &self.expr
+    }
+}
+
+impl AstLoc for AstForInExpr {
+    fn get_begin(&self) -> usize {
+        self.name.1.get_begin()
+    }
+
+    fn get_end(&self) -> usize {
+        self.expr.get_end()
+    }
+}
+
 pub enum AstControlStatement {
     Continue(TokLoc),
     Break(TokLoc),
@@ -1018,6 +1088,7 @@ pub enum AstStatement {
     Assignment(AstAssignment),
     Conditional(AstConditionalStatement),
     ControlStatement(AstControlStatement),
+    Repetitive(AstRepetitiveStatement),
 }
 
 impl AstLoc for AstStatement {
@@ -1030,6 +1101,7 @@ impl AstLoc for AstStatement {
             AstStatement::Assignment(assignment) => assignment.get_begin(),
             AstStatement::ControlStatement(control_statement) => control_statement.get_begin(),
             AstStatement::Conditional(conditional_statement) => conditional_statement.get_begin(),
+            AstStatement::Repetitive(repetitive) => repetitive.get_begin(),
         }
     }
 
@@ -1042,6 +1114,7 @@ impl AstLoc for AstStatement {
             AstStatement::Assignment(assignment) => assignment.get_end(),
             AstStatement::ControlStatement(control_statement) => control_statement.get_end(),
             AstStatement::Conditional(conditional_statement) => conditional_statement.get_end(),
+            AstStatement::Repetitive(repetitive) => repetitive.get_end(),
         }
     }
 }

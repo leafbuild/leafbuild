@@ -5,7 +5,7 @@ use std::{collections::HashMap, ops::Deref, path::Path};
 
 use lalrpop_util::ParseError;
 
-use crate::interpreter::types::{resolve_executable_property_access, Executable};
+use crate::interpreter::types::{resolve_executable_property_access, Executable, MapPair};
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
     handle::Handle,
@@ -146,16 +146,27 @@ impl Env {
 
     pub(crate) fn write_results(&mut self) -> Result<(), Box<dyn Error>> {
         let buf = PathBuf::from(self.imut.config.output_directory.clone());
+        if !buf.exists() {
+            std::fs::create_dir(buf.as_path())?;
+        }
         let ninja_file = buf.join("build.ninja");
         let f = File::create(ninja_file)?;
 
         let mut gen = NinjaGen::new();
 
-        let cc_compile = gen.new_rule("cc_compile", NinjaCommand::new("$CC $in -c -o $out"));
-        let cc_link = gen.new_rule("cc_link", NinjaCommand::new("$CC $in -o $out"));
+        let cc_compile = gen.new_rule(
+            "cc_compile",
+            NinjaCommand::new("$CC $in -c -o $out"),
+            vec![],
+        );
+        let cc_link = gen.new_rule("cc_link", NinjaCommand::new("$CC $in -o $out"), vec![]);
 
-        let cxx_compile = gen.new_rule("cxx_compile", NinjaCommand::new("$CXX $in -c -o $out"));
-        let cxx_link = gen.new_rule("cxx_link", NinjaCommand::new("$CXX $in -o $out"));
+        let cxx_compile = gen.new_rule(
+            "cxx_compile",
+            NinjaCommand::new("$CXX $in -c -o $out"),
+            vec![],
+        );
+        let cxx_link = gen.new_rule("cxx_link", NinjaCommand::new("$CXX $in -o $out"), vec![]);
 
         let mut need_cc = false;
         let mut need_cxx = false;

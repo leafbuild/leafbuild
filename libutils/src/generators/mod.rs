@@ -9,7 +9,7 @@ pub trait ToBuildSystemSyntax {
 
 pub trait Rule: ToBuildSystemSyntax {
     type ArgType: RuleArg + Sized;
-    type OptType: RuleOpt + Sized;
+    type VarType: RuleOpt + Sized;
     type RefType: RuleRef + Sized;
     fn get_name(&self) -> &String;
 }
@@ -34,12 +34,12 @@ where
         name: impl Into<String>,
         rule: &'buildsys TargetRule::RefType,
         rule_args: Vec<TargetRule::ArgType>,
-        rule_opts: Vec<TargetRule::OptType>,
+        rule_opts: Vec<TargetRule::VarType>,
     ) -> Self;
     fn get_name(&self) -> &String;
     fn get_rule(&self) -> &TargetRule::RefType;
     fn get_args(&self) -> &Vec<TargetRule::ArgType>;
-    fn get_opts(&self) -> &Vec<TargetRule::OptType>;
+    fn get_opts(&self) -> &Vec<TargetRule::VarType>;
 }
 
 pub trait Generator<'buildsys, RuleType, TargetType, CommandType>: ToBuildSystemSyntax
@@ -55,13 +55,14 @@ where
         &mut self,
         unique_name: impl Into<String>,
         command: CommandType,
+        variables: Vec<RuleType::VarType>,
     ) -> RuleType::RefType;
     fn new_target(
         &mut self,
         name: impl Into<String>,
         rule: &'buildsys RuleType::RefType,
         args: Vec<RuleType::ArgType>,
-        opts: Vec<RuleType::OptType>,
+        variables: Vec<RuleType::VarType>,
     ) -> &TargetType;
 
     fn filename(&self) -> String;

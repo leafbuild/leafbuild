@@ -90,6 +90,8 @@ pub enum Tok {
     If(TokLoc),
     /// else
     Else(TokLoc),
+    /// foreach
+    Foreach(TokLoc),
     /// break
     Break(TokLoc),
     /// continue
@@ -183,6 +185,7 @@ impl<'input> Lexer<'input> {
                 "let" => Tok::Let(loc),
                 "if" => Tok::If(loc),
                 "else" => Tok::Else(loc),
+                "foreach" => Tok::Foreach(loc),
                 "break" => Tok::Break(loc),
                 "continue" => Tok::Continue(loc),
                 "and" => Tok::And(loc),

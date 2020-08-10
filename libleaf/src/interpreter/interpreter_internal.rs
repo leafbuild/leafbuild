@@ -18,6 +18,9 @@ fn run_in_env_frame(statement: &AstStatement, env_frame: &mut EnvFrame) {
         AstStatement::ControlStatement(_) => {
             //TODO: will need loops to implement this
         }
+        AstStatement::Repetitive(repetitive) => {
+            run_repetitive_statement_in_env_frame(repetitive, env_frame)
+        }
     };
 }
 
@@ -294,6 +297,51 @@ fn run_if(if_: &AstIf, frame: &mut EnvFrame) -> bool {
         }
         false => false,
     }
+}
+
+fn run_repetitive_statement_in_env_frame(
+    repetitive: &AstRepetitiveStatement,
+    frame: &mut EnvFrame,
+) {
+    let for_in_expr = repetitive.get_for_in_expr();
+    let name = for_in_expr.get_name();
+    let iterable_expr = for_in_expr.get_expr();
+    let iterable = iterable_expr.eval_in_env(frame);
+    match iterable.get_type_id_and_value() {
+        TypeIdAndValue::Vec(v) => v.iter().for_each(|x| {
+            frame.variables.insert(
+                name.0.clone(),
+                Variable::new(name.0.clone(), x.clone_to_value()),
+            );
+            repetitive
+                .get_statements()
+                .iter()
+                .for_each(|s| run_in_env_frame(s, frame))
+        }),
+        TypeIdAndValue::Map(m) => m.iter().for_each(|x| {
+            frame.variables.insert(
+                name.0.clone(),
+                Variable::new(
+                    name.0.clone(),
+                    Value::new(Box::new(MapPair::new(x.0.clone(), x.1.clone_to_value()))),
+                ),
+            );
+            repetitive
+                .get_statements()
+                .iter()
+                .for_each(|s| run_in_env_frame(s, frame))
+        }),
+        tp => {
+            diagnostics::push_diagnostic(
+                ExpectedTypeError::new(
+                    format!("{} or {}", TypeId::Vec.typename(), TypeId::Map.typename()),
+                    ExprLocAndType::new(iterable_expr.get_rng(), tp.degrade().typename()),
+                ),
+                frame,
+            );
+            return;
+        }
+    };
 }
 
 fn is_assignable(prev_value_type: &TypeId, new_value_type: &TypeId) -> bool {
