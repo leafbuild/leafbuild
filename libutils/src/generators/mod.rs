@@ -48,6 +48,9 @@ where
     TargetType: Target<'buildsys, RuleType> + Sized,
 {
     fn new() -> Self;
+
+    fn new_global_value(&mut self, unique_name: impl Into<String>, value: impl Into<String>);
+
     fn new_rule(
         &mut self,
         unique_name: impl Into<String>,

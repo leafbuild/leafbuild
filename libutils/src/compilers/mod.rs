@@ -2,6 +2,7 @@
 
 use std::env::VarError;
 use std::io;
+use std::path::PathBuf;
 use std::string::FromUtf8Error;
 
 // c compilers
@@ -42,4 +43,6 @@ impl From<FromUtf8Error> for GetCompilerError {
 pub trait Compiler {
     fn can_consume(filename: &str) -> bool;
     fn can_compile(filename: &str) -> bool;
+
+    fn get_location(&self) -> &PathBuf;
 }

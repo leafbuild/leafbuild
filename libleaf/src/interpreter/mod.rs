@@ -144,17 +144,21 @@ impl Env {
         }
     }
 
-    pub(crate) fn write_results(&self) -> Result<(), Box<dyn Error>> {
+    pub(crate) fn write_results(&mut self) -> Result<(), Box<dyn Error>> {
         let buf = PathBuf::from(self.imut.config.output_directory.clone());
         let ninja_file = buf.join("build.ninja");
         let f = File::create(ninja_file)?;
 
         let mut gen = NinjaGen::new();
-        let cc_compile = gen.new_rule("cc_compile", NinjaCommand::new("cc $in -c -o $out"));
-        let cc_link = gen.new_rule("cc_link", NinjaCommand::new("cc $in -o $out"));
 
-        let cxx_compile = gen.new_rule("cxx_compile", NinjaCommand::new("c++ $in -c -o $out"));
-        let cxx_link = gen.new_rule("cxx_link", NinjaCommand::new("c++ $in -o $out"));
+        let cc_compile = gen.new_rule("cc_compile", NinjaCommand::new("$CC $in -c -o $out"));
+        let cc_link = gen.new_rule("cc_link", NinjaCommand::new("$CC $in -o $out"));
+
+        let cxx_compile = gen.new_rule("cxx_compile", NinjaCommand::new("$CXX $in -c -o $out"));
+        let cxx_link = gen.new_rule("cxx_link", NinjaCommand::new("$CXX $in -o $out"));
+
+        let mut need_cc = false;
+        let mut need_cxx = false;
 
         self.mut_.executables.iter().for_each(|exe| {
             let mut need_cxx_linker = false;
@@ -166,8 +170,10 @@ impl Env {
                     let rl;
                     if CC::can_compile(src) {
                         rl = &cc_compile;
+                        need_cc = true;
                     } else if CXX::can_compile(src) {
                         rl = &cxx_compile;
+                        need_cxx = true;
                         need_cxx_linker = true;
                     } else if CC::can_consume(src) || CXX::can_consume(src) {
                         return None;
@@ -195,6 +201,16 @@ impl Env {
                 vec![],
             );
         });
+
+        if need_cc {
+            let cc_loc = self.mut_.get_and_cache_cc().get_location();
+            gen.new_global_value("CC", cc_loc.to_string_lossy())
+        }
+
+        if need_cxx {
+            let cxx_loc = self.mut_.get_and_cache_cxx().get_location();
+            gen.new_global_value("CXX", cxx_loc.to_string_lossy())
+        }
 
         gen.write_to(f)?;
 

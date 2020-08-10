@@ -10,6 +10,7 @@ pub enum CCFamily {
 
 pub struct CC {
     family: CCFamily,
+    location: PathBuf,
 }
 
 impl Compiler for CC {
@@ -18,6 +19,10 @@ impl Compiler for CC {
     }
     fn can_compile(filename: &str) -> bool {
         filename.ends_with(".c")
+    }
+
+    fn get_location(&self) -> &PathBuf {
+        &self.location
     }
 }
 
@@ -33,21 +38,23 @@ pub fn get_cc() -> Result<CC, GetCompilerError> {
         }
     }?;
 
-    let output = Command::new(compiler_location).arg("--version").output()?;
+    let location = compiler_location.clone();
 
-    match String::from_utf8(output.stdout)?
+    let output = Command::new(compiler_location).arg("--version").output()?;
+    let output = String::from_utf8(output.stdout)?;
+    let first_line = output
         .lines()
         .next() // get first line
-        .expect("Cannot detect compiler family from `CC --version'")
-        .split_ascii_whitespace()
-        .next() // first fragment
-        .expect("Cannot detect compiler family from `CC --version'")
-    {
-        "gcc" => Ok(CC {
+        .expect("Cannot detect compiler family from `CC --version'");
+
+    match first_line {
+        family if family.contains("(GCC)") => Ok(CC {
             family: CCFamily::GCC,
+            location,
         }),
-        "clang" => Ok(CC {
+        family if family.contains("clang") => Ok(CC {
             family: CCFamily::Clang,
+            location,
         }),
         family => Err(GetCompilerError::UnrecognizedCompilerFamily(
             family.to_string(),

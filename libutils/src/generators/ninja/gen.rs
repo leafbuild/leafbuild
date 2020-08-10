@@ -142,9 +142,30 @@ impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
     }
 }
 
+struct NinjaGlobalValue {
+    name: String,
+    value: String,
+}
+
+impl NinjaGlobalValue {
+    fn new(name: impl Into<String>, value: impl Into<String>) -> NinjaGlobalValue {
+        Self {
+            name: name.into(),
+            value: value.into(),
+        }
+    }
+}
+
+impl ToBuildSystemSyntax for NinjaGlobalValue {
+    fn for_build_system(&self) -> String {
+        format!("{} = {}", self.name, self.value)
+    }
+}
+
 pub struct NinjaGen<'buildsys> {
     rules: Vec<NinjaRule>,
     targets: Vec<NinjaTarget<'buildsys>>,
+    global_values: Vec<NinjaGlobalValue>,
 }
 
 impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCommand>
@@ -155,8 +176,15 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
         NinjaGen {
             rules: vec![],
             targets: vec![],
+            global_values: vec![],
         }
     }
+
+    fn new_global_value(&mut self, unique_name: impl Into<String>, value: impl Into<String>) {
+        self.global_values
+            .push(NinjaGlobalValue::new(unique_name, value));
+    }
+
     fn new_rule(&mut self, unique_name: impl Into<String>, command: NinjaCommand) -> NinjaRuleRef {
         let rule = NinjaRule {
             name: unique_name.into(),
@@ -199,7 +227,11 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
 impl<'buildsys> ToBuildSystemSyntax for NinjaGen<'buildsys> {
     fn for_build_system(&self) -> String {
         format!(
-            "{}\n\n\n\n\n{}",
+            "{}\n\n{}\n\n\n\n\n{}",
+            self.global_values
+                .iter()
+                .map(|v| v.for_build_system())
+                .join("\n"),
             self.rules
                 .iter()
                 .filter_map(|r| {

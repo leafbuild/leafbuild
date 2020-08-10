@@ -10,6 +10,7 @@ pub enum CXXFamily {
 
 pub struct CXX {
     family: CXXFamily,
+    location: PathBuf,
 }
 
 impl Compiler for CXX {
@@ -27,6 +28,10 @@ impl Compiler for CXX {
             || filename.ends_with(".cxx")
             || filename.ends_with(".c")
     }
+
+    fn get_location(&self) -> &PathBuf {
+        &self.location
+    }
 }
 
 pub fn get_cxx() -> Result<CXX, GetCompilerError> {
@@ -41,21 +46,23 @@ pub fn get_cxx() -> Result<CXX, GetCompilerError> {
         }
     }?;
 
-    let output = Command::new(compiler_location).arg("--version").output()?;
+    let location = compiler_location.clone();
 
-    match String::from_utf8(output.stdout)?
+    let output = Command::new(compiler_location).arg("--version").output()?;
+    let output = String::from_utf8(output.stdout)?;
+    let first_line = output
         .lines()
         .next() // get first line
-        .expect("Cannot detect compiler family from `CXX --version'")
-        .split_ascii_whitespace()
-        .next() // first fragment
-        .expect("Cannot detect compiler family from `CXX --version'")
-    {
-        "gcc" => Ok(CXX {
+        .expect("Cannot detect compiler family from `CC --version'");
+
+    match first_line {
+        family if family.contains("(GCC)") => Ok(CXX {
             family: CXXFamily::GCC,
+            location,
         }),
-        "clang" => Ok(CXX {
+        family if family.contains("clang") => Ok(CXX {
             family: CXXFamily::Clang,
+            location,
         }),
         family => Err(GetCompilerError::UnrecognizedCompilerFamily(
             family.to_string(),

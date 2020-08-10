@@ -9,7 +9,7 @@ impl Handle {
         Self { env: Env::new(cfg) }
     }
 
-    pub(crate) fn write_results(&self) {
+    pub(crate) fn write_results(&mut self) {
         self.env.write_results().expect("Cannot write results");
     }
 }
