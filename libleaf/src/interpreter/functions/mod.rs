@@ -1,7 +1,7 @@
 use itertools::Itertools;
 use paste::paste;
 
-use crate::interpreter::types::{Executable, TypeIdAndValue};
+use crate::interpreter::types::TypeIdAndValue;
 use crate::{
     grammar::{ast::AstLoc, ast::AstPositionalArg},
     interpreter::{

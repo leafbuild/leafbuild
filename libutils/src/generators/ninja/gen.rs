@@ -202,7 +202,13 @@ impl<'buildsys> ToBuildSystemSyntax for NinjaGen<'buildsys> {
             "{}\n\n\n\n\n{}",
             self.rules
                 .iter()
-                .map(|r| { r.for_build_system() })
+                .filter_map(|r| {
+                    if self.targets.iter().any(|x| x.rule.name == r.name) {
+                        Some(r.for_build_system())
+                    } else {
+                        None
+                    }
+                })
                 .join("\n\n"),
             self.targets
                 .iter()

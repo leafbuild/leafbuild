@@ -17,6 +17,7 @@ use crate::{
         },
     },
 };
+use libutils::compilers::Compiler;
 use libutils::{
     compilers::{
         cc::{get_cc, CC},
@@ -152,21 +153,47 @@ impl Env {
         let cc_compile = gen.new_rule("cc_compile", NinjaCommand::new("cc $in -c -o $out"));
         let cc_link = gen.new_rule("cc_link", NinjaCommand::new("cc $in -o $out"));
 
+        let cxx_compile = gen.new_rule("cxx_compile", NinjaCommand::new("c++ $in -c -o $out"));
+        let cxx_link = gen.new_rule("cxx_link", NinjaCommand::new("c++ $in -o $out"));
+
         self.mut_.executables.iter().for_each(|exe| {
+            let mut need_cxx_linker = false;
+
             let exe_args: Vec<NinjaRuleArg> = exe
                 .get_sources()
                 .iter()
-                .map(|src| {
+                .filter_map(|src| {
+                    let rl;
+                    if CC::can_compile(src) {
+                        rl = &cc_compile;
+                    } else if CXX::can_compile(src) {
+                        rl = &cxx_compile;
+                        need_cxx_linker = true;
+                    } else if CC::can_consume(src) || CXX::can_consume(src) {
+                        return None;
+                    } else {
+                        println!(
+                            "Warning: ignoring file '{}' while building executable '{}'",
+                            src,
+                            exe.get_name()
+                        );
+                        return None;
+                    }
                     gen.new_target(
                         format!("{}.o", src),
-                        &cc_compile,
+                        rl,
                         vec![NinjaRuleArg::new(format!("../{}", src))],
                         vec![],
                     );
-                    NinjaRuleArg::new(format!("{}.o", src))
+                    Some(NinjaRuleArg::new(format!("{}.o", src)))
                 })
                 .collect();
-            gen.new_target(exe.get_name(), &cc_link, exe_args, vec![]);
+            gen.new_target(
+                exe.get_name(),
+                if need_cxx_linker { &cxx_link } else { &cc_link },
+                exe_args,
+                vec![],
+            );
         });
 
         gen.write_to(f)?;
@@ -647,13 +674,13 @@ impl CallPoolsWrapper {
     #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
-            TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => &self.get_num_pool(),
-            TypeId::String => &self.get_string_pool(),
-            TypeId::Void => &self.get_void_pool(),
-            TypeId::Error => &self.get_error_pool(),
-            TypeId::Bool => &self.get_bool_pool(),
-            TypeId::Vec => &self.get_vec_pool(),
-            TypeId::Map => &self.get_map_pool(),
+            TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => self.get_num_pool(),
+            TypeId::String => self.get_string_pool(),
+            TypeId::Void => self.get_void_pool(),
+            TypeId::Error => self.get_error_pool(),
+            TypeId::Bool => self.get_bool_pool(),
+            TypeId::Vec => self.get_vec_pool(),
+            TypeId::Map => self.get_map_pool(),
             TypeId::ExecutableReference => self.get_executable_pool(),
         }
     }

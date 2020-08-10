@@ -14,8 +14,8 @@ Statement: AstStatement = {
 	<FuncCall> ";" => AstStatement::FuncCall(<>),
 	<Assignment> ";" => AstStatement::Assignment(<>),
 	<Declaration> ";" => AstStatement::Declaration(<>),
-	<ConditionalStatement> ";" => AstStatement::Conditional(<>),
-	<ControlStatement> ";" => AstStatement::ControlStatement(<>),
+	<ConditionalStatement> => AstStatement::Conditional(<>),
+	<ControlStatement> => AstStatement::ControlStatement(<>),
 };
 
 FuncCall: AstFuncCall = {
