@@ -31,8 +31,6 @@ impl TokLoc {
 
 #[derive(Clone, Debug)]
 pub enum Tok {
-    /// \n
-    Newline,
     /// true | false
     Bool(bool, TokLoc),
     /// number
@@ -82,6 +80,8 @@ pub enum Tok {
     Colon(TokLoc),
     /// ,
     Comma(TokLoc),
+    /// ;
+    Semicolon(TokLoc),
     /// .
     Dot(TokLoc),
     /// let
@@ -511,10 +511,10 @@ impl<'input> Iterator for Lexer<'input> {
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             match self.chars.next() {
-                Some((i, '\n')) => return Some(Ok((i, Tok::Newline, i + 1))),
                 Some((_, chr)) if chr.is_whitespace() => continue,
                 Some((i, ':')) => return single_char_token!(Colon, i),
                 Some((i, ',')) => return single_char_token!(Comma, i),
+                Some((i, ';')) => return single_char_token!(Semicolon, i),
                 Some((i, '.')) => return single_char_token!(Dot, i),
                 Some((i, '(')) => return single_char_token!(POPEN, i),
                 Some((i, ')')) => return single_char_token!(PCLOSE, i),

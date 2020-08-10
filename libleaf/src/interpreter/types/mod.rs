@@ -18,6 +18,7 @@ pub(crate) enum TypeIdAndValue<'a> {
     Error,
     Vec(&'a Vec<Value<Box<dyn ValueTypeMarker>>>),
     Map(&'a HashMap<String, Value<Box<dyn ValueTypeMarker>>>),
+    ExecutableReference(&'a ExeRef),
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -59,6 +60,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::Error => "(error)".to_string(),
             TypeIdAndValue::Vec(v) => v.stringify(),
             TypeIdAndValue::Map(v) => v.stringify(),
+            TypeIdAndValue::ExecutableReference(v) => v.stringify(),
         }
     }
 
@@ -75,6 +77,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::Error => TypeId::Error,
             TypeIdAndValue::Vec(_) => TypeId::Vec,
             TypeIdAndValue::Map(_) => TypeId::Map,
+            TypeIdAndValue::ExecutableReference(_) => TypeId::ExecutableReference,
         }
     }
 }
@@ -91,6 +94,7 @@ pub(crate) enum TypeId {
     Error,
     Vec,
     Map,
+    ExecutableReference,
 }
 
 impl TypeId {
@@ -107,6 +111,7 @@ impl TypeId {
             TypeId::Error => "error",
             TypeId::Vec => "vec",
             TypeId::Map => "map",
+            TypeId::ExecutableReference => "exe ref",
         }
     }
 }

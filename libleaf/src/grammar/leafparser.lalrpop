@@ -10,12 +10,12 @@ grammar;
 
 pub Program = <Statement*>;
 Statement: AstStatement = {
-    <MethodCall> "\n"+ => AstStatement::MethodCall(<>),
-	<FuncCall> "\n"+ => AstStatement::FuncCall(<>),
-	<Assignment> "\n"+ => AstStatement::Assignment(<>),
-	<Declaration> "\n"+ => AstStatement::Declaration(<>),
-	<ConditionalStatement> "\n"+ => AstStatement::Conditional(<>),
-	<ControlStatement> "\n"+ => AstStatement::ControlStatement(<>),
+    <MethodCall> ";" => AstStatement::MethodCall(<>),
+	<FuncCall> ";" => AstStatement::FuncCall(<>),
+	<Assignment> ";" => AstStatement::Assignment(<>),
+	<Declaration> ";" => AstStatement::Declaration(<>),
+	<ConditionalStatement> ";" => AstStatement::Conditional(<>),
+	<ControlStatement> ";" => AstStatement::ControlStatement(<>),
 };
 
 FuncCall: AstFuncCall = {
@@ -23,22 +23,22 @@ FuncCall: AstFuncCall = {
 };
 
 FuncArgs:AstFuncCallArgs = {
-	"\n"* <pos_args:PositionalFuncArgs> "," "\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new(pos_args,named_args),
-	"\n"* <pos_args:PositionalFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_positional(pos_args),
-	"\n"* <named_args:NamedFuncArgs> ","? "\n"* => AstFuncCallArgs::new_only_named(named_args),
-	"\n"* => AstFuncCallArgs::empty(),
+	<pos_args:PositionalFuncArgs> "," <named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new(pos_args,named_args),
+	<pos_args:PositionalFuncArgs> ","? => AstFuncCallArgs::new_only_positional(pos_args),
+	<named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new_only_named(named_args),
+	() => AstFuncCallArgs::empty(),
 };
 
 #[inline]
 PositionalFuncArgs: Vec<AstPositionalArg> = {
-	<arg1:PositionalFuncArg> <rest:("," "\n"* <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
+	<arg1:PositionalFuncArg> <rest:("," <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
 };
 
 PositionalFuncArg = { Expr };
 
 #[inline]
 NamedFuncArgs: Vec<AstNamedExpr> = {
-	<arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
+	<arg1:NamedExpr> <rest:("," <NamedExpr>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
 };
 
 NamedExpr: AstNamedExpr = {
@@ -157,20 +157,20 @@ AtrOp: AstAtrOp = {
 };
 
 ArrayLit: Box<Expr> = {
-	<b:"{"> "\n"*  <arg1:Expr> <rest:("," "\n"* <Expr>)*> ","? "\n"* <e:"}"> => Box::new(Expr::Atom(Atom::ArrayLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
+	<b:"{"> <arg1:Expr> <rest:("," <Expr>)*> ","? <e:"}"> => Box::new(Expr::Atom(Atom::ArrayLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
 };
 
 MapLit: Box<Expr> = {
-	<b:"{"> "\n"* <arg1:NamedExpr> <rest:("," "\n"* <NamedExpr>)*>  ","? "\n"*  <e:"}"> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
+	<b:"{"> <arg1:NamedExpr> <rest:("," <NamedExpr>)*>  ","?  <e:"}"> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(b.get_begin(), e.get_end())))))
 };
 
 #[inline]
 ConditionalStatement: AstConditionalStatement = {
-	<initial: If> <others: ("\n"* <ElseIf>)*> <else_statement: ("\n"* <Else>)?> => AstConditionalStatement::new(initial, others, else_statement),
+	<initial: If> <others: ElseIf*> <else_statement: Else?> => AstConditionalStatement::new(initial, others, else_statement),
 };
 
 If: AstIf = {
-	<"if"> <Expr> "\n"? "{" "\n"* <Statement+> <"}"> => AstIf::new(<>),
+	<"if"> <Expr> "{" <Statement+> <"}"> => AstIf::new(<>),
 };
 
 ElseIf: AstElseIf = {
@@ -178,7 +178,7 @@ ElseIf: AstElseIf = {
 };
 
 Else: AstElse = {
-	<"else"> "\n"? "{" "\n"* <Statement+> <"}"> => AstElse::new(<>),
+	<"else"> "{" <Statement+> <"}"> => AstElse::new(<>),
 };
 
 
@@ -194,7 +194,6 @@ extern {
     type Error = lexer::LexicalError;
 
     enum lexer::Tok {
-        "\n" => lexer::Tok::Newline,
         "+=" => lexer::Tok::AddEq(<TokLoc>),
         "-=" => lexer::Tok::SubEq(<TokLoc>),
         "*=" => lexer::Tok::MulEq(<TokLoc>),
@@ -235,6 +234,7 @@ extern {
         "id" => lexer::Tok::Identifier(<String>, <TokLoc>),
         "str" => lexer::Tok::Str(<String>, <TokLoc>),
 
+        ";" => lexer::Tok::Semicolon(<TokLoc>),
         ":" => lexer::Tok::Colon(<TokLoc>),
         "," => lexer::Tok::Comma(<TokLoc>),
         "." => lexer::Tok::Dot(<TokLoc>),

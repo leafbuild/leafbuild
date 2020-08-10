@@ -44,7 +44,7 @@ fn get_executable_executor() -> CallExecutor {
                                     UnexpectedTypeInArray::new(
                                         sources_arg.get_rng(),
                                         tp.typename(),
-                                        "string",
+                                        TypeId::String.typename(),
                                         idx,
                                     )
                                     .with_docs_location(EXECUTABLE_FUNCTION_DOCS),
@@ -68,8 +68,8 @@ fn get_executable_executor() -> CallExecutor {
                     return Value::new(Box::new(ErrorValue::new()));
                 }
             };
-            println!("{}: {:?}", executable_name, sources);
-            Value::new(Box::new(()))
+            let exe = frame.new_executable(executable_name, sources);
+            Value::new(Box::new(exe.make_ref()))
         },
         vec!["bin".to_string(), "binary".to_string()],
     )

@@ -23,7 +23,7 @@ pub(crate) fn get_vec_call_pool() -> CallPool {
 }
 
 pub(crate) fn resolve_vec_property_access(
-    _v: &Value<Box<dyn ValueTypeMarker>>,
+    _v: Value<Box<dyn ValueTypeMarker>>,
     property_name: &str,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match property_name as &str {

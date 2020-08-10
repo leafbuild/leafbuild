@@ -40,6 +40,6 @@ impl From<FromUtf8Error> for GetCompilerError {
 }
 
 pub trait Compiler {
-    fn can_consume(&self, filename: &str) -> bool;
-    fn can_compile(&self, filename: &str) -> bool;
+    fn can_consume(filename: &str) -> bool;
+    fn can_compile(filename: &str) -> bool;
 }

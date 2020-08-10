@@ -4,7 +4,6 @@ extern crate libleaf;
 use clap::{App, Arg};
 use libleaf::interpreter::EnvConfig;
 use libleaf::{handle::Handle, interpreter};
-use std::fs;
 use std::path::Path;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");

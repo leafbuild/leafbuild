@@ -15,7 +15,7 @@ pub trait Rule: ToBuildSystemSyntax {
 }
 
 pub trait RuleArg: ToBuildSystemSyntax {
-    fn new(value: String) -> Self;
+    fn new(value: impl Into<String>) -> Self;
     fn get_value(&self) -> &String;
 }
 
@@ -31,7 +31,7 @@ where
     TargetRule: Rule + Sized,
 {
     fn new_from(
-        name: String,
+        name: impl Into<String>,
         rule: &'buildsys TargetRule::RefType,
         rule_args: Vec<TargetRule::ArgType>,
         rule_opts: Vec<TargetRule::OptType>,
@@ -48,10 +48,14 @@ where
     TargetType: Target<'buildsys, RuleType> + Sized,
 {
     fn new() -> Self;
-    fn new_rule(&mut self, unique_name: String, command: CommandType) -> RuleType::RefType;
+    fn new_rule(
+        &mut self,
+        unique_name: impl Into<String>,
+        command: CommandType,
+    ) -> RuleType::RefType;
     fn new_target(
         &mut self,
-        name: String,
+        name: impl Into<String>,
         rule: &'buildsys RuleType::RefType,
         args: Vec<RuleType::ArgType>,
         opts: Vec<RuleType::OptType>,

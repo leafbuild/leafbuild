@@ -1,5 +1,6 @@
 use super::Compiler;
 use crate::compilers::GetCompilerError;
+use std::path::PathBuf;
 use std::process::Command;
 
 pub enum CCFamily {
@@ -12,16 +13,25 @@ pub struct CC {
 }
 
 impl Compiler for CC {
-    fn can_consume(&self, filename: &str) -> bool {
-        self.can_compile(filename) || filename.ends_with(".h")
+    fn can_consume(filename: &str) -> bool {
+        Self::can_compile(filename) || filename.ends_with(".h")
     }
-    fn can_compile(&self, filename: &str) -> bool {
+    fn can_compile(filename: &str) -> bool {
         filename.ends_with(".c")
     }
 }
 
 pub fn get_cc() -> Result<CC, GetCompilerError> {
-    let compiler_location = std::env::var("CC")?;
+    let compiler_location = match std::env::var("CC") {
+        Ok(p) => Ok(PathBuf::from(p)),
+        Err(err) => {
+            if cfg!(target_os = "linux") {
+                Ok(PathBuf::from("/usr/bin/cc"))
+            } else {
+                Err(err)
+            }
+        }
+    }?;
 
     let output = Command::new(compiler_location).arg("--version").output()?;
 

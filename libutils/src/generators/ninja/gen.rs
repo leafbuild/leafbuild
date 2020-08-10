@@ -9,8 +9,10 @@ pub struct NinjaCommand {
 }
 
 impl NinjaCommand {
-    pub fn new(command: String) -> NinjaCommand {
-        NinjaCommand { command }
+    pub fn new(command: impl Into<String>) -> NinjaCommand {
+        NinjaCommand {
+            command: command.into(),
+        }
     }
 }
 
@@ -52,8 +54,10 @@ impl ToBuildSystemSyntax for NinjaRuleArg {
 }
 
 impl RuleArg for NinjaRuleArg {
-    fn new(value: String) -> NinjaRuleArg {
-        NinjaRuleArg { value }
+    fn new(value: impl Into<String>) -> NinjaRuleArg {
+        NinjaRuleArg {
+            value: value.into(),
+        }
     }
     fn get_value(&self) -> &String {
         &self.value
@@ -108,13 +112,13 @@ impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
 
 impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
     fn new_from(
-        name: String,
+        name: impl Into<String>,
         rule: &'buildsys NinjaRuleRef,
         rule_args: Vec<NinjaRuleArg>,
         rule_opts: Vec<NinjaRuleOpt>,
     ) -> Self {
         Self {
-            name,
+            name: name.into(),
             rule,
             rule_args,
             rule_opts,
@@ -153,9 +157,9 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
             targets: vec![],
         }
     }
-    fn new_rule(&mut self, unique_name: String, command: NinjaCommand) -> NinjaRuleRef {
+    fn new_rule(&mut self, unique_name: impl Into<String>, command: NinjaCommand) -> NinjaRuleRef {
         let rule = NinjaRule {
-            name: unique_name,
+            name: unique_name.into(),
             command,
         };
         self.rules.push(rule);
@@ -166,7 +170,7 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
 
     fn new_target(
         &mut self,
-        name: String,
+        name: impl Into<String>,
         rule: &'buildsys <NinjaRule as Rule>::RefType,
         args: Vec<<NinjaRule as Rule>::ArgType>,
         opts: Vec<<NinjaRule as Rule>::OptType>,

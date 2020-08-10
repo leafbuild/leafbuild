@@ -27,7 +27,7 @@ pub(crate) fn get_string_call_pool() -> CallPool {
 }
 
 pub(crate) fn resolve_str_property_access(
-    _string: &Value<Box<dyn ValueTypeMarker>>,
+    _string: Value<Box<dyn ValueTypeMarker>>,
     property_name: &str,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match property_name as &str {

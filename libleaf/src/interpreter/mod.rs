@@ -1,6 +1,11 @@
-use lalrpop_util::ParseError;
+use std::error::Error;
+use std::fs::File;
+use std::path::PathBuf;
 use std::{collections::HashMap, ops::Deref, path::Path};
 
+use lalrpop_util::ParseError;
+
+use crate::interpreter::types::{resolve_executable_property_access, Executable};
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
     handle::Handle,
@@ -12,6 +17,10 @@ use crate::{
         },
     },
 };
+use libutils::compilers::cc::CC;
+use libutils::compilers::cxx::CXX;
+use libutils::compilers::Compiler;
+use libutils::generators::{ninja::*, *};
 
 #[path = "diagnostics/diagnostics.rs"]
 pub(crate) mod diagnostics;
@@ -56,22 +65,80 @@ impl EnvConfig {
     }
 }
 
-pub(crate) struct Env {
+pub(crate) enum Language {
+    C,
+    CPP,
+}
+
+pub(crate) struct EnvImut {
     diagnostics_ctx: DiagnosticsCtx,
     call_pools: CallPoolsWrapper,
     config: EnvConfig,
 }
 
+pub(crate) struct LangToolchainRules<T>
+where
+    T: Rule,
+{
+    preprocess: T,
+    compile: T,
+    link: T,
+}
+
+pub(crate) struct EnvMut {
+    /// the current executable id we are at, universally unique
+    exec_id: usize,
+
+    /// the C compiler, if necessary
+    cc: Option<CC>,
+    /// the C++ compiler, if necessary
+    cxx: Option<CXX>,
+}
+
+pub(crate) struct Env {
+    imut: EnvImut,
+    mut_: EnvMut,
+}
+
 impl Env {
     pub(crate) fn new(cfg: EnvConfig) -> Self {
         Self {
-            diagnostics_ctx: DiagnosticsCtx::new(
-                cfg.angry_errors_enabled,
-                cfg.error_cascade_enabled,
-            ),
-            call_pools: CallPoolsWrapper::new(),
-            config: cfg,
+            imut: EnvImut {
+                diagnostics_ctx: DiagnosticsCtx::new(
+                    cfg.angry_errors_enabled,
+                    cfg.error_cascade_enabled,
+                ),
+                call_pools: CallPoolsWrapper::new(),
+                config: cfg,
+            },
+            mut_: EnvMut {
+                exec_id: 0,
+                cc: None,
+                cxx: None,
+            },
         }
+    }
+
+    pub(crate) fn write_results(&self) -> Result<(), Box<dyn Error>> {
+        let buf = PathBuf::from(self.imut.config.output_directory.clone());
+        let ninja_file = buf.join("build.ninja");
+        let f = File::create(ninja_file)?;
+
+        let mut gen = NinjaGen::new();
+        let cc_compile = gen.new_rule("cc_compile", NinjaCommand::new("cc $in -c -o $out"));
+        let cc_link = gen.new_rule("cc_link", NinjaCommand::new("cc $in -o $out"));
+
+        gen.new_target(
+            "exe.o",
+            &cc_compile,
+            vec![NinjaRuleArg::new("../src/main.c")],
+            vec![],
+        );
+        gen.new_target("exe", &cc_link, vec![NinjaRuleArg::new("exe.o")], vec![]);
+
+        gen.write_to(f)?;
+
+        Ok(())
     }
 }
 
@@ -91,9 +158,10 @@ pub(crate) enum EnvFrameType {
 }
 
 pub(crate) struct EnvFrame<'env> {
-    env_ref: &'env Env,
+    env_ref: &'env EnvImut,
+    env_mut_ref: &'env mut EnvMut,
     variables: HashMap<String, Variable<Box<dyn ValueTypeMarker>>>,
-    env_frame_returns: EnvFrameReturns,
+    env_frame_data: EnvFrameData,
     file_id: usize,
     fr_type: EnvFrameType,
 }
@@ -130,23 +198,50 @@ impl<'env> EnvFrame<'env> {
     pub(crate) fn get_file_id(&self) -> usize {
         self.file_id
     }
+
+    #[inline]
+    pub(crate) fn new_executable(&mut self, name: String, sources: Vec<String>) -> &Executable {
+        let id = self.env_mut_ref.exec_id;
+        self.env_frame_data
+            .exe_decls
+            .push(Executable::new(id, name, sources));
+        self.env_mut_ref.exec_id += 1;
+        self.env_frame_data.exe_decls.last().unwrap()
+    }
+}
+
+pub struct EnvFrameData {
+    /// the executables that need to be built and are private
+    exe_decls: Vec<Executable>,
+    /// the executables accessible from the outer build system
+    pub_exe_decls: Vec<Executable>,
 }
 
 pub(crate) struct EnvFrameReturns {
-    lib_decls: Vec<EnvLibDecl>,
-    exe_decls: Vec<EnvExeDecl>,
+    exe_decls: Vec<Executable>,
+    pub_exe_decls: Vec<Executable>,
+}
+
+impl EnvFrameData {
+    pub(crate) fn empty() -> Self {
+        Self {
+            exe_decls: vec![],
+            pub_exe_decls: vec![],
+        }
+    }
+}
+
+impl From<EnvFrameData> for EnvFrameReturns {
+    fn from(r: EnvFrameData) -> Self {
+        Self {
+            exe_decls: r.exe_decls,
+            pub_exe_decls: r.pub_exe_decls,
+        }
+    }
 }
 
 impl EnvFrameReturns {
-    pub(crate) fn empty() -> Self {
-        Self {
-            lib_decls: vec![],
-            exe_decls: vec![],
-        }
-    }
-    fn push_to(self, handle: &mut Handle) {
-        handle.push_env_frame_returns(self)
-    }
+    fn apply_changes_to_env(&self, env: &mut Env) {}
 }
 
 struct EnvLibDecl {
@@ -363,7 +458,7 @@ where
 }
 
 pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
-    env.diagnostics_ctx.new_file(file, src)
+    env.imut.diagnostics_ctx.new_file(file, src)
 }
 
 pub(crate) fn interpret<'env>(
@@ -374,8 +469,9 @@ pub(crate) fn interpret<'env>(
     let statements = program.get_statements();
     let mut frame = EnvFrame {
         variables: HashMap::new(),
-        env_frame_returns: EnvFrameReturns::empty(),
-        env_ref: env,
+        env_frame_data: EnvFrameData::empty(),
+        env_ref: &env.imut,
+        env_mut_ref: &mut env.mut_,
         file_id,
         fr_type: EnvFrameType::Unknown,
     };
@@ -384,7 +480,9 @@ pub(crate) fn interpret<'env>(
         run_in_env_frame(statement, &mut frame);
     });
 
-    frame.env_frame_returns
+    let efr = EnvFrameReturns::from(frame.env_frame_data);
+    efr.apply_changes_to_env(env);
+    efr
 }
 
 pub fn start_on(proj_path: &Path, handle: &mut Handle) {
@@ -400,7 +498,8 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
     );
     match result {
         Ok(program) => {
-            interpret(&mut handle.env, &program, file_id).push_to(handle);
+            interpret(&mut handle.env, &program, file_id);
+            handle.write_results();
         }
         Err(e) => {
             let syntax_error = match e {
@@ -428,7 +527,7 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
                     }
                 },
             };
-            push_diagnostic_ctx(syntax_error, &handle.env.diagnostics_ctx)
+            push_diagnostic_ctx(syntax_error, &handle.env.imut.diagnostics_ctx)
         }
     }
 }
@@ -442,6 +541,7 @@ pub(crate) struct CallPoolsWrapper {
     error_pool: CallPool,
     vec_pool: CallPool,
     map_pool: CallPool,
+    executable_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -456,6 +556,7 @@ impl CallPoolsWrapper {
             error_pool: types::get_error_call_pool(),
             vec_pool: types::get_vec_call_pool(),
             map_pool: types::get_map_call_pool(),
+            executable_pool: types::get_executable_call_pool(),
         }
     }
     #[inline]
@@ -499,6 +600,11 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_executable_pool(&self) -> &CallPool {
+        &self.executable_pool
+    }
+
+    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => &self.get_num_pool(),
@@ -508,6 +614,7 @@ impl CallPoolsWrapper {
             TypeId::Bool => &self.get_bool_pool(),
             TypeId::Vec => &self.get_vec_pool(),
             TypeId::Map => &self.get_map_pool(),
+            TypeId::ExecutableReference => self.get_executable_pool(),
         }
     }
 }
@@ -596,12 +703,13 @@ pub(crate) fn property_access(
         TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => {
             resolve_num_property_access(&base, property_name)
         }
-        TypeId::String => resolve_str_property_access(&base, property_name),
+        TypeId::String => resolve_str_property_access(base, property_name),
         TypeId::Void => Value::new(Box::new(())),
         TypeId::Error => Value::new(Box::new(types::ErrorValue::new())),
         TypeId::Bool => Value::new(Box::new(())),
-        TypeId::Vec => resolve_vec_property_access(&base, property_name),
-        TypeId::Map => resolve_map_property_access(&base, property_name),
+        TypeId::Vec => resolve_vec_property_access(base, property_name),
+        TypeId::Map => resolve_map_property_access(base, property_name),
+        TypeId::ExecutableReference => resolve_executable_property_access(base, property_name),
     }
 }
 
