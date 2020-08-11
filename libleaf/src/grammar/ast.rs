@@ -1,4 +1,5 @@
-use crate::interpreter::diagnostics::errors::VariableNotFoundError;
+use crate::interpreter::diagnostics::errors::{ExpectedTypeError, VariableNotFoundError};
+use crate::interpreter::diagnostics::push_diagnostic;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{
@@ -101,6 +102,15 @@ pub enum Expr {
         index: Box<Expr>,
         bracket_close: TokLoc,
     },
+    Ternary(
+        TokLoc,    // (
+        Box<Expr>, //   expr
+        TokLoc,    //        ?
+        Box<Expr>, //           expr
+        TokLoc,    //                 :
+        Box<Expr>, //                    expr
+        TokLoc,    //                          )
+    ),
 }
 
 impl Expr {
@@ -207,6 +217,29 @@ impl Expr {
                     }
                 },
             )),
+            Expr::Ternary(_, condition, _, value_true, _, value_false, _) => {
+                let cond = condition.eval_in_env(frame);
+                match cond.get_type_id_and_value_required(TypeId::Bool) {
+                    Ok(b) => {
+                        /*safe to unwrap here*/
+                        if b.get_bool().unwrap() {
+                            value_true.eval_in_env(frame)
+                        } else {
+                            value_false.eval_in_env(frame)
+                        }
+                    }
+                    Err(tp) => {
+                        push_diagnostic(
+                            ExpectedTypeError::new(
+                                TypeId::Bool.typename(),
+                                ExprLocAndType::new(condition.get_rng(), tp.typename()),
+                            ),
+                            frame,
+                        );
+                        Value::new(Box::new(ErrorValue::new()))
+                    }
+                }
+            }
         }
     }
 
@@ -245,6 +278,9 @@ impl Expr {
             Expr::Indexed { .. } => {
                 Err(TakeRefError::new(self.get_rng(), "an expression like this"))
             }
+            Expr::Ternary(_, _, _, _, _, _, _) => {
+                Err(TakeRefError::new(self.get_rng(), "an expression like this"))
+            }
         }
     }
 
@@ -265,6 +301,7 @@ impl AstLoc for Expr {
             Expr::ParenExpr(begin, _, _) => *begin,
             Expr::UnaryOp(op, _) => op.get_begin(),
             Expr::Indexed { base, .. } => base.get_begin(),
+            Expr::Ternary(b, _, _, _, _, _, _) => b.get_begin(),
         }
     }
 
@@ -282,6 +319,7 @@ impl AstLoc for Expr {
                 bracket_close: bracket_closed,
                 ..
             } => bracket_closed.get_end(),
+            Expr::Ternary(_, _, _, _, _, _, e) => e.get_end(),
         }
     }
 
@@ -300,6 +338,7 @@ impl AstLoc for Expr {
                 bracket_close: e,
                 ..
             } => b.get_begin()..e.get_end(),
+            Expr::Ternary(b, _, _, _, _, _, e) => b.get_begin()..e.get_end(),
         }
     }
 }
@@ -309,14 +348,7 @@ impl IndexedAstLoc for Expr {
         match self {
             Expr::Atom(Atom::ArrayLit((lit, _))) => lit[index].get_begin(),
             Expr::Atom(Atom::MapLit((lit, _))) => lit[index].get_begin(),
-            Expr::Atom(atm) => atm.get_begin(),
-            Expr::FuncCall(call) => call.get_begin(),
-            Expr::MethodCall(call) => call.get_begin(),
-            Expr::Op(expr, _, _) => expr.get_begin(),
-            Expr::PropertyAccess(prop_access) => prop_access.get_begin(),
-            Expr::ParenExpr(begin, _, _) => *begin,
-            Expr::UnaryOp(op, _) => op.get_begin(),
-            Expr::Indexed { base, .. } => base.get_begin(),
+            _ => self.get_begin(),
         }
     }
 
@@ -324,17 +356,7 @@ impl IndexedAstLoc for Expr {
         match self {
             Expr::Atom(Atom::ArrayLit((lit, _))) => lit[index].get_end(),
             Expr::Atom(Atom::MapLit((lit, _))) => lit[index].get_end(),
-            Expr::Atom(atm) => atm.get_end(),
-            Expr::FuncCall(call) => call.get_end(),
-            Expr::MethodCall(call) => call.get_end(),
-            Expr::Op(expr, _, _) => expr.get_end(),
-            Expr::PropertyAccess(prop_access) => prop_access.get_end(),
-            Expr::ParenExpr(_, _, end) => *end,
-            Expr::UnaryOp(_, expr) => expr.get_end(),
-            Expr::Indexed {
-                bracket_close: bracket_closed,
-                ..
-            } => bracket_closed.get_end(),
+            _ => self.get_end(),
         }
     }
 }

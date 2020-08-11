@@ -23,7 +23,7 @@ The current state of the implementation, along with future plans.
 - [x] Method calls
 - [x] Functions and methods alias system
 - [x] If expressions
-- [ ] Ternary expressions
+- [x] Ternary expressions
 - [x] Loops
 
 </div></td>

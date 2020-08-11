@@ -80,6 +80,8 @@ pub enum Tok {
     Colon(TokLoc),
     /// ,
     Comma(TokLoc),
+    /// ?
+    QMark(TokLoc),
     /// ;
     Semicolon(TokLoc),
     /// .
@@ -518,6 +520,7 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((i, ':')) => return single_char_token!(Colon, i),
                 Some((i, ',')) => return single_char_token!(Comma, i),
                 Some((i, ';')) => return single_char_token!(Semicolon, i),
+                Some((i, '?')) => return single_char_token!(QMark, i),
                 Some((i, '.')) => return single_char_token!(Dot, i),
                 Some((i, '(')) => return single_char_token!(POPEN, i),
                 Some((i, ')')) => return single_char_token!(PCLOSE, i),

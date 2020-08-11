@@ -125,7 +125,11 @@ Term: Box<Expr> = {
     <FuncCall> => Box::new(Expr::FuncCall(<>)),
     <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
     <base:Term> <br_open:"["> <ind:Expr> <br_close:"]"> => Box::new(Expr::Indexed{base, bracket_open: br_open, index: ind, bracket_close: br_close}),
-    ArrayLit, MapLit,
+    ArrayLit, MapLit, Ternary,
+};
+
+Ternary: Box<Expr> = {
+    "(" Expr "?" Expr ":" Expr ")" => Box::new(Expr::Ternary(<>)),
 };
 
 UnaryNeg: UnaryOpcode = {
@@ -245,6 +249,7 @@ extern {
 
         ";" => lexer::Tok::Semicolon(<TokLoc>),
         ":" => lexer::Tok::Colon(<TokLoc>),
+        "?" => lexer::Tok::QMark(<TokLoc>),
         "," => lexer::Tok::Comma(<TokLoc>),
         "." => lexer::Tok::Dot(<TokLoc>),
     }
