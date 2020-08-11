@@ -2,7 +2,7 @@
 Language: Leaf build definition files
 Description: Leaf Build is an open-source system for build automation.
 Author: Dinu Blanovschi <dinu.blanovschi@criptext.com>
-Website: https://leafbuild.github.com/leafbuild/
+Website: https://gitlab.com/leafbuild/leafbuild
 */
 
 /** @type LanguageFn */
@@ -39,7 +39,7 @@ export default function(hljs) {
     className: 'keyword',
     beginKeywords:
         // syntax
-        'let in and or not' +
+        'let in and or not ' +
         // control keywords
         'continue break if else foreach ' +
         // types

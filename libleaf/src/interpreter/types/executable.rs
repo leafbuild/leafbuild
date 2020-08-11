@@ -56,9 +56,22 @@ pub(crate) fn get_executable_call_pool() -> CallPool {
 
 pub(crate) fn resolve_executable_property_access(
     base: Value<Box<dyn ValueTypeMarker>>,
-    property_name: &str,
+    base_location: Location,
+    name: &str,
+    name_location: TokLoc,
+    frame: &EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    match property_name {
-        _ => panic!("Unknown property on executable: {}", property_name),
+    match name {
+        _ => {
+            push_diagnostic(
+                UnknownPropertyError::new(
+                    ExprLocAndType::new(base_location, TypeId::ExecutableReference.typename()),
+                    name,
+                    name_location.as_rng(),
+                ),
+                frame,
+            );
+            Value::new(Box::new(ErrorValue::new()))
+        }
     }
 }

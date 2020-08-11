@@ -801,20 +801,56 @@ pub(crate) fn property_access(
     property: &AstPropertyAccess,
     frame: &mut EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    let base = property.get_base().eval_in_env(frame);
+    let base_expr = property.get_base();
+    let base_location = base_expr.get_rng();
+    let base = base_expr.eval_in_env(frame);
     let property_name = property.get_property_name();
     match base.get_value().get_type_id() {
-        TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => {
-            resolve_num_property_access(&base, property_name)
-        }
-        TypeId::String => resolve_str_property_access(base, property_name),
+        TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => resolve_num_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::String => resolve_str_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
         TypeId::Void => Value::new(Box::new(())),
         TypeId::Error => Value::new(Box::new(types::ErrorValue::new())),
         TypeId::Bool => Value::new(Box::new(())),
-        TypeId::Vec => resolve_vec_property_access(base, property_name),
-        TypeId::Map => resolve_map_property_access(base, property_name),
-        TypeId::ExecutableReference => resolve_executable_property_access(base, property_name),
-        TypeId::MapPair => resolve_map_pair_property_access(base, property_name),
+        TypeId::Vec => resolve_vec_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::Map => resolve_map_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::ExecutableReference => resolve_executable_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::MapPair => resolve_map_pair_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
     }
 }
 

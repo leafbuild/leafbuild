@@ -23,10 +23,23 @@ pub(crate) fn get_vec_call_pool() -> CallPool {
 }
 
 pub(crate) fn resolve_vec_property_access(
-    _v: Value<Box<dyn ValueTypeMarker>>,
-    property_name: &str,
+    base: Value<Box<dyn ValueTypeMarker>>,
+    base_location: Location,
+    name: &str,
+    name_location: TokLoc,
+    frame: &EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    match property_name as &str {
-        _ => panic!("Unknown property on vec: {}", property_name),
+    match name as &str {
+        _ => {
+            push_diagnostic(
+                UnknownPropertyError::new(
+                    ExprLocAndType::new(base_location, TypeId::Vec.typename()),
+                    name,
+                    name_location.as_rng(),
+                ),
+                frame,
+            );
+            Value::new(Box::new(ErrorValue::new()))
+        }
     }
 }

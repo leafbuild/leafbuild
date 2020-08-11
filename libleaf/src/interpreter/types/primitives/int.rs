@@ -79,16 +79,23 @@ pub(crate) fn get_num_call_pool() -> CallPool {
 }
 
 pub(crate) fn resolve_num_property_access(
-    num: &Value<Box<dyn ValueTypeMarker>>,
-    property_name: &str,
+    base: Value<Box<dyn ValueTypeMarker>>,
+    base_location: Location,
+    name: &str,
+    name_location: TokLoc,
+    frame: &EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    match property_name as &str {
-        "as_str" => match num.get_value().get_type_id() {
-            TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => {
-                Value::new(Box::new(num.get_value().stringify()))
-            }
-            _ => panic!("Not an int"),
-        },
-        _ => panic!("Unknown property on number: {}", property_name),
+    match name {
+        _ => {
+            push_diagnostic(
+                UnknownPropertyError::new(
+                    ExprLocAndType::new(base_location, base.get_type_id().typename()),
+                    name,
+                    name_location.as_rng(),
+                ),
+                frame,
+            );
+            Value::new(Box::new(ErrorValue::new()))
+        }
     }
 }

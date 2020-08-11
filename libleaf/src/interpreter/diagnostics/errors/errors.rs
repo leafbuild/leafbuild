@@ -30,6 +30,7 @@ error_codes!(
     SYNTAX_ERROR,
     TAKE_REF_ERROR,
     UNEXPECTED_TYPE_IN_ARRAY_ERROR,
+    UNKNOWN_PROPERTY_ERROR,
     VARIABLE_NOT_FOUND_ERROR,
 );
 
@@ -58,4 +59,5 @@ include!("ops_type_error.rs");
 include!("syntax_error.rs");
 include!("take_ref_error.rs");
 include!("unexpected_type_in_array.rs");
+include!("unknown_property.rs");
 include!("variable_not_found.rs");

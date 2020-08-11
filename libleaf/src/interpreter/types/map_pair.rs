@@ -40,7 +40,10 @@ pub(crate) fn get_map_pair_call_pool() -> CallPool {
 
 pub(crate) fn resolve_map_pair_property_access(
     base: Value<Box<dyn ValueTypeMarker>>,
+    base_location: Location,
     name: &str,
+    name_location: TokLoc,
+    frame: &EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
     match name {
         "key" => base
@@ -57,6 +60,16 @@ pub(crate) fn resolve_map_pair_property_access(
             .unwrap()
             .value
             .clone_to_value(),
-        other => panic!("Unknown property {} on map pair", other),
+        _ => {
+            push_diagnostic(
+                UnknownPropertyError::new(
+                    ExprLocAndType::new(base_location, TypeId::MapPair.typename()),
+                    name,
+                    name_location.as_rng(),
+                ),
+                frame,
+            );
+            Value::new(Box::new(ErrorValue::new()))
+        }
     }
 }

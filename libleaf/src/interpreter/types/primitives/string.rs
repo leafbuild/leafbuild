@@ -27,10 +27,23 @@ pub(crate) fn get_string_call_pool() -> CallPool {
 }
 
 pub(crate) fn resolve_str_property_access(
-    _string: Value<Box<dyn ValueTypeMarker>>,
-    property_name: &str,
+    base: Value<Box<dyn ValueTypeMarker>>,
+    base_location: Location,
+    name: &str,
+    name_location: TokLoc,
+    frame: &EnvFrame,
 ) -> Value<Box<dyn ValueTypeMarker>> {
-    match property_name as &str {
-        _ => panic!("Unknown property on string: {}", property_name),
+    match name {
+        _ => {
+            push_diagnostic(
+                UnknownPropertyError::new(
+                    ExprLocAndType::new(base_location, TypeId::String.typename()),
+                    name,
+                    name_location.as_rng(),
+                ),
+                frame,
+            );
+            Value::new(Box::new(ErrorValue::new()))
+        }
     }
 }
