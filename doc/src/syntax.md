@@ -102,20 +102,20 @@ Example:
 }
 ```
 
-### The ternary conditional operator `?:`
-You can also use C/C++'s ternary conditional operator, with only a small constraint:
-It always has to be enclosed in parentheses. Examples:
-```leafbuild
-(true ? 1 : 0) // valid
-true ? 1 : 0 // invalid
-```
-
 #### Getting a value out of a map
 Same as with vectors, but pass a string with the key instead of the index.
 ```leafbuild
 {a: 1, b: 2+3, c: '1'}['a'] = 1
 {a: 1, b: 2+3, c: '1'}['b'] = 5
 {a: 1, b: 2+3, c: '1'}['c'] = '1'
+```
+
+### The ternary conditional operator `?:`
+You can also use C/C++'s ternary conditional operator, with only a small constraint:
+It always has to be enclosed in parentheses. Examples:
+```leafbuild
+(true ? 1 : 0) // valid
+true ? 1 : 0 // invalid
 ```
 
 ## Variables
