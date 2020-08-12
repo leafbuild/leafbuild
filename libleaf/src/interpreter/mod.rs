@@ -19,6 +19,7 @@ use crate::{
         },
     },
 };
+use itertools::Itertools;
 use libutils::compilers::Compiler;
 use libutils::{
     compilers::{
@@ -259,7 +260,16 @@ impl Env {
                         format!("{}.o", src),
                         rl,
                         vec![NinjaRuleArg::new(format!("../{}", src))],
-                        vec![NinjaVariable::new("mod_id", "1")],
+                        vec![
+                            NinjaVariable::new("mod_id", "1"),
+                            NinjaVariable::new(
+                                "include_dirs",
+                                exe.get_include_dirs()
+                                    .iter()
+                                    .map(|inc_dir| format!("-I../{}", inc_dir))
+                                    .join(" "),
+                            ),
+                        ],
                     );
                     Some(NinjaRuleArg::new(format!("{}.o", src)))
                 })
@@ -346,11 +356,16 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
-    pub(crate) fn new_executable(&mut self, name: String, sources: Vec<String>) -> &Executable {
+    pub(crate) fn new_executable(
+        &mut self,
+        name: String,
+        sources: Vec<String>,
+        include_dirs: Vec<String>,
+    ) -> &Executable {
         let id = self.env_mut_ref.exec_id;
         self.env_frame_data
             .exe_decls
-            .push(Executable::new(id, name, sources));
+            .push(Executable::new(id, name, sources, include_dirs));
         self.env_mut_ref.exec_id += 1;
         self.env_frame_data.exe_decls.last().unwrap()
     }

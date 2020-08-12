@@ -5,6 +5,7 @@
 executable (
         executable_name,
         files,
+        [include_dirs: include_dirs],
 )
 ```
 
@@ -29,6 +30,13 @@ Should not contain `/`s.
 
 #### Description
 The list of source files to build the executable with.
+
+## Kw parameters
+### include_dirs
+> **Type**: `string` or array of `string`s.
+
+#### Description
+The list of include directories all objects that make this executable should use during compilation.
 
 ## Aliases
 `bin()`, `binary()`

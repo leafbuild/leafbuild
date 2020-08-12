@@ -59,7 +59,7 @@ fn get_executable_executor() -> CallExecutor {
                 tp => {
                     diagnostics::push_diagnostic(
                         ExpectedTypeError::new(
-                            TypeId::String.typename(),
+                            TypeId::Vec.typename(),
                             ExprLocAndType::new(sources_arg.get_rng(), tp.degrade().typename()),
                         )
                         .with_docs_location(EXECUTABLE_FUNCTION_DOCS),
@@ -68,7 +68,50 @@ fn get_executable_executor() -> CallExecutor {
                     return Value::new(Box::new(ErrorValue::new()));
                 }
             };
-            let exe = frame.new_executable(executable_name, sources);
+            let include_dirs = match args
+                .get_named_args()
+                .iter()
+                .find(|arg| arg.get_name() == "include_dirs")
+            {
+                Some(v) => match v.get_value().eval_in_env(frame).get_type_id_and_value() {
+                    TypeIdAndValue::Vec(vec) => vec
+                        .iter()
+                        .enumerate()
+                        .filter_map(|(idx, val)| {
+                            match val.get_type_id_and_value_required(TypeId::String) {
+                                Ok(s) => Some(s.get_string().unwrap().clone()),
+                                Err(tp) => {
+                                    diagnostics::push_diagnostic(
+                                        UnexpectedTypeInArray::new(
+                                            v.get_rng(),
+                                            tp.typename(),
+                                            TypeId::String.typename(),
+                                            idx,
+                                        )
+                                        .with_docs_location(EXECUTABLE_FUNCTION_DOCS),
+                                        frame,
+                                    );
+                                    None
+                                }
+                            }
+                        })
+                        .collect_vec(),
+                    TypeIdAndValue::String(s) => vec![s.clone()],
+                    tp => {
+                        diagnostics::push_diagnostic(
+                            ExpectedTypeError::new(
+                                TypeId::String.typename(),
+                                ExprLocAndType::new(v.get_rng(), tp.degrade().typename()),
+                            )
+                            .with_docs_location(EXECUTABLE_FUNCTION_DOCS),
+                            frame,
+                        );
+                        return Value::new(Box::new(ErrorValue::new()));
+                    }
+                },
+                None => vec![],
+            };
+            let exe = frame.new_executable(executable_name, sources, include_dirs);
             Value::new(Box::new(exe.make_ref()))
         },
         vec!["bin".to_string(), "binary".to_string()],

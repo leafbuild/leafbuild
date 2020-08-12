@@ -3,11 +3,22 @@ pub(crate) struct Executable {
     name: String,
     id: usize,
     sources: Vec<String>,
+    include_dirs: Vec<String>,
 }
 
 impl Executable {
-    pub(crate) fn new(id: usize, name: String, sources: Vec<String>) -> Self {
-        Self { id, name, sources }
+    pub(crate) fn new(
+        id: usize,
+        name: String,
+        sources: Vec<String>,
+        include_dirs: Vec<String>,
+    ) -> Self {
+        Self {
+            id,
+            name,
+            sources,
+            include_dirs,
+        }
     }
 
     pub(crate) fn make_ref(&self) -> ExeRef {
@@ -19,6 +30,9 @@ impl Executable {
     }
     pub(crate) fn get_sources(&self) -> &Vec<String> {
         &self.sources
+    }
+    pub(crate) fn get_include_dirs(&self) -> &Vec<String> {
+        &self.include_dirs
     }
 }
 

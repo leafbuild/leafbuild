@@ -22,6 +22,7 @@ clap = "3.0.0-beta.1"
 [workspace]
 members = [
 	"libutils",
+	"libleafcore",
 	"libleaf",
 	"meson",
 ]

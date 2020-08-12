@@ -97,7 +97,7 @@ fn main() {
                             .required(true)
                     )
                 )
-        ).subcommand(App::new("build").setting(AppSettings::ColoredHelp).arg(
+        ).subcommand(App::new("build").about("Creates a build directory").setting(AppSettings::ColoredHelp).arg(
             Arg::with_name(DIRECTORY).short('d').long("dir").takes_value(true).about("The directory containing a leafbuild project to start from"),
             ).arg(
                 Arg::with_name(ROOT).short('r').long("root").takes_value(true).about(
