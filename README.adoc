@@ -1,6 +1,7 @@
 = The Leaf Build system
 
-image::https://gitlab.com/leafbuild/leafbuild/badges/master/pipeline.svg[]
+image:https://gitlab.com/leafbuild/leafbuild/badges/master/pipeline.svg[]
+image:https://tokei.rs/b1/gitlab/leafbuild/leafbuild?category=code[]
 
 An early-in-development meta build system for C/C++ projects written in Rust;
 focused on usability. See https://leafbuild.gitlab.io/docs[the documentation]

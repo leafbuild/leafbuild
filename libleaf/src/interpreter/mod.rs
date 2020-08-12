@@ -39,6 +39,7 @@ pub struct EnvConfig {
     angry_errors_enabled: bool,
 
     error_cascade_enabled: bool,
+    signal_build_failure: bool,
 
     output_directory: String,
 }
@@ -48,6 +49,7 @@ impl EnvConfig {
         Self {
             angry_errors_enabled: false,
             error_cascade_enabled: true,
+            signal_build_failure: false,
             output_directory: "".to_string(),
         }
     }
@@ -67,6 +69,12 @@ impl EnvConfig {
     #[inline]
     pub fn set_output_directory(&mut self, output_directory: impl Into<String>) -> &mut EnvConfig {
         self.output_directory = output_directory.into();
+        self
+    }
+
+    #[inline]
+    pub fn set_signal_build_failure(&mut self, signal_build_failure: bool) -> &mut EnvConfig {
+        self.signal_build_failure = signal_build_failure;
         self
     }
 }
@@ -133,6 +141,7 @@ impl Env {
                 diagnostics_ctx: DiagnosticsCtx::new(
                     cfg.angry_errors_enabled,
                     cfg.error_cascade_enabled,
+                    cfg.signal_build_failure,
                 ),
                 call_pools: CallPoolsWrapper::new(),
                 config: cfg,
@@ -156,19 +165,67 @@ impl Env {
 
         let mut gen = NinjaGen::new();
 
+        gen.new_global_value(
+            "lfb_bin",
+            std::env::current_exe()
+                .expect("Cannot get current exe")
+                .to_string_lossy(),
+        );
+
+        let signal_build_failure = self.imut.diagnostics_ctx.get_signal_build_failure();
+
+        let internal_compilation_failed_call = " || $lfb_bin internal compilation-failed --exit-code $$? --in-out \"$in => $out\" --module-id $mod_id";
+        let internal_linking_failed_call = " || $lfb_bin internal linking-failed --exit-code $$? --in-out \"$in => $out\" --module-id $mod_id";
+
         let cc_compile = gen.new_rule(
             "cc_compile",
-            NinjaCommand::new("$CC $in -c -o $out"),
+            NinjaCommand::new(format!(
+                "$CC $include_dirs $in -c -o $out $CC_FLAGS{}",
+                if signal_build_failure {
+                    internal_compilation_failed_call
+                } else {
+                    ""
+                }
+            )),
             vec![],
         );
-        let cc_link = gen.new_rule("cc_link", NinjaCommand::new("$CC $in -o $out"), vec![]);
+        let cc_link = gen.new_rule(
+            "cc_link",
+            NinjaCommand::new(format!(
+                "$CC $in -o $out $CCLD_FLAGS{}",
+                if signal_build_failure {
+                    internal_linking_failed_call
+                } else {
+                    ""
+                }
+            )),
+            vec![],
+        );
 
         let cxx_compile = gen.new_rule(
             "cxx_compile",
-            NinjaCommand::new("$CXX $in -c -o $out"),
+            NinjaCommand::new(format!(
+                "$CXX $include_dirs $in -c -o $out $CXX_FLAGS{}",
+                if signal_build_failure {
+                    internal_compilation_failed_call
+                } else {
+                    ""
+                }
+            )),
             vec![],
         );
-        let cxx_link = gen.new_rule("cxx_link", NinjaCommand::new("$CXX $in -o $out"), vec![]);
+        let cxx_link = gen.new_rule(
+            "cxx_link",
+            NinjaCommand::new(format!(
+                "$CXX $in -o $out $CXXLD_FLAGS{}",
+                if signal_build_failure {
+                    internal_linking_failed_call
+                } else {
+                    ""
+                }
+            )),
+            vec![],
+        );
 
         let mut need_cc = false;
         let mut need_cxx = false;
@@ -202,7 +259,7 @@ impl Env {
                         format!("{}.o", src),
                         rl,
                         vec![NinjaRuleArg::new(format!("../{}", src))],
-                        vec![],
+                        vec![NinjaVariable::new("mod_id", "1")],
                     );
                     Some(NinjaRuleArg::new(format!("{}.o", src)))
                 })
@@ -211,7 +268,7 @@ impl Env {
                 exe.get_name(),
                 if need_cxx_linker { &cxx_link } else { &cc_link },
                 exe_args,
-                vec![],
+                vec![NinjaVariable::new("mod_id", "1")],
             );
         });
 

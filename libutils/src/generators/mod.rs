@@ -20,6 +20,7 @@ pub trait RuleArg: ToBuildSystemSyntax {
 }
 
 pub trait RuleOpt: ToBuildSystemSyntax {
+    fn new(name: impl Into<String>, value: impl Into<String>) -> Self;
     fn get_arg_name(&self) -> &String;
     fn get_arg_value(&self) -> &String;
 }

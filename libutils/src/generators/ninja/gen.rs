@@ -89,6 +89,13 @@ impl ToBuildSystemSyntax for NinjaVariable {
 }
 
 impl RuleOpt for NinjaVariable {
+    fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
+        Self {
+            name: name.into(),
+            value: value.into(),
+        }
+    }
+
     fn get_arg_name(&self) -> &String {
         &self.name
     }
@@ -246,7 +253,7 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
 impl<'buildsys> ToBuildSystemSyntax for NinjaGen<'buildsys> {
     fn for_build_system(&self) -> String {
         format!(
-            "{}\n\n{}\n\n\n\n\n{}",
+            "{}\n\n{}\n\n\n\n\n{}\n",
             self.global_values
                 .iter()
                 .map(|v| v.for_build_system())

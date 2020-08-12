@@ -155,6 +155,7 @@ pub(crate) struct DiagnosticsCtx {
     files: SimpleFiles<String, String>,
     angry_errors: bool,
     error_cascade: bool,
+    signal_build_failure: bool,
 
     current_file: usize,
 }
@@ -162,11 +163,12 @@ pub(crate) struct DiagnosticsCtx {
 pub(crate) type Location = LeafLabelLocation;
 
 impl DiagnosticsCtx {
-    pub(crate) fn new(angry_errors: bool, error_cascade: bool) -> Self {
+    pub(crate) fn new(angry_errors: bool, error_cascade: bool, signal_build_failure: bool) -> Self {
         Self {
             files: SimpleFiles::new(),
             angry_errors,
             error_cascade,
+            signal_build_failure,
             current_file: 0,
         }
     }
@@ -186,6 +188,11 @@ impl DiagnosticsCtx {
     }
     pub(crate) fn set_current_file(&mut self, current_file: usize) {
         self.current_file = current_file;
+    }
+
+    #[inline]
+    pub(crate) fn get_signal_build_failure(&self) -> bool {
+        self.signal_build_failure
     }
 }
 
