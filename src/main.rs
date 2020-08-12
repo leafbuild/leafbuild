@@ -22,7 +22,8 @@ macro_rules! arg_names {
 arg_names! {
     // internals
     EXIT_CODE = "Exit code",
-    IN_OUT = "In out",
+    IN = "In",
+    OUT = "Out",
     MOD_ID = "Module id",
 
 
@@ -63,9 +64,15 @@ fn main() {
                                 .long("exit-code")
                                 .required(true)
                         ).arg(
-                        Arg::with_name(IN_OUT)
-                            .about("Compilation inputs and outputs")
-                            .long("in-out")
+                        Arg::with_name(IN)
+                            .about("Compilation inputs")
+                            .long("in")
+                            .takes_value(true)
+                            .required(true)
+                    ).arg(
+                        Arg::with_name(OUT)
+                            .about("Compilation outputs")
+                            .long("out")
                             .takes_value(true)
                             .required(true)
                     ).arg(
@@ -85,9 +92,15 @@ fn main() {
                                 .long("exit-code")
                                 .required(true)
                         ).arg(
-                        Arg::with_name(IN_OUT)
-                            .about("Compilation inputs and outputs")
-                            .long("in-out")
+                        Arg::with_name(IN)
+                            .about("Link inputs")
+                            .long("in")
+                            .takes_value(true)
+                            .required(true)
+                    ).arg(
+                        Arg::with_name(OUT)
+                            .about("Link outputs")
+                            .long("out")
                             .takes_value(true)
                             .required(true)
                     ).arg(
@@ -165,22 +178,24 @@ fn main() {
                 "compilation-failed" => {
                     let m = m.unwrap();
                     let exit_code = m.value_of(EXIT_CODE).unwrap();
-                    let in_out = m.value_of(IN_OUT).unwrap();
+                    let in_ = m.value_of(IN).unwrap();
+                    let out = m.value_of(OUT).unwrap();
                     let mod_id = m.value_of(MOD_ID).unwrap();
                     println!(
-                        "exit code = {}, in_out = '{}', mod_id = {}",
-                        exit_code, in_out, mod_id
+                        "exit code = {}, in = '{}', out = '{}', mod_id = {}",
+                        exit_code, in_, out, mod_id
                     );
                     exit(exit_code.parse().unwrap());
                 }
                 "link-failed" => {
                     let m = m.unwrap();
                     let exit_code = m.value_of(EXIT_CODE).unwrap();
-                    let in_out = m.value_of(IN_OUT).unwrap();
+                    let in_ = m.value_of(IN).unwrap();
+                    let out = m.value_of(OUT).unwrap();
                     let mod_id = m.value_of(MOD_ID).unwrap();
                     println!(
-                        "exit code = {}, in_out = '{}', mod_id = {}",
-                        exit_code, in_out, mod_id
+                        "exit code = {}, in = '{}', out = '{}', mod_id = {}",
+                        exit_code, in_, out, mod_id
                     );
                     exit(exit_code.parse().unwrap());
                 }

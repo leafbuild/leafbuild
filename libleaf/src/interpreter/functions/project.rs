@@ -32,7 +32,10 @@ fn get_project_executor() -> CallExecutor {
                     return Value::new(Box::new(ErrorValue::new()));
                 }
             };
-            frame.fr_type = EnvFrameType::Project(ProjectData { name: proj_name });
+            frame.fr_type = EnvFrameType::Project(ProjectData {
+                name: proj_name,
+                mod_id: frame.next_mod_id(),
+            });
             Value::new(Box::new(()))
         },
         vec![],

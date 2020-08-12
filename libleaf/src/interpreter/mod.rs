@@ -104,6 +104,9 @@ pub(crate) struct EnvMut {
     /// the current executable id we are at, universally unique
     exec_id: usize,
 
+    /// the current module id we are at, universally unique
+    mod_id: usize,
+
     /// the C compiler, if necessary
     cc: Option<CC>,
     /// the C++ compiler, if necessary
@@ -149,6 +152,7 @@ impl Env {
             },
             mut_: EnvMut {
                 exec_id: 0,
+                mod_id: 1,
                 cc: None,
                 cxx: None,
                 executables: vec![],
@@ -175,8 +179,8 @@ impl Env {
 
         let signal_build_failure = self.imut.diagnostics_ctx.get_signal_build_failure();
 
-        let internal_compilation_failed_call = " || $lfb_bin internal compilation-failed --exit-code $$? --in-out \"$in => $out\" --module-id $mod_id";
-        let internal_linking_failed_call = " || $lfb_bin internal linking-failed --exit-code $$? --in-out \"$in => $out\" --module-id $mod_id";
+        let internal_compilation_failed_call = " || $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
+        let internal_linking_failed_call = " || $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
 
         let cc_compile = gen.new_rule(
             "cc_compile",
@@ -261,7 +265,7 @@ impl Env {
                         rl,
                         vec![NinjaRuleArg::new(format!("../{}", src))],
                         vec![
-                            NinjaVariable::new("mod_id", "1"),
+                            NinjaVariable::new("mod_id", exe.get_mod_id().to_string()),
                             NinjaVariable::new(
                                 "include_dirs",
                                 exe.get_include_dirs()
@@ -278,7 +282,7 @@ impl Env {
                 exe.get_name(),
                 if need_cxx_linker { &cxx_link } else { &cc_link },
                 exe_args,
-                vec![NinjaVariable::new("mod_id", "1")],
+                vec![NinjaVariable::new("mod_id", exe.get_mod_id().to_string())],
             );
         });
 
@@ -300,10 +304,12 @@ impl Env {
 
 pub(crate) struct ProjectData {
     name: String,
+    mod_id: usize,
 }
 
 pub(crate) struct ModuleData {
     name: String,
+    mod_id: usize,
 }
 
 pub(crate) enum EnvFrameType {
@@ -356,6 +362,16 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
+    pub(crate) fn get_mod_id(&self) -> usize {
+        match self.fr_type {
+            EnvFrameType::Workspace => 0,
+            EnvFrameType::Project(ProjectData { mod_id, .. })
+            | EnvFrameType::Module(ModuleData { mod_id, .. }) => mod_id,
+            EnvFrameType::Unknown => 0,
+        }
+    }
+
+    #[inline]
     pub(crate) fn new_executable(
         &mut self,
         name: String,
@@ -363,11 +379,22 @@ impl<'env> EnvFrame<'env> {
         include_dirs: Vec<String>,
     ) -> &Executable {
         let id = self.env_mut_ref.exec_id;
-        self.env_frame_data
-            .exe_decls
-            .push(Executable::new(id, name, sources, include_dirs));
+        self.env_frame_data.exe_decls.push(Executable::new(
+            id,
+            self.get_mod_id(),
+            name,
+            sources,
+            include_dirs,
+        ));
         self.env_mut_ref.exec_id += 1;
         self.env_frame_data.exe_decls.last().unwrap()
+    }
+
+    #[inline]
+    pub(crate) fn next_mod_id(&mut self) -> usize {
+        let id = self.env_mut_ref.mod_id;
+        self.env_mut_ref.mod_id = self.env_mut_ref.mod_id + 1;
+        id
     }
 }
 

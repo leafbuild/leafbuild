@@ -1,6 +1,7 @@
 #[derive(Clone)]
 pub(crate) struct Executable {
     name: String,
+    mod_id: usize,
     id: usize,
     sources: Vec<String>,
     include_dirs: Vec<String>,
@@ -9,12 +10,14 @@ pub(crate) struct Executable {
 impl Executable {
     pub(crate) fn new(
         id: usize,
+        mod_id: usize,
         name: String,
         sources: Vec<String>,
         include_dirs: Vec<String>,
     ) -> Self {
         Self {
             id,
+            mod_id,
             name,
             sources,
             include_dirs,
@@ -25,6 +28,9 @@ impl Executable {
         ExeRef::new(self.id)
     }
 
+    pub(crate) fn get_mod_id(&self) -> usize {
+        self.mod_id
+    }
     pub(crate) fn get_name(&self) -> &String {
         &self.name
     }
