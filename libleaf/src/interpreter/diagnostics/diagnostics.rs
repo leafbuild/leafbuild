@@ -1,5 +1,7 @@
 #[path = "errors/errors.rs"]
 pub(crate) mod errors;
+#[path = "warnings/warnings.rs"]
+pub(crate) mod warnings;
 
 use crate::interpreter::EnvFrame;
 use codespan_reporting::diagnostic::{Label, LabelStyle, Severity};

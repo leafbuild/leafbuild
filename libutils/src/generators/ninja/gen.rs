@@ -109,19 +109,28 @@ pub struct NinjaTarget<'buildsys> {
     name: String,
     rule: &'buildsys NinjaRuleRef,
     rule_args: Vec<NinjaRuleArg>,
+    implicit_args: Vec<NinjaRuleArg>,
     rule_opts: Vec<NinjaVariable>,
 }
 
 impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
     fn for_build_system(&self) -> String {
         format!(
-            "build {}: {} {}\n{}",
+            "build {}: {} {}{}\n{}",
             self.name,
             self.rule.name,
             self.rule_args
                 .iter()
                 .map(|arg| { arg.for_build_system() })
                 .join(" "),
+            if !self.implicit_args.is_empty() {
+                format!(
+                    " | {}",
+                    self.implicit_args.iter().map(|arg| &arg.value).join(" ")
+                )
+            } else {
+                "".to_string()
+            },
             self.rule_opts
                 .iter()
                 .map(|opt| { opt.for_build_system() })
@@ -135,12 +144,14 @@ impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
         name: impl Into<String>,
         rule: &'buildsys NinjaRuleRef,
         rule_args: Vec<NinjaRuleArg>,
+        implicit_args: Vec<NinjaRuleArg>,
         rule_opts: Vec<NinjaVariable>,
     ) -> Self {
         Self {
             name: name.into(),
             rule,
             rule_args,
+            implicit_args,
             rule_opts,
         }
     }
@@ -155,6 +166,10 @@ impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
 
     fn get_args(&self) -> &Vec<NinjaRuleArg> {
         &self.rule_args
+    }
+
+    fn get_implicit_args(&self) -> &Vec<<NinjaRule as Rule>::ArgType> {
+        &self.implicit_args
     }
 
     fn get_opts(&self) -> &Vec<NinjaVariable> {
@@ -227,9 +242,10 @@ impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCom
         name: impl Into<String>,
         rule: &'buildsys <NinjaRule as Rule>::RefType,
         args: Vec<<NinjaRule as Rule>::ArgType>,
+        implicit_args: Vec<<NinjaRule as Rule>::ArgType>,
         opts: Vec<<NinjaRule as Rule>::VarType>,
     ) -> &NinjaTarget<'buildsys> {
-        let target = NinjaTarget::new_from(name, rule, args, opts);
+        let target = NinjaTarget::new_from(name, rule, args, implicit_args, opts);
         self.targets.push(target);
         self.targets.last().unwrap()
     }
@@ -270,21 +286,7 @@ impl<'buildsys> ToBuildSystemSyntax for NinjaGen<'buildsys> {
                 .join("\n\n"),
             self.targets
                 .iter()
-                .map(|t| {
-                    format!(
-                        "build {}: {} {}\n{}",
-                        t.get_name(),
-                        t.get_rule().name,
-                        t.get_args()
-                            .iter()
-                            .map(|arg| { arg.for_build_system() })
-                            .join(" "),
-                        t.get_opts()
-                            .iter()
-                            .map(|opt| { opt.for_build_system() })
-                            .join("\n")
-                    )
-                })
+                .map(|t| t.for_build_system())
                 .join("\n\n")
         )
     }

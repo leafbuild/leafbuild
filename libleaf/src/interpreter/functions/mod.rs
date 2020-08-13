@@ -63,4 +63,5 @@ func_decls!(
     [print, "print.rs"],
     [project, "project.rs"],
     [executable, "executable.rs"],
+    [library, "library.rs"],
 );

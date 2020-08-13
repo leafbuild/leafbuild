@@ -1,12 +1,25 @@
-use std::error::Error;
-use std::fs::File;
-use std::path::PathBuf;
-use std::{collections::HashMap, ops::Deref, path::Path};
+use std::{
+    collections::HashMap,
+    error::Error,
+    ops::Deref,
+    path::{Path, PathBuf},
+};
 
 use lalrpop_util::ParseError;
 
+use libutils::{
+    compilers::{
+        cc::{get_cc, CC},
+        cxx::{get_cxx, CXX},
+    },
+    generators::*,
+};
+
+use crate::interpreter::diagnostics::warnings::VarNameInPrelude;
 use crate::interpreter::types::{
-    resolve_executable_property_access, resolve_map_pair_property_access, Executable, MapPair,
+    resolve_executable_property_access, resolve_lib_type_property_access,
+    resolve_library_property_access, resolve_map_pair_property_access, Executable, LibType,
+    Library, MapPair,
 };
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
@@ -19,19 +32,12 @@ use crate::{
         },
     },
 };
-use itertools::Itertools;
-use libutils::compilers::Compiler;
-use libutils::{
-    compilers::{
-        cc::{get_cc, CC},
-        cxx::{get_cxx, CXX},
-    },
-    generators::{ninja::*, *},
-};
 
 #[path = "diagnostics/diagnostics.rs"]
 pub(crate) mod diagnostics;
+pub(crate) mod ninja_gen;
 pub(crate) mod ops;
+pub(crate) mod prelude_values;
 pub(crate) mod types;
 
 pub(crate) const DOCS_ROOT: &str = "https://leafbuild.gitlab.io/docs/";
@@ -80,29 +86,26 @@ impl EnvConfig {
     }
 }
 
-pub(crate) enum Language {
-    C,
-    CPP,
+impl Default for EnvConfig {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 pub(crate) struct EnvImut {
     diagnostics_ctx: DiagnosticsCtx,
     call_pools: CallPoolsWrapper,
     config: EnvConfig,
-}
 
-pub(crate) struct LangToolchainRules<T>
-where
-    T: Rule,
-{
-    preprocess: T,
-    compile: T,
-    link: T,
+    prelude_values: HashMap<String, Value<Box<dyn ValueTypeMarker>>>,
 }
 
 pub(crate) struct EnvMut {
     /// the current executable id we are at, universally unique
     exec_id: usize,
+
+    /// the current library id we are at, universally unique
+    lib_id: usize,
 
     /// the current module id we are at, universally unique
     mod_id: usize,
@@ -113,6 +116,7 @@ pub(crate) struct EnvMut {
     cxx: Option<CXX>,
 
     executables: Vec<Executable>,
+    libraries: Vec<Library>,
 }
 
 impl EnvMut {
@@ -149,13 +153,16 @@ impl Env {
                 ),
                 call_pools: CallPoolsWrapper::new(),
                 config: cfg,
+                prelude_values: prelude_values::get_prelude_values(),
             },
             mut_: EnvMut {
                 exec_id: 0,
+                lib_id: 0,
                 mod_id: 1,
                 cc: None,
                 cxx: None,
                 executables: vec![],
+                libraries: vec![],
             },
         }
     }
@@ -165,140 +172,8 @@ impl Env {
         if !buf.exists() {
             std::fs::create_dir(buf.as_path())?;
         }
-        let ninja_file = buf.join("build.ninja");
-        let f = File::create(ninja_file)?;
 
-        let mut gen = NinjaGen::new();
-
-        gen.new_global_value(
-            "lfb_bin",
-            std::env::current_exe()
-                .expect("Cannot get current exe")
-                .to_string_lossy(),
-        );
-
-        let signal_build_failure = self.imut.diagnostics_ctx.get_signal_build_failure();
-
-        let internal_compilation_failed_call = " || $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
-        let internal_linking_failed_call = " || $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
-
-        let cc_compile = gen.new_rule(
-            "cc_compile",
-            NinjaCommand::new(format!(
-                "$CC $include_dirs $in -c -o $out $CC_FLAGS{}",
-                if signal_build_failure {
-                    internal_compilation_failed_call
-                } else {
-                    ""
-                }
-            )),
-            vec![],
-        );
-        let cc_link = gen.new_rule(
-            "cc_link",
-            NinjaCommand::new(format!(
-                "$CC $in -o $out $CCLD_FLAGS{}",
-                if signal_build_failure {
-                    internal_linking_failed_call
-                } else {
-                    ""
-                }
-            )),
-            vec![],
-        );
-
-        let cxx_compile = gen.new_rule(
-            "cxx_compile",
-            NinjaCommand::new(format!(
-                "$CXX $include_dirs $in -c -o $out $CXX_FLAGS{}",
-                if signal_build_failure {
-                    internal_compilation_failed_call
-                } else {
-                    ""
-                }
-            )),
-            vec![],
-        );
-        let cxx_link = gen.new_rule(
-            "cxx_link",
-            NinjaCommand::new(format!(
-                "$CXX $in -o $out $CXXLD_FLAGS{}",
-                if signal_build_failure {
-                    internal_linking_failed_call
-                } else {
-                    ""
-                }
-            )),
-            vec![],
-        );
-
-        let mut need_cc = false;
-        let mut need_cxx = false;
-
-        self.mut_.executables.iter().for_each(|exe| {
-            let mut need_cxx_linker = false;
-
-            let exe_args: Vec<NinjaRuleArg> = exe
-                .get_sources()
-                .iter()
-                .filter_map(|src| {
-                    let rl;
-                    if CC::can_compile(src) {
-                        rl = &cc_compile;
-                        need_cc = true;
-                    } else if CXX::can_compile(src) {
-                        rl = &cxx_compile;
-                        need_cxx = true;
-                        need_cxx_linker = true;
-                    } else if CC::can_consume(src) || CXX::can_consume(src) {
-                        return None;
-                    } else {
-                        println!(
-                            "Warning: ignoring file '{}' while building executable '{}'",
-                            src,
-                            exe.get_name()
-                        );
-                        return None;
-                    }
-                    gen.new_target(
-                        format!("{}.o", src),
-                        rl,
-                        vec![NinjaRuleArg::new(format!("../{}", src))],
-                        vec![
-                            NinjaVariable::new("mod_id", exe.get_mod_id().to_string()),
-                            NinjaVariable::new(
-                                "include_dirs",
-                                exe.get_include_dirs()
-                                    .iter()
-                                    .map(|inc_dir| format!("-I../{}", inc_dir))
-                                    .join(" "),
-                            ),
-                        ],
-                    );
-                    Some(NinjaRuleArg::new(format!("{}.o", src)))
-                })
-                .collect();
-            gen.new_target(
-                exe.get_name(),
-                if need_cxx_linker { &cxx_link } else { &cc_link },
-                exe_args,
-                vec![NinjaVariable::new("mod_id", exe.get_mod_id().to_string())],
-            );
-        });
-
-        if need_cc {
-            let cc_loc = self.mut_.get_and_cache_cc().get_location();
-            gen.new_global_value("CC", cc_loc.to_string_lossy())
-        }
-
-        if need_cxx {
-            let cxx_loc = self.mut_.get_and_cache_cxx().get_location();
-            gen.new_global_value("CXX", cxx_loc.to_string_lossy())
-        }
-
-        gen.write_to(f)?;
-
-        Ok(())
+        ninja_gen::write_to(self, buf)
     }
 }
 
@@ -333,6 +208,9 @@ impl<'env> EnvFrame<'env> {
         &self,
         id: &str,
     ) -> Option<&Value<Box<dyn ValueTypeMarker>>> {
+        if let Some(v) = self.env_ref.prelude_values.get(id) {
+            return Some(v);
+        }
         match self.variables.iter().find(|&(var_name, _)| var_name == id) {
             Some(var) => Some(var.1.get_value()),
             None => None,
@@ -391,9 +269,30 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
+    pub(crate) fn new_library(
+        &mut self,
+        name: String,
+        type_: LibType,
+        sources: Vec<String>,
+        internal_include_dirs: Vec<String>,
+    ) -> &Library {
+        let id = self.env_mut_ref.lib_id;
+        self.env_frame_data.lib_decls.push(Library::new(
+            id,
+            self.get_mod_id(),
+            name,
+            type_,
+            sources,
+            internal_include_dirs,
+        ));
+        self.env_mut_ref.lib_id += 1;
+        self.env_frame_data.lib_decls.last().unwrap()
+    }
+
+    #[inline]
     pub(crate) fn next_mod_id(&mut self) -> usize {
         let id = self.env_mut_ref.mod_id;
-        self.env_mut_ref.mod_id = self.env_mut_ref.mod_id + 1;
+        self.env_mut_ref.mod_id += 1;
         id
     }
 }
@@ -403,11 +302,19 @@ pub struct EnvFrameData {
     exe_decls: Vec<Executable>,
     /// the executables accessible from the outer build system
     pub_exe_decls: Vec<Executable>,
+
+    /// the libraries that need to be built and are private
+    lib_decls: Vec<Library>,
+    /// the libraries accessible from the outer build system
+    pub_lib_decls: Vec<Library>,
 }
 
 pub(crate) struct EnvFrameReturns {
     exe_decls: Vec<Executable>,
     pub_exe_decls: Vec<Executable>,
+
+    lib_decls: Vec<Library>,
+    pub_lib_decls: Vec<Library>,
 }
 
 impl EnvFrameData {
@@ -415,6 +322,8 @@ impl EnvFrameData {
         Self {
             exe_decls: vec![],
             pub_exe_decls: vec![],
+            lib_decls: vec![],
+            pub_lib_decls: vec![],
         }
     }
 }
@@ -424,6 +333,8 @@ impl From<EnvFrameData> for EnvFrameReturns {
         Self {
             exe_decls: r.exe_decls,
             pub_exe_decls: r.pub_exe_decls,
+            lib_decls: r.lib_decls,
+            pub_lib_decls: r.pub_lib_decls,
         }
     }
 }
@@ -436,25 +347,13 @@ impl EnvFrameReturns {
         self.pub_exe_decls
             .iter()
             .for_each(|exe| env.mut_.executables.push(exe.clone()));
+        self.lib_decls
+            .iter()
+            .for_each(|lib| env.mut_.libraries.push(lib.clone()));
+        self.pub_lib_decls
+            .iter()
+            .for_each(|lib| env.mut_.libraries.push(lib.clone()));
     }
-}
-
-struct EnvLibDecl {
-    name: String,
-    type_: EnvLibType,
-    /// The path of the lib relative to the target directory of the current env
-    path: String,
-}
-
-enum EnvLibType {
-    Static,
-    Shared,
-}
-
-struct EnvExeDecl {
-    name: String,
-    /// The path of the lib relative to the target directory of the current env
-    path: String,
 }
 
 pub(crate) struct Variable<T>
@@ -737,7 +636,9 @@ pub(crate) struct CallPoolsWrapper {
     vec_pool: CallPool,
     map_pool: CallPool,
     executable_pool: CallPool,
+    library_pool: CallPool,
     map_pair_pool: CallPool,
+    lib_type_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -753,7 +654,9 @@ impl CallPoolsWrapper {
             vec_pool: types::get_vec_call_pool(),
             map_pool: types::get_map_call_pool(),
             executable_pool: types::get_executable_call_pool(),
+            library_pool: types::get_library_call_pool(),
             map_pair_pool: types::get_map_pair_call_pool(),
+            lib_type_pool: types::get_lib_type_call_pool(),
         }
     }
     #[inline]
@@ -802,8 +705,18 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_library_pool(&self) -> &CallPool {
+        &self.library_pool
+    }
+
+    #[inline]
     pub(crate) fn get_map_pair_pool(&self) -> &CallPool {
         &self.map_pair_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_lib_type_pool(&self) -> &CallPool {
+        &self.lib_type_pool
     }
 
     #[inline]
@@ -817,7 +730,9 @@ impl CallPoolsWrapper {
             TypeId::Vec => self.get_vec_pool(),
             TypeId::Map => self.get_map_pool(),
             TypeId::ExecutableReference => self.get_executable_pool(),
+            TypeId::LibraryReference => self.get_library_pool(),
             TypeId::MapPair => self.get_map_pair_pool(),
+            TypeId::LibType => self.get_lib_type_pool(),
         }
     }
 }
@@ -943,7 +858,21 @@ pub(crate) fn property_access(
             property.get_property_name_loc().clone(),
             frame,
         ),
+        TypeId::LibraryReference => resolve_library_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
         TypeId::MapPair => resolve_map_pair_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::LibType => resolve_lib_type_property_access(
             base,
             base_location,
             property_name,

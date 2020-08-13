@@ -87,11 +87,18 @@ fn eval_call(
 }
 
 fn run_declaration_in_env_frame(decl: &AstDeclaration, env_frame: &mut EnvFrame) {
-    let value = decl.get_value().eval_in_env(env_frame);
     let name = decl.get_name();
-    env_frame
-        .variables
-        .insert(name.clone(), Variable::new(name.clone(), value));
+    if env_frame.env_ref.prelude_values.contains_key(name) {
+        diagnostics::push_diagnostic(
+            VarNameInPrelude::new(decl.get_name_loc().as_rng()),
+            env_frame,
+        );
+    } else {
+        let value = decl.get_value().eval_in_env(env_frame);
+        env_frame
+            .variables
+            .insert(name.clone(), Variable::new(name.clone(), value));
+    }
 }
 
 fn run_assignment_in_env_frame(assignment: &AstAssignment, env_frame: &mut EnvFrame) {
@@ -339,7 +346,6 @@ fn run_repetitive_statement_in_env_frame(
                 ),
                 frame,
             );
-            return;
         }
     };
 }

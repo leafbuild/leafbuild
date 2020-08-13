@@ -26,6 +26,7 @@
     - [The `compiler` type]()
   - [Special Global Objects](reference/special_global_objects/index.md)
     - [The leaf object]()
+  - [Prelude](reference/prelude.md)
 
 # Developer resources
 - [Repository Structure](dev/repo_structure.md)

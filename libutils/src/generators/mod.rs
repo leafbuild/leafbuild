@@ -35,11 +35,13 @@ where
         name: impl Into<String>,
         rule: &'buildsys TargetRule::RefType,
         rule_args: Vec<TargetRule::ArgType>,
+        implicit_args: Vec<TargetRule::ArgType>,
         rule_opts: Vec<TargetRule::VarType>,
     ) -> Self;
     fn get_name(&self) -> &String;
     fn get_rule(&self) -> &TargetRule::RefType;
     fn get_args(&self) -> &Vec<TargetRule::ArgType>;
+    fn get_implicit_args(&self) -> &Vec<TargetRule::ArgType>;
     fn get_opts(&self) -> &Vec<TargetRule::VarType>;
 }
 
@@ -63,6 +65,7 @@ where
         name: impl Into<String>,
         rule: &'buildsys RuleType::RefType,
         args: Vec<RuleType::ArgType>,
+        implicit_args: Vec<RuleType::ArgType>,
         variables: Vec<RuleType::VarType>,
     ) -> &TargetType;
 

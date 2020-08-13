@@ -22,7 +22,9 @@ pub(crate) enum TypeIdAndValue<'a> {
     Vec(&'a Vec<Value<Box<dyn ValueTypeMarker>>>),
     Map(&'a HashMap<String, Value<Box<dyn ValueTypeMarker>>>),
     ExecutableReference(&'a ExeRef),
+    LibraryReference(&'a LibRef),
     MapPair(&'a MapPair),
+    LibType(LibType),
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -56,6 +58,13 @@ impl<'a> TypeIdAndValue<'a> {
             v => Err(v.degrade()),
         }
     }
+
+    pub(crate) fn get_lib_type(&self) -> Result<LibType, TypeId> {
+        match self {
+            TypeIdAndValue::LibType(v) => Ok(*v),
+            v => Err(v.degrade()),
+        }
+    }
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -72,7 +81,9 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::Vec(v) => v.stringify(),
             TypeIdAndValue::Map(v) => v.stringify(),
             TypeIdAndValue::ExecutableReference(v) => v.stringify(),
+            TypeIdAndValue::LibraryReference(v) => v.stringify(),
             TypeIdAndValue::MapPair(v) => v.stringify(),
+            TypeIdAndValue::LibType(v) => v.stringify(),
         }
     }
 
@@ -91,6 +102,8 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::Map(_) => TypeId::Map,
             TypeIdAndValue::ExecutableReference(_) => TypeId::ExecutableReference,
             TypeIdAndValue::MapPair(_) => TypeId::MapPair,
+            TypeIdAndValue::LibraryReference(_) => TypeId::LibraryReference,
+            TypeIdAndValue::LibType(_) => TypeId::LibType,
         }
     }
 }
@@ -108,7 +121,9 @@ pub(crate) enum TypeId {
     Vec,
     Map,
     ExecutableReference,
+    LibraryReference,
     MapPair,
+    LibType,
 }
 
 impl TypeId {
@@ -125,8 +140,10 @@ impl TypeId {
             TypeId::Error => "error",
             TypeId::Vec => "vec",
             TypeId::Map => "map",
-            TypeId::ExecutableReference => "exe ref",
-            TypeId::MapPair => "map pair",
+            TypeId::ExecutableReference => "exe_ref",
+            TypeId::LibraryReference => "lib_ref",
+            TypeId::MapPair => "map_pair",
+            TypeId::LibType => "lib_type",
         }
     }
 }
@@ -142,7 +159,11 @@ include!("primitives/bool.rs");
 include!("primitives/string.rs");
 include!("primitives/void.rs");
 include!("primitives/error.rs");
+
+include!("primitives/libtype.rs");
+
 include!("vec.rs");
 include!("map.rs");
 include!("map_pair.rs");
 include!("executable.rs");
+include!("library.rs");
