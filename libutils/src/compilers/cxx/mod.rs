@@ -3,14 +3,47 @@ use std::process::Command;
 
 use std::path::PathBuf;
 
+pub mod cxx_flags;
+use crate::compilers::cxx::cxx_flags::CPPSTD;
+pub use cxx_flags::{CXXFlag, CXXFlags, CXXLDFlag, CXXLDFlags};
+
+#[derive(Copy, Clone)]
 pub enum CXXFamily {
     GCC,
     Clang,
+    MSVC,
 }
 
+#[derive(Clone)]
 pub struct CXX {
     family: CXXFamily,
     location: PathBuf,
+}
+
+impl CXX {
+    pub fn get_flag(&self, flag: CXXFlag) -> String {
+        match self.family {
+            CXXFamily::GCC | CXXFamily::Clang => match flag {
+                CXXFlag::FromString { string } => string,
+                CXXFlag::CPPSTD { std } => format!(
+                    "--cpp_std={}",
+                    match std {
+                        CPPSTD::CPP98 => "c++98",
+                        CPPSTD::CPP03 => "c++03",
+                        CPPSTD::CPP1x => "c++1x",
+                        CPPSTD::CPP1y => "c++1y",
+                        CPPSTD::CPP1z => "c++1z",
+                        CPPSTD::CPP2a => "c++2a",
+                    }
+                ),
+                CXXFlag::IncludeDir { include_dir } => format!("-I {}", include_dir),
+            },
+            CXXFamily::MSVC => {
+                // TODO add this later
+                "".to_string()
+            }
+        }
+    }
 }
 
 impl Compiler for CXX {
@@ -53,7 +86,7 @@ pub fn get_cxx() -> Result<CXX, GetCompilerError> {
     let first_line = output
         .lines()
         .next() // get first line
-        .expect("Cannot detect compiler family from `CC --version'");
+        .expect("Cannot detect compiler family from `CXX --version'");
 
     match first_line {
         family if family.contains("(GCC)") => Ok(CXX {

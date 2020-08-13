@@ -48,6 +48,7 @@ impl Library {
     }
 }
 
+#[derive(Copy, Clone)]
 pub(crate) struct LibRef {
     id: usize,
 }
@@ -73,6 +74,24 @@ impl ValueTypeMarker for LibRef {
 
     fn get_type_id_and_value(&self) -> TypeIdAndValue {
         TypeIdAndValue::LibraryReference(self)
+    }
+}
+
+impl Dependency for LibRef {
+    fn get_cc_compilation_flags(&self) -> &CCFlags {
+        unimplemented!()
+    }
+
+    fn get_cc_link_flags(&self) -> &CCLDFlags {
+        unimplemented!()
+    }
+
+    fn get_cxx_compilation_flags(&self) -> &CXXFlags {
+        unimplemented!()
+    }
+
+    fn get_cxx_link_flags(&self) -> &CXXLDFlags {
+        unimplemented!()
     }
 }
 

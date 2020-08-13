@@ -11,6 +11,8 @@ pub mod cc;
 // c++ compilers
 pub mod cxx;
 
+pub mod flags;
+
 #[derive(Debug)]
 pub enum GetCompilerError {
     VarError(VarError),

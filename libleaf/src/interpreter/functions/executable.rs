@@ -68,7 +68,7 @@ fn get_executable_executor() -> CallExecutor {
                     .get_value()
                     .eval_in_env(frame)
                     .get_type_id_and_value()
-                    .to_vec_of_string(
+                    .to_vec_of_dependencies(
                         v.get_rng(),
                         Some(EXECUTABLE_FUNCTION_DOCS),
                         frame.get_diagnostics_ctx(),
@@ -78,7 +78,7 @@ fn get_executable_executor() -> CallExecutor {
                 },
                 None => vec![],
             };
-            let exe = frame.new_executable(executable_name, sources, include_dirs);
+            let exe = frame.new_executable(executable_name, sources, include_dirs, dependencies);
             Value::new(Box::new(exe.make_ref()))
         },
         vec!["bin".to_string(), "binary".to_string()],

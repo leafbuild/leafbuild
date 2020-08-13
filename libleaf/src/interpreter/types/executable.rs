@@ -1,10 +1,10 @@
-#[derive(Clone)]
 pub(crate) struct Executable {
     name: String,
     mod_id: usize,
     id: usize,
     sources: Vec<String>,
     include_dirs: Vec<String>,
+    dependencies: Vec<Box<dyn Dependency>>,
 }
 
 impl Executable {
@@ -14,6 +14,7 @@ impl Executable {
         name: String,
         sources: Vec<String>,
         include_dirs: Vec<String>,
+        dependencies: Vec<Box<dyn Dependency>>,
     ) -> Self {
         Self {
             id,
@@ -21,6 +22,7 @@ impl Executable {
             name,
             sources,
             include_dirs,
+            dependencies,
         }
     }
 

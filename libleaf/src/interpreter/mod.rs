@@ -18,8 +18,8 @@ use libutils::{
 use crate::interpreter::diagnostics::warnings::VarNameInPrelude;
 use crate::interpreter::types::{
     resolve_executable_property_access, resolve_lib_type_property_access,
-    resolve_library_property_access, resolve_map_pair_property_access, Executable, LibType,
-    Library, MapPair,
+    resolve_library_property_access, resolve_map_pair_property_access, Dependency, Executable,
+    LibType, Library, MapPair,
 };
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
@@ -120,20 +120,20 @@ pub(crate) struct EnvMut {
 }
 
 impl EnvMut {
-    pub(crate) fn get_and_cache_cc(&mut self) -> &CC {
+    pub(crate) fn get_and_cache_cc(&mut self) -> CC {
         if self.cc.is_none() {
             let cc = get_cc().expect("Cannot find CC");
             self.cc = Some(cc);
         }
-        self.cc.as_ref().unwrap()
+        self.cc.as_ref().unwrap().clone()
     }
 
-    pub(crate) fn get_and_cache_cxx(&mut self) -> &CXX {
+    pub(crate) fn get_and_cache_cxx(&mut self) -> CXX {
         if self.cxx.is_none() {
             let cxx = get_cxx().expect("Cannot find CXX");
             self.cxx = Some(cxx);
         }
-        self.cxx.as_ref().unwrap()
+        self.cxx.as_ref().unwrap().clone()
     }
 }
 
@@ -255,6 +255,7 @@ impl<'env> EnvFrame<'env> {
         name: String,
         sources: Vec<String>,
         include_dirs: Vec<String>,
+        dependencies: Vec<Box<dyn Dependency>>,
     ) -> &Executable {
         let id = self.env_mut_ref.exec_id;
         self.env_frame_data.exe_decls.push(Executable::new(
@@ -263,6 +264,7 @@ impl<'env> EnvFrame<'env> {
             name,
             sources,
             include_dirs,
+            dependencies,
         ));
         self.env_mut_ref.exec_id += 1;
         self.env_frame_data.exe_decls.last().unwrap()
@@ -340,13 +342,13 @@ impl From<EnvFrameData> for EnvFrameReturns {
 }
 
 impl EnvFrameReturns {
-    fn apply_changes_to_env(&self, env: &mut Env) {
+    fn apply_changes_to_env(self, env: &mut Env) {
         self.exe_decls
-            .iter()
-            .for_each(|exe| env.mut_.executables.push(exe.clone()));
+            .into_iter()
+            .for_each(|exe| env.mut_.executables.push(exe));
         self.pub_exe_decls
-            .iter()
-            .for_each(|exe| env.mut_.executables.push(exe.clone()));
+            .into_iter()
+            .for_each(|exe| env.mut_.executables.push(exe));
         self.lib_decls
             .iter()
             .for_each(|lib| env.mut_.libraries.push(lib.clone()));
@@ -555,11 +557,7 @@ pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
     env.imut.diagnostics_ctx.new_file(file, src)
 }
 
-pub(crate) fn interpret<'env>(
-    env: &'env mut Env,
-    program: &'_ AstProgram,
-    file_id: usize,
-) -> EnvFrameReturns {
+pub(crate) fn interpret<'env>(env: &'env mut Env, program: &'_ AstProgram, file_id: usize) {
     let statements = program.get_statements();
     let mut frame = EnvFrame {
         variables: HashMap::new(),
@@ -576,7 +574,6 @@ pub(crate) fn interpret<'env>(
 
     let efr = EnvFrameReturns::from(frame.env_frame_data);
     efr.apply_changes_to_env(env);
-    efr
 }
 
 pub fn start_on(proj_path: &Path, handle: &mut Handle) {

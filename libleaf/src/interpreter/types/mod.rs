@@ -6,6 +6,10 @@ use crate::interpreter::diagnostics::errors::{
 };
 use crate::interpreter::diagnostics::{push_diagnostic, DiagnosticsCtx, Location};
 use itertools::Itertools;
+use libutils::compilers::{
+    cc::{CCFlags, CCLDFlags},
+    cxx::{CXXFlags, CXXLDFlags},
+};
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -93,6 +97,58 @@ impl<'a> TypeIdAndValue<'a> {
                                         UnexpectedTypeInArray::new(
                                             location.clone(),
                                             tp.typename(),
+                                            TypeId::String.typename(),
+                                            idx,
+                                        )
+                                        .with_docs_location_opt(match docs {
+                                            Some(v) => Some(v.to_string()),
+                                            None => None,
+                                        }),
+                                        diag_ctx,
+                                    );
+                                    None
+                                }
+                            }
+                        })
+                        .collect_vec(),
+                )
+            }
+            tp => {
+                diagnostics::push_diagnostic_ctx(
+                    ExpectedTypeError::new(
+                        TypeId::Vec.typename(),
+                        ExprLocAndType::new(location, tp.degrade().typename()),
+                    )
+                    .with_docs_location_opt(match docs {
+                        Some(v) => Some(v.to_string()),
+                        None => None,
+                    }),
+                    diag_ctx,
+                );
+                None
+            }
+        }
+    }
+
+    pub(crate) fn to_vec_of_dependencies(
+        &self,
+        location: Location,
+        docs: Option<&str>,
+        diag_ctx: &DiagnosticsCtx,
+    ) -> Option<Vec<Box<dyn Dependency>>> {
+        match self {
+            TypeIdAndValue::Vec(vec) => {
+                Some(
+                    vec.iter()
+                        .enumerate()
+                        .filter_map(|(idx, v)| -> Option<Box<dyn Dependency>> {
+                            match v.get_type_id_and_value() {
+                                TypeIdAndValue::LibraryReference(ref_) => Some(Box::new(*ref_)),
+                                tp => {
+                                    diagnostics::push_diagnostic_ctx(
+                                        UnexpectedTypeInArray::new(
+                                            location.clone(),
+                                            tp.degrade().typename(),
                                             TypeId::String.typename(),
                                             idx,
                                         )
@@ -221,6 +277,8 @@ include!("primitives/void.rs");
 include!("primitives/error.rs");
 
 include!("primitives/libtype.rs");
+
+include!("dependency.rs");
 
 include!("vec.rs");
 include!("map.rs");

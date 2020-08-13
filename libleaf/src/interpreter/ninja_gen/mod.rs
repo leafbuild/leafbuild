@@ -78,8 +78,18 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
         vec![],
     );
 
-    let mut need_cc = false;
-    let mut need_cxx = false;
+    let cc = env.mut_.get_and_cache_cc();
+    let cc_loc = cc.get_location();
+    gen.new_global_value("CC", cc_loc.to_string_lossy());
+
+    let cxx = env.mut_.get_and_cache_cxx();
+    let cxx_loc = cxx.get_location();
+    gen.new_global_value("CXX", cxx_loc.to_string_lossy());
+
+    enum Lang {
+        C,
+        CPP,
+    };
 
     env.mut_.executables.iter().for_each(|exe| {
         let mut need_cxx_linker = false;
@@ -89,13 +99,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
             .iter()
             .filter_map(|src| {
                 let rl;
+                let lng;
                 if CC::can_compile(src) {
                     rl = &cc_compile;
-                    need_cc = true;
+                    lng = Lang::C;
                 } else if CXX::can_compile(src) {
                     rl = &cxx_compile;
-                    need_cxx = true;
                     need_cxx_linker = true;
+                    lng = Lang::CPP;
                 } else if CC::can_consume(src) || CXX::can_consume(src) {
                     return None;
                 } else {
@@ -117,7 +128,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                             "include_dirs",
                             exe.get_include_dirs()
                                 .iter()
-                                .map(|inc_dir| format!("-I../{}", inc_dir))
+                                .map(|inc_dir| match lng {
+                                    Lang::C => cc.get_flag(CCFlag::IncludeDir {
+                                        include_dir: format!("../{}", inc_dir),
+                                    }),
+                                    Lang::CPP => cxx.get_flag(CXXFlag::IncludeDir {
+                                        include_dir: format!("../{}", inc_dir),
+                                    }),
+                                })
                                 .join(" "),
                         ),
                     ],
@@ -144,13 +162,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
             .iter()
             .filter_map(|src| {
                 let rl;
+                let lng;
                 if CC::can_compile(src) {
                     rl = &cc_compile;
-                    need_cc = true;
+                    lng = Lang::C;
                 } else if CXX::can_compile(src) {
                     rl = &cxx_compile;
-                    need_cxx = true;
                     need_cxx_linker = true;
+                    lng = Lang::CPP;
                 } else if CC::can_consume(src) || CXX::can_consume(src) {
                     return None;
                 } else {
@@ -172,7 +191,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                             "include_dirs",
                             lib.get_internal_include_dirs()
                                 .iter()
-                                .map(|inc_dir| format!("-I../{}", inc_dir))
+                                .map(|inc_dir| match lng {
+                                    Lang::C => cc.get_flag(CCFlag::IncludeDir {
+                                        include_dir: format!("../{}", inc_dir),
+                                    }),
+                                    Lang::CPP => cxx.get_flag(CXXFlag::IncludeDir {
+                                        include_dir: format!("../{}", inc_dir),
+                                    }),
+                                })
                                 .join(" "),
                         ),
                     ],
@@ -189,16 +215,6 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
             vars,
         );
     });
-
-    if need_cc {
-        let cc_loc = env.mut_.get_and_cache_cc().get_location();
-        gen.new_global_value("CC", cc_loc.to_string_lossy())
-    }
-
-    if need_cxx {
-        let cxx_loc = env.mut_.get_and_cache_cxx().get_location();
-        gen.new_global_value("CXX", cxx_loc.to_string_lossy())
-    }
 
     gen.write_to(f)?;
 
