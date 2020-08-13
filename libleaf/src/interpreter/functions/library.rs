@@ -51,82 +51,30 @@ fn get_library_executor() -> CallExecutor {
                 .get_value()
                 .eval_in_env(frame)
                 .get_type_id_and_value()
-            {
-                TypeIdAndValue::Vec(vec) => vec
-                    .iter()
-                    .enumerate()
-                    .filter_map(
-                        |(idx, v)| match v.get_type_id_and_value_required(TypeId::String) {
-                            Ok(s) => Some(s.get_string().unwrap().clone()),
-                            Err(tp) => {
-                                diagnostics::push_diagnostic(
-                                    UnexpectedTypeInArray::new(
-                                        sources_arg.get_rng(),
-                                        tp.typename(),
-                                        TypeId::String.typename(),
-                                        idx,
-                                    )
-                                    .with_docs_location(LIBRARY_FUNCTION_DOCS),
-                                    frame,
-                                );
-                                None
-                            }
-                        },
-                    )
-                    .collect_vec(),
-                TypeIdAndValue::String(s) => vec![s.clone()],
-                tp => {
-                    diagnostics::push_diagnostic(
-                        ExpectedTypeError::new(
-                            TypeId::Vec.typename(),
-                            ExprLocAndType::new(sources_arg.get_rng(), tp.degrade().typename()),
-                        )
-                        .with_docs_location(LIBRARY_FUNCTION_DOCS),
-                        frame,
-                    );
-                    return Value::new(Box::new(ErrorValue::new()));
-                }
+                .to_vec_of_string(
+                    sources_arg.get_rng(),
+                    Some(LIBRARY_FUNCTION_DOCS),
+                    frame.get_diagnostics_ctx(),
+                ) {
+                Some(vec) => vec,
+                None => return Value::new(Box::new(ErrorValue::new())),
             };
             let internal_include_dirs = match args
                 .get_named_args()
                 .iter()
                 .find(|arg| arg.get_name() == "internal_include_dirs")
             {
-                Some(v) => match v.get_value().eval_in_env(frame).get_type_id_and_value() {
-                    TypeIdAndValue::Vec(vec) => vec
-                        .iter()
-                        .enumerate()
-                        .filter_map(|(idx, val)| {
-                            match val.get_type_id_and_value_required(TypeId::String) {
-                                Ok(s) => Some(s.get_string().unwrap().clone()),
-                                Err(tp) => {
-                                    diagnostics::push_diagnostic(
-                                        UnexpectedTypeInArray::new(
-                                            v.get_rng(),
-                                            tp.typename(),
-                                            TypeId::String.typename(),
-                                            idx,
-                                        )
-                                        .with_docs_location(LIBRARY_FUNCTION_DOCS),
-                                        frame,
-                                    );
-                                    None
-                                }
-                            }
-                        })
-                        .collect_vec(),
-                    TypeIdAndValue::String(s) => vec![s.clone()],
-                    tp => {
-                        diagnostics::push_diagnostic(
-                            ExpectedTypeError::new(
-                                TypeId::String.typename(),
-                                ExprLocAndType::new(v.get_rng(), tp.degrade().typename()),
-                            )
-                            .with_docs_location(LIBRARY_FUNCTION_DOCS),
-                            frame,
-                        );
-                        return Value::new(Box::new(ErrorValue::new()));
-                    }
+                Some(v) => match v
+                    .get_value()
+                    .eval_in_env(frame)
+                    .get_type_id_and_value()
+                    .to_vec_of_string(
+                        v.get_rng(),
+                        Some(LIBRARY_FUNCTION_DOCS),
+                        frame.get_diagnostics_ctx(),
+                    ) {
+                    Some(vec) => vec,
+                    None => return Value::new(Box::new(ErrorValue::new())),
                 },
                 None => vec![],
             };

@@ -15,7 +15,7 @@ Statement: AstStatement = {
 	<Assignment> ";" => AstStatement::Assignment(<>),
 	<Declaration> ";" => AstStatement::Declaration(<>),
 	<ConditionalStatement> => AstStatement::Conditional(<>),
-	<ControlStatement> => AstStatement::ControlStatement(<>),
+	//<ControlStatement> => AstStatement::ControlStatement(<>),
 	<RepetitiveStatement> => AstStatement::Repetitive(<>),
 };
 

@@ -25,7 +25,7 @@ pub struct NinjaRule {
 impl ToBuildSystemSyntax for NinjaRule {
     fn for_build_system(&self) -> String {
         format!(
-            "rule {}\n  {}",
+            "rule {}\n{}",
             self.name,
             self.variables
                 .iter()
@@ -33,9 +33,9 @@ impl ToBuildSystemSyntax for NinjaRule {
                 .chain(
                     [&self.command.command]
                         .iter()
-                        .map(|cmd| { format!("command = {}", *cmd) })
+                        .map(|cmd| { format!("  command = {}", *cmd) })
                 )
-                .join("\n  ")
+                .join("\n")
         )
     }
 }

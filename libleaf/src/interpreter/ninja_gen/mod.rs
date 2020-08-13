@@ -31,14 +31,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
     let cc_compile = gen.new_rule(
         "cc_compile",
         NinjaCommand::new(format!(
-            "$CC $include_dirs $in -c -o $out $CC_FLAGS{}",
+            "$CC -MD -MF $out.d $include_dirs $in -c -o $out $CC_FLAGS{}",
             if signal_build_failure {
                 internal_compilation_failed_call
             } else {
                 ""
             }
         )),
-        vec![],
+        vec![NinjaVariable::new("depfile", "$out.d")],
     );
     let cc_link = gen.new_rule(
         "cc_link",
@@ -56,14 +56,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
     let cxx_compile = gen.new_rule(
         "cxx_compile",
         NinjaCommand::new(format!(
-            "$CXX $include_dirs $in -c -o $out $CXX_FLAGS{}",
+            "$CXX -MD -MF $out.d $include_dirs $in -c -o $out $CXX_FLAGS{}",
             if signal_build_failure {
                 internal_compilation_failed_call
             } else {
                 ""
             }
         )),
-        vec![],
+        vec![NinjaVariable::new("depfile", "$out.d")],
     );
     let cxx_link = gen.new_rule(
         "cxx_link",

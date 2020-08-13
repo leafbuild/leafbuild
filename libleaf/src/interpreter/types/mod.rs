@@ -1,8 +1,10 @@
-use crate::interpreter::{CallExecutor, CallPool, EnvFrame, Value, ValueTypeMarker};
+use crate::interpreter::{diagnostics, CallExecutor, CallPool, EnvFrame, Value, ValueTypeMarker};
 
 use crate::grammar::TokLoc;
-use crate::interpreter::diagnostics::errors::{ExprLocAndType, UnknownPropertyError};
-use crate::interpreter::diagnostics::{push_diagnostic, Location};
+use crate::interpreter::diagnostics::errors::{
+    ExpectedTypeError, ExprLocAndType, UnexpectedTypeInArray, UnknownPropertyError,
+};
+use crate::interpreter::diagnostics::{push_diagnostic, DiagnosticsCtx, Location};
 use itertools::Itertools;
 use std::collections::HashMap;
 use std::fmt;
@@ -63,6 +65,64 @@ impl<'a> TypeIdAndValue<'a> {
         match self {
             TypeIdAndValue::LibType(v) => Ok(*v),
             v => Err(v.degrade()),
+        }
+    }
+
+    /// Given a string or a vector of strings in a TypeIdAndValue, this function returns the Some
+    /// option of the vector of strings if the TypeIdAndValue is a vector, or just a vector with only
+    /// the string if it is alone, and pushes any diagnostics straight to the diagnostics context.
+    ///
+    /// It should return None if `self` is not either a string or a vector.
+    pub(crate) fn to_vec_of_string(
+        &self,
+        location: Location,
+        docs: Option<&str>,
+        diag_ctx: &DiagnosticsCtx,
+    ) -> Option<Vec<String>> {
+        match self {
+            TypeIdAndValue::String(v) => Some(vec![(*v).clone()]),
+            TypeIdAndValue::Vec(vec) => {
+                Some(
+                    vec.iter()
+                        .enumerate()
+                        .filter_map(|(idx, v)| {
+                            match v.get_type_id_and_value_required(TypeId::String) {
+                                Ok(s) => Some(s.get_string().unwrap().clone()),
+                                Err(tp) => {
+                                    diagnostics::push_diagnostic_ctx(
+                                        UnexpectedTypeInArray::new(
+                                            location.clone(),
+                                            tp.typename(),
+                                            TypeId::String.typename(),
+                                            idx,
+                                        )
+                                        .with_docs_location_opt(match docs {
+                                            Some(v) => Some(v.to_string()),
+                                            None => None,
+                                        }),
+                                        diag_ctx,
+                                    );
+                                    None
+                                }
+                            }
+                        })
+                        .collect_vec(),
+                )
+            }
+            tp => {
+                diagnostics::push_diagnostic_ctx(
+                    ExpectedTypeError::new(
+                        TypeId::Vec.typename(),
+                        ExprLocAndType::new(location, tp.degrade().typename()),
+                    )
+                    .with_docs_location_opt(match docs {
+                        Some(v) => Some(v.to_string()),
+                        None => None,
+                    }),
+                    diag_ctx,
+                );
+                None
+            }
         }
     }
 }

@@ -17,6 +17,11 @@ impl ExpectedTypeError {
         self.docs_location = Some(docs_location.into());
         self
     }
+
+    pub(crate) fn with_docs_location_opt(mut self, docs: Option<String>) -> Self {
+        self.docs_location = docs;
+        self
+    }
 }
 
 impl LeafDiagnosticTrait for ExpectedTypeError {
