@@ -1,5 +1,6 @@
 //! # Stuff related to the compilers
 
+use crate::compilers::flags::{CompilationFlag, CompilationFlags, LinkFlag, LinkFlags};
 use std::env::VarError;
 use std::io;
 use std::path::PathBuf;
@@ -47,4 +48,10 @@ pub trait Compiler {
     fn can_compile(filename: &str) -> bool;
 
     fn get_location(&self) -> &PathBuf;
+
+    fn get_flag(&self, flag: CompilationFlag) -> String;
+    fn get_linker_flag(&self, flag: LinkFlag) -> String;
+
+    fn get_flags(&self, flags: CompilationFlags) -> String;
+    fn get_linker_flags(&self, flags: LinkFlags) -> String;
 }

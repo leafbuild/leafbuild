@@ -1,4 +1,6 @@
-use crate::interpreter::{diagnostics, CallExecutor, CallPool, EnvFrame, Value, ValueTypeMarker};
+use crate::interpreter::{
+    diagnostics, CallExecutor, CallPool, Env, EnvFrame, Value, ValueTypeMarker,
+};
 
 use crate::grammar::TokLoc;
 use crate::interpreter::diagnostics::errors::{
@@ -6,16 +8,13 @@ use crate::interpreter::diagnostics::errors::{
 };
 use crate::interpreter::diagnostics::{push_diagnostic, DiagnosticsCtx, Location};
 use itertools::Itertools;
-use libutils::compilers::{
-    cc::{CCFlags, CCLDFlags},
-    cxx::{CXXFlags, CXXLDFlags},
-};
+use libutils::compilers::flags::{CompilationFlag, CompilationFlags, Flag, LinkFlag, LinkFlags};
+use libutils::utils::Language;
 use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 
-// #[derive(PartialOrd, PartialEq, Debug)]
 pub(crate) enum TypeIdAndValue<'a> {
     I32(&'a i32),
     I64(&'a i64),
@@ -149,7 +148,7 @@ impl<'a> TypeIdAndValue<'a> {
                                         UnexpectedTypeInArray::new(
                                             location.clone(),
                                             tp.degrade().typename(),
-                                            TypeId::String.typename(),
+                                            TypeId::LibraryReference.typename(),
                                             idx,
                                         )
                                         .with_docs_location_opt(match docs {

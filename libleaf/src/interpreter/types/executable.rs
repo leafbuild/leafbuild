@@ -42,6 +42,9 @@ impl Executable {
     pub(crate) fn get_include_dirs(&self) -> &Vec<String> {
         &self.include_dirs
     }
+    pub(crate) fn get_dependencies(&self) -> &Vec<Box<dyn Dependency>> {
+        &self.dependencies
+    }
 }
 
 pub(crate) struct ExeRef {

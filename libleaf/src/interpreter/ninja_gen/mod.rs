@@ -7,8 +7,11 @@ use libutils::{
     generators::{ninja::*, *},
 };
 
+use crate::interpreter::types::LibType;
 use crate::interpreter::Env;
 use itertools::Itertools;
+use libutils::compilers::flags::CompilationFlag;
+use libutils::utils::{get_ar, Language};
 
 pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>> {
     let ninja_file = dir.join("build.ninja");
@@ -25,59 +28,74 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
 
     let signal_build_failure = env.imut.diagnostics_ctx.get_signal_build_failure();
 
-    let internal_compilation_failed_call = " || $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
-    let internal_linking_failed_call = " || $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
+    let internal_compilation_failed_call = "|| $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
+    let internal_linking_failed_call = "|| $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
 
     let cc_compile = gen.new_rule(
         "cc_compile",
         NinjaCommand::new(format!(
-            "$CC -MD -MF $out.d $include_dirs $in -c -o $out $CC_FLAGS{}",
+            "$CC ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
+            Language::C.get_compilation_flags_varname(),
             if signal_build_failure {
                 internal_compilation_failed_call
             } else {
                 ""
             }
         )),
-        vec![NinjaVariable::new("depfile", "$out.d")],
+        vec![
+            NinjaVariable::new("depfile", "$out.d"),
+            NinjaVariable::new("description", "Compiling C object $out"),
+        ],
     );
     let cc_link = gen.new_rule(
         "cc_link",
         NinjaCommand::new(format!(
-            "$CC $in -o $out $CCLD_FLAGS{}",
+            "$CC $in -o $out ${} {}",
+            Language::C.get_link_flags_varname(),
             if signal_build_failure {
                 internal_linking_failed_call
             } else {
                 ""
             }
         )),
-        vec![],
+        vec![NinjaVariable::new("description", "Compiling C object $out")],
     );
 
     let cxx_compile = gen.new_rule(
         "cxx_compile",
         NinjaCommand::new(format!(
-            "$CXX -MD -MF $out.d $include_dirs $in -c -o $out $CXX_FLAGS{}",
+            "$CXX ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
+            Language::CPP.get_compilation_flags_varname(),
             if signal_build_failure {
                 internal_compilation_failed_call
             } else {
                 ""
             }
         )),
-        vec![NinjaVariable::new("depfile", "$out.d")],
+        vec![
+            NinjaVariable::new("depfile", "$out.d"),
+            NinjaVariable::new("description", "Compiling C++ object $out"),
+        ],
     );
     let cxx_link = gen.new_rule(
         "cxx_link",
         NinjaCommand::new(format!(
-            "$CXX $in -o $out $CXXLD_FLAGS{}",
+            "$CXX $in -o $out ${} {}",
+            Language::CPP.get_link_flags_varname(),
             if signal_build_failure {
                 internal_linking_failed_call
             } else {
                 ""
             }
         )),
-        vec![],
+        vec![NinjaVariable::new("description", "Linking C++ object $out")],
     );
 
+    let make_static_lib = gen.new_rule(
+        "make_static_lib",
+        NinjaCommand::new("$AR rcs $out $in"),
+        vec![],
+    );
     let cc = env.mut_.get_and_cache_cc();
     let cc_loc = cc.get_location();
     gen.new_global_value("CC", cc_loc.to_string_lossy());
@@ -86,10 +104,8 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
     let cxx_loc = cxx.get_location();
     gen.new_global_value("CXX", cxx_loc.to_string_lossy());
 
-    enum Lang {
-        C,
-        CPP,
-    };
+    let ar_loc = get_ar().unwrap();
+    gen.new_global_value("AR", ar_loc.to_string_lossy());
 
     env.mut_.executables.iter().for_each(|exe| {
         let mut need_cxx_linker = false;
@@ -102,11 +118,11 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 let lng;
                 if CC::can_compile(src) {
                     rl = &cc_compile;
-                    lng = Lang::C;
+                    lng = Language::C;
                 } else if CXX::can_compile(src) {
                     rl = &cxx_compile;
                     need_cxx_linker = true;
-                    lng = Lang::CPP;
+                    lng = Language::CPP;
                 } else if CC::can_consume(src) || CXX::can_consume(src) {
                     return None;
                 } else {
@@ -129,12 +145,23 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                             exe.get_include_dirs()
                                 .iter()
                                 .map(|inc_dir| match lng {
-                                    Lang::C => cc.get_flag(CCFlag::IncludeDir {
+                                    Language::C => cc.get_flag(CompilationFlag::IncludeDir {
                                         include_dir: format!("../{}", inc_dir),
                                     }),
-                                    Lang::CPP => cxx.get_flag(CXXFlag::IncludeDir {
+                                    Language::CPP => cxx.get_flag(CompilationFlag::IncludeDir {
                                         include_dir: format!("../{}", inc_dir),
                                     }),
+                                })
+                                .join(" "),
+                        ),
+                        NinjaVariable::new(
+                            lng.get_compilation_flags_varname(),
+                            exe.get_dependencies()
+                                .iter()
+                                .map(|dep| dep.get_compiler_flags(lng, env))
+                                .map(|flags| match lng {
+                                    Language::C => cc.get_flags(flags),
+                                    Language::CPP => cxx.get_flags(flags),
                                 })
                                 .join(" "),
                         ),
@@ -143,12 +170,35 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 Some(NinjaRuleArg::new(t.get_name()))
             })
             .collect();
+        let lng = if need_cxx_linker {
+            Language::CPP
+        } else {
+            Language::C
+        };
         gen.new_target(
             exe.get_name(),
             if need_cxx_linker { &cxx_link } else { &cc_link },
             exe_args,
-            vec![],
-            vec![NinjaVariable::new("mod_id", exe.get_mod_id().to_string())],
+            exe.get_dependencies()
+                .iter()
+                .map(|dep| dep.get_implicit_requirements(lng, env))
+                .flatten()
+                .map(NinjaRuleArg::new)
+                .collect_vec(),
+            vec![
+                NinjaVariable::new("mod_id", exe.get_mod_id().to_string()),
+                NinjaVariable::new(
+                    lng.get_link_flags_varname(),
+                    exe.get_dependencies()
+                        .iter()
+                        .map(|dep| dep.get_linker_flags(lng, env))
+                        .map(|flags| match lng {
+                            Language::C => cc.get_linker_flags(flags),
+                            Language::CPP => cxx.get_linker_flags(flags),
+                        })
+                        .join(" "),
+                ),
+            ],
         );
     });
 
@@ -165,11 +215,11 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 let lng;
                 if CC::can_compile(src) {
                     rl = &cc_compile;
-                    lng = Lang::C;
+                    lng = Language::C;
                 } else if CXX::can_compile(src) {
                     rl = &cxx_compile;
                     need_cxx_linker = true;
-                    lng = Lang::CPP;
+                    lng = Language::CPP;
                 } else if CC::can_consume(src) || CXX::can_consume(src) {
                     return None;
                 } else {
@@ -191,15 +241,23 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                             "include_dirs",
                             lib.get_internal_include_dirs()
                                 .iter()
+                                .chain(lib.get_external_include_dirs())
                                 .map(|inc_dir| match lng {
-                                    Lang::C => cc.get_flag(CCFlag::IncludeDir {
+                                    Language::C => cc.get_flag(CompilationFlag::IncludeDir {
                                         include_dir: format!("../{}", inc_dir),
                                     }),
-                                    Lang::CPP => cxx.get_flag(CXXFlag::IncludeDir {
+                                    Language::CPP => cxx.get_flag(CompilationFlag::IncludeDir {
                                         include_dir: format!("../{}", inc_dir),
                                     }),
                                 })
                                 .join(" "),
+                        ),
+                        NinjaVariable::new(
+                            lng.get_compilation_flags_varname(),
+                            match lng {
+                                Language::C => cc.get_flags(lib.source_compilation_flags()),
+                                Language::CPP => cxx.get_flags(lib.source_compilation_flags()),
+                            },
                         ),
                     ],
                 );
@@ -207,9 +265,24 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
             })
             .collect();
         let vars = vec![NinjaVariable::new("mod_id", lib.get_mod_id().to_string())];
+        let linker = match lib.get_type() {
+            LibType::Static => &make_static_lib,
+            LibType::Shared => {
+                if need_cxx_linker
+                    || match lib.get_language() {
+                        Some(Language::CPP) => true,
+                        _ => false,
+                    }
+                {
+                    &cxx_link
+                } else {
+                    &cc_link
+                }
+            }
+        };
         gen.new_target(
             lib_type.fmt_name(lib.get_name()),
-            if need_cxx_linker { &cxx_link } else { &cc_link },
+            linker,
             lib_args,
             vec![],
             vars,

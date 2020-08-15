@@ -1,11 +1,11 @@
 use super::{Compiler, GetCompilerError};
 use std::process::Command;
 
+use crate::compilers::flags::{
+    CompilationFlag, CompilationFlags, Flag, LinkFlag, LinkFlags, CPPSTD,
+};
+use itertools::Itertools;
 use std::path::PathBuf;
-
-pub mod cxx_flags;
-use crate::compilers::cxx::cxx_flags::CPPSTD;
-pub use cxx_flags::{CXXFlag, CXXFlags, CXXLDFlag, CXXLDFlags};
 
 #[derive(Copy, Clone)]
 pub enum CXXFamily {
@@ -18,32 +18,6 @@ pub enum CXXFamily {
 pub struct CXX {
     family: CXXFamily,
     location: PathBuf,
-}
-
-impl CXX {
-    pub fn get_flag(&self, flag: CXXFlag) -> String {
-        match self.family {
-            CXXFamily::GCC | CXXFamily::Clang => match flag {
-                CXXFlag::FromString { string } => string,
-                CXXFlag::CPPSTD { std } => format!(
-                    "--cpp_std={}",
-                    match std {
-                        CPPSTD::CPP98 => "c++98",
-                        CPPSTD::CPP03 => "c++03",
-                        CPPSTD::CPP1x => "c++1x",
-                        CPPSTD::CPP1y => "c++1y",
-                        CPPSTD::CPP1z => "c++1z",
-                        CPPSTD::CPP2a => "c++2a",
-                    }
-                ),
-                CXXFlag::IncludeDir { include_dir } => format!("-I {}", include_dir),
-            },
-            CXXFamily::MSVC => {
-                // TODO add this later
-                "".to_string()
-            }
-        }
-    }
 }
 
 impl Compiler for CXX {
@@ -64,6 +38,63 @@ impl Compiler for CXX {
 
     fn get_location(&self) -> &PathBuf {
         &self.location
+    }
+
+    fn get_flag(&self, flag: CompilationFlag) -> String {
+        match self.family {
+            CXXFamily::GCC | CXXFamily::Clang => match flag {
+                CompilationFlag::FromString { s } => s,
+                CompilationFlag::CPPSTD { std } => format!(
+                    "--cpp_std={}",
+                    match std {
+                        CPPSTD::CPP98 => "c++98",
+                        CPPSTD::CPP03 => "c++03",
+                        CPPSTD::CPP1x => "c++1x",
+                        CPPSTD::CPP1y => "c++1y",
+                        CPPSTD::CPP1z => "c++1z",
+                        CPPSTD::CPP2a => "c++2a",
+                    }
+                ),
+                CompilationFlag::IncludeDir { include_dir } => format!("-I {}", include_dir),
+                CompilationFlag::Flag { flag } => format!(
+                    "-f{}",
+                    match flag {
+                        Flag::PositionIndependentCode => "PIC",
+                    }
+                ),
+                _ => "".to_string(),
+            },
+            CXXFamily::MSVC => {
+                // TODO add this later
+                "".to_string()
+            }
+        }
+    }
+
+    fn get_linker_flag(&self, flag: LinkFlag) -> String {
+        match self.family {
+            CXXFamily::GCC | CXXFamily::Clang => match flag {
+                LinkFlag::FromString { s } => s,
+                LinkFlag::LibLocation { s: loc } => format!("-L {}", loc),
+                LinkFlag::Lib { name } => format!("-l{}", name),
+            },
+
+            CXXFamily::MSVC => match flag {
+                LinkFlag::FromString { s } => s,
+                _ => "".to_string(),
+            },
+        }
+    }
+
+    fn get_flags(&self, flags: CompilationFlags) -> String {
+        flags.into_flags_iter().map(|f| self.get_flag(f)).join(" ")
+    }
+
+    fn get_linker_flags(&self, flags: LinkFlags) -> String {
+        flags
+            .into_flags_iter()
+            .map(|f| self.get_linker_flag(f))
+            .join(" ")
     }
 }
 

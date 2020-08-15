@@ -32,6 +32,7 @@ use crate::{
         },
     },
 };
+use libutils::utils::Language;
 
 #[path = "diagnostics/diagnostics.rs"]
 pub(crate) mod diagnostics;
@@ -133,6 +134,14 @@ impl EnvMut {
             let cxx = get_cxx().expect("Cannot find CXX");
             self.cxx = Some(cxx);
         }
+        self.cxx.as_ref().unwrap().clone()
+    }
+
+    pub(crate) fn get_cached_cc(&self) -> CC {
+        self.cc.as_ref().unwrap().clone()
+    }
+
+    pub(crate) fn get_cached_cxx(&self) -> CXX {
         self.cxx.as_ref().unwrap().clone()
     }
 }
@@ -277,6 +286,8 @@ impl<'env> EnvFrame<'env> {
         type_: LibType,
         sources: Vec<String>,
         internal_include_dirs: Vec<String>,
+        external_include_dirs: Vec<String>,
+        language: Option<Language>,
     ) -> &Library {
         let id = self.env_mut_ref.lib_id;
         self.env_frame_data.lib_decls.push(Library::new(
@@ -286,6 +297,8 @@ impl<'env> EnvFrame<'env> {
             type_,
             sources,
             internal_include_dirs,
+            external_include_dirs,
+            language,
         ));
         self.env_mut_ref.lib_id += 1;
         self.env_frame_data.lib_decls.last().unwrap()

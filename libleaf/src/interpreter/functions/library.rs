@@ -78,7 +78,61 @@ fn get_library_executor() -> CallExecutor {
                 },
                 None => vec![],
             };
-            let lib = frame.new_library(library_name, type_, sources, internal_include_dirs);
+            let external_include_dirs = match args
+                .get_named_args()
+                .iter()
+                .find(|arg| arg.get_name() == "external_include_dirs")
+            {
+                Some(v) => match v
+                    .get_value()
+                    .eval_in_env(frame)
+                    .get_type_id_and_value()
+                    .to_vec_of_string(
+                        v.get_rng(),
+                        Some(LIBRARY_FUNCTION_DOCS),
+                        frame.get_diagnostics_ctx(),
+                    ) {
+                    Some(vec) => vec,
+                    None => return Value::new(Box::new(ErrorValue::new())),
+                },
+                None => vec![],
+            };
+            let language = match args
+                .get_named_args()
+                .iter()
+                .find(|arg| arg.get_name() == "language")
+            {
+                Some(l) => match l
+                    .get_value()
+                    .eval_in_env(frame)
+                    .get_type_id_and_value_required(TypeId::String)
+                {
+                    Ok(s) => match s.get_string().unwrap() as &str {
+                        "c" | "C" => Some(Language::C),
+                        "cpp" | "CPP" | "c++" | "C++" => Some(Language::CPP),
+                        _ => None,
+                    },
+                    Err(tp) => {
+                        diagnostics::push_diagnostic(
+                            ExpectedTypeError::new(
+                                TypeId::String.typename(),
+                                ExprLocAndType::new(l.get_value().get_rng(), tp.typename()),
+                            ),
+                            frame,
+                        );
+                        None
+                    }
+                },
+                None => None,
+            };
+            let lib = frame.new_library(
+                library_name,
+                type_,
+                sources,
+                internal_include_dirs,
+                external_include_dirs,
+                language,
+            );
             Value::new(Box::new(lib.make_ref()))
         },
         vec!["lib".to_string()],

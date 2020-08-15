@@ -8,6 +8,7 @@ library (
         files,
         [internal_includes: internal_includes],
         [external_includes: external_includes],
+        [language: language],
 )
 ```
 
