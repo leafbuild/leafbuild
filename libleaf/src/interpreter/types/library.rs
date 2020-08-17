@@ -119,12 +119,19 @@ impl ValueTypeMarker for LibRef {
 
 impl Dependency for LibRef {
     fn get_compiler_flags(&self, language: Language, env: &Env) -> CompilationFlags {
+        let lib = self.get_lib_in_env(env);
         CompilationFlags::new(
-            self.get_lib_in_env(env)
-                .external_include_dirs
+            lib.external_include_dirs
                 .iter()
                 .map(|inc_dir| CompilationFlag::IncludeDir {
-                    include_dir: format!("../{}", inc_dir),
+                    include_dir: env
+                        .get_root_path_for_module(lib.mod_id)
+                        .unwrap()
+                        .clone()
+                        .join(inc_dir)
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
                 })
                 .collect_vec(),
         )

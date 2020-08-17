@@ -7,29 +7,17 @@ use std::{
 
 use lalrpop_util::ParseError;
 
-use libutils::{
-    compilers::{
-        cc::{get_cc, CC},
-        cxx::{get_cxx, CXX},
-    },
-    generators::*,
+use libutils::compilers::{
+    cc::{get_cc, CC},
+    cxx::{get_cxx, CXX},
 };
 
-use crate::interpreter::diagnostics::warnings::VarNameInPrelude;
-use crate::interpreter::types::{
-    resolve_executable_property_access, resolve_lib_type_property_access,
-    resolve_library_property_access, resolve_map_pair_property_access, Dependency, Executable,
-    LibType, Library, MapPair,
-};
 use crate::{
     grammar::{self, ast::*, lexer::LexicalError, TokLoc},
     handle::Handle,
     interpreter::{
-        diagnostics::{errors::*, push_diagnostic_ctx, DiagnosticsCtx, Location},
-        types::{
-            resolve_map_property_access, resolve_num_property_access, resolve_str_property_access,
-            resolve_vec_property_access, TypeId, TypeIdAndValue,
-        },
+        diagnostics::{errors::*, push_diagnostic_ctx, warnings::*, DiagnosticsCtx, Location},
+        types::*,
     },
 };
 use libutils::utils::Language;
@@ -101,6 +89,17 @@ pub(crate) struct EnvImut {
     prelude_values: HashMap<String, Value<Box<dyn ValueTypeMarker>>>,
 }
 
+pub(crate) struct EnvModData {
+    mod_id: usize,
+    path: PathBuf,
+}
+
+impl EnvModData {
+    pub(crate) fn new(mod_id: usize, path: PathBuf) -> Self {
+        Self { mod_id, path }
+    }
+}
+
 pub(crate) struct EnvMut {
     /// the current executable id we are at, universally unique
     exec_id: usize,
@@ -110,6 +109,8 @@ pub(crate) struct EnvMut {
 
     /// the current module id we are at, universally unique
     mod_id: usize,
+
+    modules: Vec<EnvModData>,
 
     /// the C compiler, if necessary
     cc: Option<CC>,
@@ -172,6 +173,7 @@ impl Env {
                 cxx: None,
                 executables: vec![],
                 libraries: vec![],
+                modules: vec![],
             },
         }
     }
@@ -183,6 +185,18 @@ impl Env {
         }
 
         ninja_gen::write_to(self, buf)
+    }
+
+    pub(crate) fn get_root_path_for_module(&self, mod_id: usize) -> Option<&PathBuf> {
+        Some(
+            &self
+                .mut_
+                .modules
+                .get(
+                    mod_id - 1, /*modules start at 1 so we must shift this by 1*/
+                )?
+                .path,
+        )
     }
 }
 
@@ -210,6 +224,7 @@ pub(crate) struct EnvFrame<'env> {
     env_frame_data: EnvFrameData,
     file_id: usize,
     fr_type: EnvFrameType,
+    root_path: PathBuf,
 }
 
 impl<'env> EnvFrame<'env> {
@@ -313,6 +328,9 @@ impl<'env> EnvFrame<'env> {
 }
 
 pub struct EnvFrameData {
+    mod_id: usize,
+    root_path: PathBuf,
+
     /// the executables that need to be built and are private
     exe_decls: Vec<Executable>,
     /// the executables accessible from the outer build system
@@ -325,6 +343,9 @@ pub struct EnvFrameData {
 }
 
 pub(crate) struct EnvFrameReturns {
+    mod_id: usize,
+    root_path: PathBuf,
+
     exe_decls: Vec<Executable>,
     pub_exe_decls: Vec<Executable>,
 
@@ -333,12 +354,14 @@ pub(crate) struct EnvFrameReturns {
 }
 
 impl EnvFrameData {
-    pub(crate) fn empty() -> Self {
+    pub(crate) fn empty(root_path: PathBuf) -> Self {
         Self {
             exe_decls: vec![],
             pub_exe_decls: vec![],
             lib_decls: vec![],
             pub_lib_decls: vec![],
+            mod_id: 0,
+            root_path,
         }
     }
 }
@@ -346,6 +369,8 @@ impl EnvFrameData {
 impl From<EnvFrameData> for EnvFrameReturns {
     fn from(r: EnvFrameData) -> Self {
         Self {
+            mod_id: r.mod_id,
+            root_path: r.root_path,
             exe_decls: r.exe_decls,
             pub_exe_decls: r.pub_exe_decls,
             lib_decls: r.lib_decls,
@@ -368,6 +393,10 @@ impl EnvFrameReturns {
         self.pub_lib_decls
             .iter()
             .for_each(|lib| env.mut_.libraries.push(lib.clone()));
+
+        env.mut_
+            .modules
+            .push(EnvModData::new(self.mod_id, self.root_path))
     }
 }
 
@@ -570,15 +599,21 @@ pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
     env.imut.diagnostics_ctx.new_file(file, src)
 }
 
-pub(crate) fn interpret<'env>(env: &'env mut Env, program: &'_ AstProgram, file_id: usize) {
+pub(crate) fn interpret<'env>(
+    env: &'env mut Env,
+    program: &'_ AstProgram,
+    file_id: usize,
+    root_path: PathBuf,
+) {
     let statements = program.get_statements();
     let mut frame = EnvFrame {
         variables: HashMap::new(),
-        env_frame_data: EnvFrameData::empty(),
+        env_frame_data: EnvFrameData::empty(root_path.clone()),
         env_ref: &env.imut,
         env_mut_ref: &mut env.mut_,
         file_id,
         fr_type: EnvFrameType::Unknown,
+        root_path,
     };
 
     statements.iter().for_each(|statement| {
@@ -602,7 +637,7 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
     );
     match result {
         Ok(program) => {
-            interpret(&mut handle.env, &program, file_id);
+            interpret(&mut handle.env, &program, file_id, PathBuf::from(proj_path));
             handle.write_results();
         }
         Err(e) => {

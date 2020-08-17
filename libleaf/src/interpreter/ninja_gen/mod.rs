@@ -58,7 +58,7 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 ""
             }
         )),
-        vec![NinjaVariable::new("description", "Compiling C object $out")],
+        vec![NinjaVariable::new("description", "Linking C object $out")],
     );
 
     let cxx_compile = gen.new_rule(
@@ -144,13 +144,20 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                             "include_dirs",
                             exe.get_include_dirs()
                                 .iter()
-                                .map(|inc_dir| match lng {
-                                    Language::C => cc.get_flag(CompilationFlag::IncludeDir {
-                                        include_dir: format!("../{}", inc_dir),
-                                    }),
-                                    Language::CPP => cxx.get_flag(CompilationFlag::IncludeDir {
-                                        include_dir: format!("../{}", inc_dir),
-                                    }),
+                                .map(|inc_dir| {
+                                    let flag = CompilationFlag::IncludeDir {
+                                        include_dir: env
+                                            .get_root_path_for_module(exe.get_mod_id())
+                                            .unwrap()
+                                            .clone()
+                                            .join(PathBuf::from(inc_dir))
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    };
+                                    match lng {
+                                        Language::C => cc.get_flag(flag),
+                                        Language::CPP => cxx.get_flag(flag),
+                                    }
                                 })
                                 .join(" "),
                         ),
@@ -242,13 +249,20 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                             lib.get_internal_include_dirs()
                                 .iter()
                                 .chain(lib.get_external_include_dirs())
-                                .map(|inc_dir| match lng {
-                                    Language::C => cc.get_flag(CompilationFlag::IncludeDir {
-                                        include_dir: format!("../{}", inc_dir),
-                                    }),
-                                    Language::CPP => cxx.get_flag(CompilationFlag::IncludeDir {
-                                        include_dir: format!("../{}", inc_dir),
-                                    }),
+                                .map(|inc_dir| {
+                                    let flag = CompilationFlag::IncludeDir {
+                                        include_dir: env
+                                            .get_root_path_for_module(lib.get_mod_id())
+                                            .unwrap()
+                                            .clone()
+                                            .join(PathBuf::from(inc_dir))
+                                            .to_string_lossy()
+                                            .to_string(),
+                                    };
+                                    match lng {
+                                        Language::C => cc.get_flag(flag),
+                                        Language::CPP => cxx.get_flag(flag),
+                                    }
                                 })
                                 .join(" "),
                         ),

@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use std::path::PathBuf;
 
 pub(crate) enum TypeIdAndValue<'a> {
     I32(&'a i32),
