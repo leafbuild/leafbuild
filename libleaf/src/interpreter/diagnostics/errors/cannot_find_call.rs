@@ -20,7 +20,7 @@ impl CannotFindCallError {
 }
 
 impl LeafDiagnosticTrait for CannotFindCallError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Cannot find call")
             .with_code(CANNOT_FIND_CALL_ERROR)

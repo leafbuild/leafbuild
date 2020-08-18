@@ -1,5 +1,6 @@
 use crate::interpreter::diagnostics::errors::{ExpectedTypeError, VariableNotFoundError};
 use crate::interpreter::diagnostics::push_diagnostic;
+use crate::interpreter::Variable;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{
@@ -249,13 +250,10 @@ impl Expr {
     ) -> Result<ValRefMut<'a, Box<dyn ValueTypeMarker>>, TakeRefError> {
         match self {
             Expr::Atom(atom) => match atom {
-                Atom::Id((name, _)) => Ok(ValRefMut::new(
-                    frame
-                        .get_variables_mut()
-                        .get_mut(name)
-                        .unwrap()
-                        .get_value_mut(),
-                )),
+                Atom::Id((name, _)) => match frame.get_variables_mut().get_mut(name) {
+                    Some(v) => Ok(ValRefMut::new(v.get_value_mut())),
+                    None => Err(TakeRefError::new(self.get_rng(), "a non-existent variable")),
+                },
                 Atom::Number((_, loc)) => Err(TakeRefError::new(loc.as_rng(), "a number literal")),
                 Atom::Str((_, loc)) => Err(TakeRefError::new(loc.as_rng(), "a string literal")),
                 Atom::Bool((_v, loc)) => Err(TakeRefError::new(loc.as_rng(), "a bool literal")),
@@ -428,41 +426,66 @@ impl Opcode {
         frame: &mut EnvFrame,
     ) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
-            Opcode::Add => interpreter::ops::op_add(
+            Opcode::Add => match interpreter::ops::op_add(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::Sub => interpreter::ops::op_sub(
+            ) {
+                (v, Ok(())) => v,
+                (v, Err(diagnostic)) => {
+                    diagnostics::push_diagnostic(diagnostic, frame);
+                    v
+                }
+            },
+            Opcode::Sub => match interpreter::ops::op_sub(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::Mul => interpreter::ops::op_mul(
+            ) {
+                (v, Ok(())) => v,
+                (v, Err(diagnostic)) => {
+                    diagnostics::push_diagnostic(diagnostic, frame);
+                    v
+                }
+            },
+            Opcode::Mul => match interpreter::ops::op_mul(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::Div => interpreter::ops::op_div(
+            ) {
+                (v, Ok(())) => v,
+                (v, Err(diagnostic)) => {
+                    diagnostics::push_diagnostic(diagnostic, frame);
+                    v
+                }
+            },
+            Opcode::Div => match interpreter::ops::op_div(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::Mod => interpreter::ops::op_mod(
+            ) {
+                (v, Ok(())) => v,
+                (v, Err(diagnostic)) => {
+                    diagnostics::push_diagnostic(diagnostic, frame);
+                    v
+                }
+            },
+            Opcode::Mod => match interpreter::ops::op_mod(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),
                 &rs.eval_in_env(frame),
                 rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
+            ) {
+                (v, Ok(())) => v,
+                (v, Err(diagnostic)) => {
+                    diagnostics::push_diagnostic(diagnostic, frame);
+                    v
+                }
+            },
             Opcode::And => interpreter::ops::op_and(
                 &ls.eval_in_env(frame),
                 ls.get_rng(),

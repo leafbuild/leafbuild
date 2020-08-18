@@ -11,7 +11,7 @@ use codespan_reporting::{
     term,
     term::termcolor::{ColorChoice, StandardStream},
 };
-use std::ops::Range;
+use std::ops::{Deref, Range};
 
 /// the diagnostic type
 pub(crate) struct LeafDiagnostic {
@@ -148,8 +148,21 @@ impl Into<Label<usize>> for LeafLabel {
 }
 
 pub(crate) trait LeafDiagnosticTrait {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic;
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic;
     fn should_print(&self, ctx: &DiagnosticsCtx) -> bool;
+}
+
+impl<T> LeafDiagnosticTrait for Box<T>
+where
+    T: LeafDiagnosticTrait + ?Sized,
+{
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+        T::get_diagnostic(self.deref(), ctx)
+    }
+
+    fn should_print(&self, ctx: &DiagnosticsCtx) -> bool {
+        T::should_print(self.deref(), ctx)
+    }
 }
 
 /// the diagnostics context

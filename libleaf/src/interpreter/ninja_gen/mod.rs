@@ -26,7 +26,7 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
             .to_string_lossy(),
     );
 
-    let signal_build_failure = env.imut.diagnostics_ctx.get_signal_build_failure();
+    let signal_build_failure = env.mut_.diagnostics_ctx.get_signal_build_failure();
 
     let internal_compilation_failed_call = "|| $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
     let internal_linking_failed_call = "|| $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";

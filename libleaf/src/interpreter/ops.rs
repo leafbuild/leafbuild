@@ -1,3 +1,4 @@
+use crate::interpreter::diagnostics::LeafDiagnosticTrait;
 use crate::interpreter::{
     diagnostics::{
         self,
@@ -9,77 +10,70 @@ use crate::interpreter::{
 };
 
 macro_rules! op_match {
-    ($a:expr, $a_rng:expr, $op:tt, $b:expr, $b_rng:expr, $ctx:expr $(, $($x:pat => $y:expr),*)?) => {
+    ($a:expr, $a_rng:expr, $op:tt, $b:expr, $b_rng:expr $(, $($x:pat => $y:expr),*)?) => {
         match (
             $a.get_value().get_type_id_and_value(),
             $b.get_value().get_type_id_and_value(),
         ) {
             (TypeIdAndValue::Error, tright) => {
-                diagnostics::push_diagnostic_ctx(errors::OpsTypeErrorError::new(
+                (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeErrorError::new(
                         $a_rng, Some(ExprLocAndType::new($b_rng, tright.degrade().typename()))
-                ), $ctx);
-                Value::new(Box::new(ErrorValue::new()))
+                ))))
             },
             (tleft, TypeIdAndValue::Error) => {
-                diagnostics::push_diagnostic_ctx(errors::OpsTypeErrorError::new(
+                (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeErrorError::new(
                         $b_rng, Some(ExprLocAndType::new($a_rng, tleft.degrade().typename()))
-                ), $ctx);
-                Value::new(Box::new(ErrorValue::new()))
+                ))))
             },
             $($($x => $y),*,)?
             (TypeIdAndValue::I32(leftval), tright) => match tright {
-                TypeIdAndValue::I32(rightval) => Value::new(Box::new(*leftval $op *rightval)),
+                TypeIdAndValue::I32(rightval) => (Value::new(Box::new(*leftval $op *rightval)), Ok(())),
                 TypeIdAndValue::I64(rightval) => {
-                    Value::new(Box::new(*leftval as i64 $op *rightval))
+                    (Value::new(Box::new(*leftval as i64 $op *rightval)), Ok(()))
                 }
                 _ => {
-                    diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
+                    (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeError::new(
                             ExprLocAndType::new($a_rng, TypeId::I32.typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
-                    ), $ctx);
-                    Value::new(Box::new(ErrorValue::new()))
+                    ))))
                 },
             },
             (TypeIdAndValue::I64(leftval), tright) => match tright {
                 TypeIdAndValue::I32(rightval) => {
-                    Value::new(Box::new(*leftval $op (*rightval as i64)))
+                    (Value::new(Box::new(*leftval $op (*rightval as i64))), Ok(()))
                 }
-                TypeIdAndValue::I64(rightval) => Value::new(Box::new(*leftval $op *rightval)),
+                TypeIdAndValue::I64(rightval) => (Value::new(Box::new(*leftval $op *rightval)), Ok(())),
                 _ => {
-                    diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
+                    (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeError::new(
                             ExprLocAndType::new($a_rng, TypeId::I64.typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
-                    ), $ctx);
-                    Value::new(Box::new(ErrorValue::new()))
+                    ))))
                 },
             },
             (TypeIdAndValue::U32(leftval), tright) => match tright {
-                TypeIdAndValue::U32(rightval) => Value::new(Box::new(*leftval $op *rightval)),
+                TypeIdAndValue::U32(rightval) => (Value::new(Box::new(*leftval $op *rightval)), Ok(())),
                 TypeIdAndValue::U64(rightval) => {
-                    Value::new(Box::new(*leftval as u64 $op *rightval))
+                    (Value::new(Box::new(*leftval as u64 $op *rightval)), Ok(()))
                 }
                 _ => {
-                    diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
+                    (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeError::new(
                             ExprLocAndType::new($a_rng, TypeId::U32.typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
-                    ), $ctx);
-                    Value::new(Box::new(ErrorValue::new()))
+                    ))))
                 },
             },
             (TypeIdAndValue::U64(leftval), tright) => match tright {
                 TypeIdAndValue::U32(rightval) => {
-                    Value::new(Box::new(*leftval $op (*rightval as u64)))
+                    (Value::new(Box::new(*leftval $op (*rightval as u64))), Ok(()))
                 }
-                TypeIdAndValue::U64(rightval) => Value::new(Box::new(*leftval $op *rightval)),
+                TypeIdAndValue::U64(rightval) => (Value::new(Box::new(*leftval $op *rightval)), Ok(())),
                 _ => {
-                    diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
+                    (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeError::new(
                             ExprLocAndType::new($a_rng, TypeId::U64.typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
-                    ), $ctx);
-                    Value::new(Box::new(ErrorValue::new()))
+                    ))))
                 },
             },
             (tleft, tright) => {
-                    diagnostics::push_diagnostic_ctx(errors::OpsTypeError::new(
+                    (Value::new(Box::new(ErrorValue::new())), Err(Box::new(errors::OpsTypeError::new(
                             ExprLocAndType::new($a_rng, tleft.degrade().typename()), ExprLocAndType::new($b_rng, tright.degrade().typename())
-                    ), $ctx);
-                    Value::new(Box::new(ErrorValue::new()))
+                    ))))
                 },
         }
     };
@@ -90,19 +84,21 @@ pub(crate) fn op_add(
     left_range: Location,
     rs: &Value<Box<dyn ValueTypeMarker>>,
     right_range: Location,
-    ctx: &DiagnosticsCtx,
-) -> Value<Box<dyn ValueTypeMarker>> {
-    op_match!(ls, left_range, +, rs, right_range, ctx,
-    (TypeIdAndValue::String(left), tright) => Value::new(Box::new(format!(
+) -> (
+    Value<Box<dyn ValueTypeMarker>>,
+    Result<(), Box<dyn LeafDiagnosticTrait>>,
+) {
+    op_match!(ls, left_range, +, rs, right_range,
+    (TypeIdAndValue::String(left), tright) => (Value::new(Box::new(format!(
         "{}{}",
         left,
         tright.stringify()
-    ))),
-    (tleft, TypeIdAndValue::String(right)) => Value::new(Box::new(format!(
+    ))), Ok(())),
+    (tleft, TypeIdAndValue::String(right)) => (Value::new(Box::new(format!(
         "{}{}",
         tleft.stringify(),
         right
-    ))))
+    ))), Ok(())))
 }
 
 pub(crate) fn op_sub(
@@ -110,36 +106,44 @@ pub(crate) fn op_sub(
     left_range: Location,
     rs: &Value<Box<dyn ValueTypeMarker>>,
     right_range: Location,
-    ctx: &DiagnosticsCtx,
-) -> Value<Box<dyn ValueTypeMarker>> {
-    op_match!(ls, left_range, -, rs, right_range, ctx)
+) -> (
+    Value<Box<dyn ValueTypeMarker>>,
+    Result<(), Box<dyn LeafDiagnosticTrait>>,
+) {
+    op_match!(ls, left_range, -, rs, right_range)
 }
 pub(crate) fn op_mul(
     ls: &Value<Box<dyn ValueTypeMarker>>,
     left_range: Location,
     rs: &Value<Box<dyn ValueTypeMarker>>,
     right_range: Location,
-    ctx: &DiagnosticsCtx,
-) -> Value<Box<dyn ValueTypeMarker>> {
-    op_match!(ls, left_range, *, rs, right_range, ctx)
+) -> (
+    Value<Box<dyn ValueTypeMarker>>,
+    Result<(), Box<dyn LeafDiagnosticTrait>>,
+) {
+    op_match!(ls, left_range, *, rs, right_range)
 }
 pub(crate) fn op_div(
     ls: &Value<Box<dyn ValueTypeMarker>>,
     left_range: Location,
     rs: &Value<Box<dyn ValueTypeMarker>>,
     right_range: Location,
-    ctx: &DiagnosticsCtx,
-) -> Value<Box<dyn ValueTypeMarker>> {
-    op_match!(ls, left_range, /, rs, right_range, ctx)
+) -> (
+    Value<Box<dyn ValueTypeMarker>>,
+    Result<(), Box<dyn LeafDiagnosticTrait>>,
+) {
+    op_match!(ls, left_range, /, rs, right_range)
 }
 pub(crate) fn op_mod(
     ls: &Value<Box<dyn ValueTypeMarker>>,
     left_range: Location,
     rs: &Value<Box<dyn ValueTypeMarker>>,
     right_range: Location,
-    ctx: &DiagnosticsCtx,
-) -> Value<Box<dyn ValueTypeMarker>> {
-    op_match!(ls, left_range, %, rs, right_range, ctx)
+) -> (
+    Value<Box<dyn ValueTypeMarker>>,
+    Result<(), Box<dyn LeafDiagnosticTrait>>,
+) {
+    op_match!(ls, left_range, %, rs, right_range)
 }
 
 pub(crate) fn op_and<'a>(

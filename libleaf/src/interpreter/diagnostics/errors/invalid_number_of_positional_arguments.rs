@@ -29,16 +29,16 @@ impl InvalidNumberOfPositionalArguments {
 }
 
 impl LeafDiagnosticTrait for InvalidNumberOfPositionalArguments {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         match (
-            self.docs_location,
+            self.docs_location.clone(),
             LeafDiagnostic::error()
                 .with_message("Invalid number of positional arguments passed to function/method")
                 .with_code(INVALID_NUMBER_OF_POSITIONAL_ARGUMENTS)
                 .with_labels(vec![
-                    LeafLabel::primary(ctx.get_current_file(), self.positional_args_loc)
+                    LeafLabel::primary(ctx.get_current_file(), self.positional_args_loc.clone())
                         .with_message(format!("Got {} positional arguments", self.found)),
-                    LeafLabel::secondary(ctx.get_current_file(), self.name_token_location)
+                    LeafLabel::secondary(ctx.get_current_file(), self.name_token_location.clone())
                         .with_message(format!("Needed {}", self.required)),
                 ]),
         ) {

@@ -19,7 +19,7 @@ impl UnknownPropertyError {
 }
 
 impl LeafDiagnosticTrait for UnknownPropertyError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message(format!(
                 "Trying to access unknown property `{}' on type `{}'",
@@ -27,9 +27,9 @@ impl LeafDiagnosticTrait for UnknownPropertyError {
             ))
             .with_code(UNKNOWN_PROPERTY_ERROR)
             .with_labels(vec![
-                LeafLabel::primary(ctx.get_current_file(), self.property_location)
+                LeafLabel::primary(ctx.get_current_file(), self.property_location.clone())
                     .with_message("here"),
-                LeafLabel::secondary(ctx.get_current_file(), self.base.loc)
+                LeafLabel::secondary(ctx.get_current_file(), self.base.loc.clone())
                     .with_message(format!("base here, of type `{}'", self.base.type_)),
             ])
     }

@@ -82,7 +82,6 @@ impl Default for EnvConfig {
 }
 
 pub(crate) struct EnvImut {
-    diagnostics_ctx: DiagnosticsCtx,
     call_pools: CallPoolsWrapper,
     config: EnvConfig,
 
@@ -119,6 +118,8 @@ pub(crate) struct EnvMut {
 
     executables: Vec<Executable>,
     libraries: Vec<Library>,
+
+    diagnostics_ctx: DiagnosticsCtx,
 }
 
 impl EnvMut {
@@ -155,17 +156,12 @@ pub(crate) struct Env {
 impl Env {
     pub(crate) fn new(cfg: EnvConfig) -> Self {
         Self {
-            imut: EnvImut {
+            mut_: EnvMut {
                 diagnostics_ctx: DiagnosticsCtx::new(
                     cfg.angry_errors_enabled,
                     cfg.error_cascade_enabled,
                     cfg.signal_build_failure,
                 ),
-                call_pools: CallPoolsWrapper::new(),
-                config: cfg,
-                prelude_values: prelude_values::get_prelude_values(),
-            },
-            mut_: EnvMut {
                 exec_id: 0,
                 lib_id: 0,
                 mod_id: 1,
@@ -174,6 +170,11 @@ impl Env {
                 executables: vec![],
                 libraries: vec![],
                 modules: vec![],
+            },
+            imut: EnvImut {
+                call_pools: CallPoolsWrapper::new(),
+                config: cfg,
+                prelude_values: prelude_values::get_prelude_values(),
             },
         }
     }
@@ -242,8 +243,8 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
-    pub(crate) fn get_diagnostics_ctx(&self) -> &'env DiagnosticsCtx {
-        &self.env_ref.diagnostics_ctx
+    pub(crate) fn get_diagnostics_ctx(&'env self) -> &'env DiagnosticsCtx {
+        &self.env_mut_ref.diagnostics_ctx
     }
 
     #[inline]
@@ -596,7 +597,7 @@ where
 }
 
 pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
-    env.imut.diagnostics_ctx.new_file(file, src)
+    env.mut_.diagnostics_ctx.new_file(file, src)
 }
 
 pub(crate) fn interpret<'env>(
@@ -666,7 +667,7 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
                     }
                 },
             };
-            push_diagnostic_ctx(syntax_error, &handle.env.imut.diagnostics_ctx)
+            push_diagnostic_ctx(syntax_error, &handle.env.mut_.diagnostics_ctx)
         }
     }
 }

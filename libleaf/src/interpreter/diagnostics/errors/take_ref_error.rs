@@ -14,14 +14,15 @@ impl TakeRefError {
 }
 
 impl LeafDiagnosticTrait for TakeRefError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Cannot take a reference from a non-id")
             .with_code(TAKE_REF_ERROR)
             .with_labels(vec![LeafLabel::primary(
                 ctx.get_current_file(),
-                self.location,
-            )])
+                self.location.clone(),
+            )
+            .with_message(self.from.clone())])
     }
 
     fn should_print(&self, _: &DiagnosticsCtx) -> bool {

@@ -9,15 +9,15 @@ impl InvalidIndexBaseError {
 }
 
 impl LeafDiagnosticTrait for InvalidIndexBaseError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Invalid base for indexed expression")
             .with_code(INVALID_INDEX_BASE_ERROR)
             .with_labels(vec![LeafLabel::primary(
                 ctx.get_current_file(),
-                self.loc_and_type.loc,
+                self.loc_and_type.loc.clone(),
             )
-            .with_message(self.loc_and_type.type_)])
+            .with_message(self.loc_and_type.type_.clone())])
     }
 
     fn should_print(&self, _: &DiagnosticsCtx) -> bool {

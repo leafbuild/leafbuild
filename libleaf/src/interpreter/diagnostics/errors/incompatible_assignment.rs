@@ -25,15 +25,15 @@ impl IncompatibleAssignmentError {
 }
 
 impl LeafDiagnosticTrait for IncompatibleAssignmentError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Incompatible assignment")
             .with_code(INCOMPATIBLE_ASSIGNMENT_ERROR)
             .with_labels(vec![
-                LeafLabel::primary(ctx.get_current_file(), self.ref_location)
-                    .with_message(self.old_value_type),
-                LeafLabel::secondary(ctx.get_current_file(), self.new_value_location)
-                    .with_message(self.new_value_type),
+                LeafLabel::primary(ctx.get_current_file(), self.ref_location.clone())
+                    .with_message(self.old_value_type.clone()),
+                LeafLabel::secondary(ctx.get_current_file(), self.new_value_location.clone())
+                    .with_message(self.new_value_type.clone()),
             ])
             .with_notes(vec![format!(
                 "it will keep it's previous value of `{}`",

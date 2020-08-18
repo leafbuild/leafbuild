@@ -13,13 +13,15 @@ impl SyntaxError {
 }
 
 impl LeafDiagnosticTrait for SyntaxError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Syntax error")
             .with_code(SYNTAX_ERROR)
-            .with_labels(vec![
-                LeafLabel::primary(ctx.current_file, self.location).with_message(self.description)
-            ])
+            .with_labels(vec![LeafLabel::primary(
+                ctx.current_file,
+                self.location.clone(),
+            )
+            .with_message(self.description.clone())])
     }
 
     fn should_print(&self, _: &DiagnosticsCtx) -> bool {

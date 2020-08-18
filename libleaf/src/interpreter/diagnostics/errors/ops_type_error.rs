@@ -21,21 +21,22 @@ impl OpsTypeError {
 }
 
 impl LeafDiagnosticTrait for OpsTypeError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message(format!(
                 "Incompatible operand{} for operation",
                 if self.left.is_none() { "" } else { "s" }
             ))
             .with_code(OPS_TYPE_ERROR)
-            .with_labels(match self.left {
+            .with_labels(match &self.left {
                 Some(left) => vec![
-                    LeafLabel::primary(ctx.current_file, left.loc).with_message(left.type_),
-                    LeafLabel::primary(ctx.current_file, self.right.loc)
-                        .with_message(self.right.type_),
+                    LeafLabel::primary(ctx.current_file, left.loc.clone())
+                        .with_message(left.type_.clone()),
+                    LeafLabel::primary(ctx.current_file, self.right.loc.clone())
+                        .with_message(self.right.type_.clone()),
                 ],
-                None => vec![LeafLabel::primary(ctx.current_file, self.right.loc)
-                    .with_message(self.right.type_)],
+                None => vec![LeafLabel::primary(ctx.current_file, self.right.loc.clone())
+                    .with_message(self.right.type_.clone())],
             })
     }
 
@@ -60,18 +61,21 @@ impl OpsTypeErrorError {
 }
 
 impl LeafDiagnosticTrait for OpsTypeErrorError {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
         LeafDiagnostic::error()
             .with_message("Incompatible operands for operation")
             .with_code(OPS_TYPE_ERROR_ERROR)
-            .with_labels(match self.other_expr {
+            .with_labels(match &self.other_expr {
                 Some(other) => vec![
-                    LeafLabel::primary(ctx.current_file, other.loc).with_message(other.type_),
-                    LeafLabel::primary(ctx.current_file, self.error_expr_loc)
+                    LeafLabel::primary(ctx.current_file, other.loc.clone())
+                        .with_message(other.type_.clone()),
+                    LeafLabel::primary(ctx.current_file, self.error_expr_loc.clone())
                         .with_message(TypeId::Error.typename()),
                 ],
-                None => vec![LeafLabel::primary(ctx.current_file, self.error_expr_loc)
-                    .with_message(TypeId::Error.typename())],
+                None => vec![
+                    LeafLabel::primary(ctx.current_file, self.error_expr_loc.clone())
+                        .with_message(TypeId::Error.typename()),
+                ],
             })
     }
 

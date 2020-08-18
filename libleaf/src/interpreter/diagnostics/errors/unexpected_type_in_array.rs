@@ -34,30 +34,28 @@ impl UnexpectedTypeInArray {
 }
 
 impl LeafDiagnosticTrait for UnexpectedTypeInArray {
-    fn get_diagnostic(self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
-        match (
-            LeafDiagnostic::error()
-                .with_code(UNEXPECTED_TYPE_IN_ARRAY_ERROR)
-                .with_message(format!(
-                    "Found a{} {} in an array that was supposed to only contain {}s",
-                    (match self.found_type.chars().next().unwrap() {
-                        'a' | 'e' | 'i' | 'o' | 'u' | 'A' | 'E' | 'I' | 'O' | 'U' => "n",
-                        _ => "",
-                    }),
-                    self.found_type,
-                    self.expected_type
-                ))
-                .with_labels(vec![LeafLabel::primary(
-                    ctx.current_file,
-                    self.vec_location,
-                )
-                .with_message(format!("here, at index {}", self.index))]),
-            self.docs_location,
-        ) {
-            (diagnostic, Some(loc)) => {
+    fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
+        let diagnostic = LeafDiagnostic::error()
+            .with_code(UNEXPECTED_TYPE_IN_ARRAY_ERROR)
+            .with_message(format!(
+                "Found a{} {} in an array that was supposed to only contain {}s",
+                (match self.found_type.chars().next().unwrap() {
+                    'a' | 'e' | 'i' | 'o' | 'u' | 'A' | 'E' | 'I' | 'O' | 'U' => "n",
+                    _ => "",
+                }),
+                self.found_type,
+                self.expected_type
+            ))
+            .with_labels(vec![LeafLabel::primary(
+                ctx.current_file,
+                self.vec_location.clone(),
+            )
+            .with_message(format!("here, at index {}", self.index))]);
+        match &self.docs_location {
+            Some(loc) => {
                 diagnostic.with_notes(vec![format!("Documentation at {}{}", DOCS_ROOT, loc)])
             }
-            (diagnostic, None) => diagnostic,
+            None => diagnostic,
         }
     }
 
