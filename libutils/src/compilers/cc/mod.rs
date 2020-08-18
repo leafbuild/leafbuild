@@ -51,6 +51,7 @@ impl Compiler for CC {
                         Flag::PositionIndependentCode => "PIC",
                     }
                 ),
+                CompilationFlag::None => "".to_string(),
                 _ => "".to_string(),
             },
             CCFamily::MSVC => {
@@ -70,6 +71,8 @@ impl Compiler for CC {
                 LinkFlag::FromString { s } => s,
                 LinkFlag::LibLocation { s: loc } => format!("-L {}", loc),
                 LinkFlag::Lib { name } => format!("-l{}", name),
+                LinkFlag::LibShared => "-shared".to_string(),
+                LinkFlag::None => "".to_string(),
             },
 
             CCFamily::MSVC => match flag {

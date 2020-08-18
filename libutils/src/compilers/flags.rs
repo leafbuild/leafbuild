@@ -38,6 +38,8 @@ pub enum CompilationFlag {
     IncludeDir { include_dir: String },
 
     Flag { flag: Flag },
+
+    None,
 }
 
 impl CompilationFlag {
@@ -51,6 +53,8 @@ pub enum LinkFlag {
     FromString { s: String },
     LibLocation { s: String },
     Lib { name: String },
+    LibShared,
+    None,
 }
 
 impl LinkFlag {

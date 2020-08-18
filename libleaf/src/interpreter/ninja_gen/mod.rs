@@ -10,7 +10,7 @@ use libutils::{
 use crate::interpreter::types::LibType;
 use crate::interpreter::Env;
 use itertools::Itertools;
-use libutils::compilers::flags::CompilationFlag;
+use libutils::compilers::flags::{CompilationFlag, LinkFlag, LinkFlags};
 use libutils::utils::{get_ar, Language};
 
 pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>> {
@@ -287,9 +287,20 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 Some(NinjaRuleArg::new(t.get_name()))
             })
             .collect();
-        let vars = vec![NinjaVariable::new("mod_id", lib.get_mod_id().to_string())];
-        let linker = match lib.get_type() {
-            LibType::Static => &make_static_lib,
+        let (lang, linker) = match lib.get_type() {
+            LibType::Static => (
+                match lib.get_language() {
+                    Some(lang) => lang,
+                    None => {
+                        if need_cxx_linker {
+                            Language::CPP
+                        } else {
+                            Language::C
+                        }
+                    }
+                },
+                &make_static_lib,
+            ),
             LibType::Shared => {
                 if need_cxx_linker
                     || match lib.get_language() {
@@ -297,12 +308,25 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                         _ => false,
                     }
                 {
-                    &cxx_link
+                    (Language::CPP, &cxx_link)
                 } else {
-                    &cc_link
+                    (Language::C, &cc_link)
                 }
             }
         };
+        let vars = vec![
+            NinjaVariable::new("mod_id", lib.get_mod_id().to_string()),
+            NinjaVariable::new(lang.get_link_flags_varname(), {
+                let flags = LinkFlags::new(vec![match lib.get_type() {
+                    LibType::Shared => LinkFlag::LibShared,
+                    LibType::Static => LinkFlag::None,
+                }]);
+                match lang {
+                    Language::C => cc.get_linker_flags(flags),
+                    Language::CPP => cxx.get_linker_flags(flags),
+                }
+            }),
+        ];
         gen.new_target(
             lib_type.fmt_name(lib.get_name()),
             linker,

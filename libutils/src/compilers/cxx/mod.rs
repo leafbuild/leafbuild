@@ -62,6 +62,7 @@ impl Compiler for CXX {
                         Flag::PositionIndependentCode => "PIC",
                     }
                 ),
+                CompilationFlag::None => "".to_string(),
                 _ => "".to_string(),
             },
             CXXFamily::MSVC => {
@@ -77,6 +78,8 @@ impl Compiler for CXX {
                 LinkFlag::FromString { s } => s,
                 LinkFlag::LibLocation { s: loc } => format!("-L {}", loc),
                 LinkFlag::Lib { name } => format!("-l{}", name),
+                LinkFlag::LibShared => "-shared".to_string(),
+                LinkFlag::None => "".to_string(),
             },
 
             CXXFamily::MSVC => match flag {
