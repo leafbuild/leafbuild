@@ -9,8 +9,9 @@ use crate::interpreter::diagnostics::errors::{
 use crate::interpreter::diagnostics::{push_diagnostic, DiagnosticsCtx, Location};
 use itertools::Itertools;
 use libutils::compilers::flags::{CompilationFlag, CompilationFlags, Flag, LinkFlag, LinkFlags};
-use libutils::utils::Language;
+use libutils::utils::{Language, NotALanguageError};
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
@@ -31,6 +32,8 @@ pub(crate) enum TypeIdAndValue<'a> {
     LibraryReference(&'a LibRef),
     MapPair(&'a MapPair),
     LibType(LibType),
+    TargetProperty(&'a TargetProperty),
+    OnOff(&'a OnOff),
 }
 
 impl<'a> TypeIdAndValue<'a> {
@@ -58,6 +61,15 @@ impl<'a> TypeIdAndValue<'a> {
         }
     }
 
+    pub(crate) fn get_map(
+        &'a self,
+    ) -> Result<&'a HashMap<String, Value<Box<dyn ValueTypeMarker>>>, TypeId> {
+        match self {
+            TypeIdAndValue::Map(m) => Ok(*m),
+            v => Err(v.degrade()),
+        }
+    }
+
     pub(crate) fn get_map_pair(&'a self) -> Result<&'a MapPair, TypeId> {
         match self {
             TypeIdAndValue::MapPair(v) => Ok(*v),
@@ -69,6 +81,13 @@ impl<'a> TypeIdAndValue<'a> {
         match self {
             TypeIdAndValue::LibType(v) => Ok(*v),
             v => Err(v.degrade()),
+        }
+    }
+
+    pub(crate) fn get_on_off(&self) -> Result<OnOff, TypeId> {
+        match self {
+            TypeIdAndValue::OnOff(on_off) => Ok(**on_off),
+            tp => Err(tp.degrade()),
         }
     }
 
@@ -192,7 +211,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::U64(v) => format!("{}", v),
             TypeIdAndValue::Bool(v) => format!("{}", v),
             TypeIdAndValue::String(v) => (*v).clone(),
-            TypeIdAndValue::Void => "(void)".to_string(),
+            TypeIdAndValue::Void => "".to_string(),
             TypeIdAndValue::Error => "(error)".to_string(),
             TypeIdAndValue::Vec(v) => v.stringify(),
             TypeIdAndValue::Map(v) => v.stringify(),
@@ -200,6 +219,8 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::LibraryReference(v) => v.stringify(),
             TypeIdAndValue::MapPair(v) => v.stringify(),
             TypeIdAndValue::LibType(v) => v.stringify(),
+            TypeIdAndValue::TargetProperty(v) => v.stringify(),
+            TypeIdAndValue::OnOff(v) => v.stringify(),
         }
     }
 
@@ -220,6 +241,8 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::MapPair(_) => TypeId::MapPair,
             TypeIdAndValue::LibraryReference(_) => TypeId::LibraryReference,
             TypeIdAndValue::LibType(_) => TypeId::LibType,
+            TypeIdAndValue::TargetProperty(_) => TypeId::TargetProperty,
+            TypeIdAndValue::OnOff(_) => TypeId::OnOff,
         }
     }
 }
@@ -240,6 +263,8 @@ pub(crate) enum TypeId {
     LibraryReference,
     MapPair,
     LibType,
+    TargetProperty,
+    OnOff,
 }
 
 impl TypeId {
@@ -260,6 +285,8 @@ impl TypeId {
             TypeId::LibraryReference => "lib_ref",
             TypeId::MapPair => "map_pair",
             TypeId::LibType => "lib_type",
+            TypeId::TargetProperty => "target_property",
+            TypeId::OnOff => "on_off",
         }
     }
 }
@@ -285,3 +312,4 @@ include!("map.rs");
 include!("map_pair.rs");
 include!("executable.rs");
 include!("library.rs");
+include!("target_properties.rs");

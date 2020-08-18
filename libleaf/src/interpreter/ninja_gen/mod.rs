@@ -275,13 +275,13 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                                 })
                                 .join(" "),
                         ),
-                        NinjaVariable::new(
-                            lng.get_compilation_flags_varname(),
+                        NinjaVariable::new(lng.get_compilation_flags_varname(), {
+                            let flags = lib.source_compilation_flags(env);
                             match lng {
-                                Language::C => cc.get_flags(lib.source_compilation_flags()),
-                                Language::CPP => cxx.get_flags(lib.source_compilation_flags()),
-                            },
-                        ),
+                                Language::C => cc.get_flags(flags),
+                                Language::CPP => cxx.get_flags(flags),
+                            }
+                        }),
                     ],
                 );
                 Some(NinjaRuleArg::new(t.get_name()))
@@ -289,25 +289,15 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
             .collect();
         let (lang, linker) = match lib.get_type() {
             LibType::Static => (
-                match lib.get_language() {
-                    Some(lang) => lang,
-                    None => {
-                        if need_cxx_linker {
-                            Language::CPP
-                        } else {
-                            Language::C
-                        }
-                    }
+                if need_cxx_linker {
+                    Language::CPP
+                } else {
+                    Language::C
                 },
                 &make_static_lib,
             ),
             LibType::Shared => {
-                if need_cxx_linker
-                    || match lib.get_language() {
-                        Some(Language::CPP) => true,
-                        _ => false,
-                    }
-                {
+                if need_cxx_linker {
                     (Language::CPP, &cxx_link)
                 } else {
                     (Language::C, &cc_link)

@@ -97,33 +97,43 @@ fn get_library_executor() -> CallExecutor {
                 },
                 None => vec![],
             };
-            let language = match args
+            let properties = match args
                 .get_named_args()
                 .iter()
-                .find(|arg| arg.get_name() == "language")
+                .find(|arg| arg.get_name() == "properties")
             {
                 Some(l) => match l
                     .get_value()
                     .eval_in_env(frame)
-                    .get_type_id_and_value_required(TypeId::String)
+                    .get_type_id_and_value_required(TypeId::Map)
                 {
-                    Ok(s) => match s.get_string().unwrap() as &str {
-                        "c" | "C" => Some(Language::C),
-                        "cpp" | "CPP" | "c++" | "C++" => Some(Language::CPP),
-                        _ => None,
-                    },
+                    Ok(mp) => mp
+                        .get_map()
+                        .unwrap()
+                        .into_iter()
+                        .filter_map(|v| match TargetProperty::try_from(v) {
+                            Ok(target_prop) => Some(target_prop),
+                            Err(err) => {
+                                diagnostics::push_diagnostic(
+                                    InvalidTargetPropertyError::new(err, l.get_rng(), v.0, v.1),
+                                    frame,
+                                );
+                                None
+                            }
+                        })
+                        .collect_vec(),
                     Err(tp) => {
                         diagnostics::push_diagnostic(
                             ExpectedTypeError::new(
-                                TypeId::String.typename(),
+                                TypeId::Map.typename(),
                                 ExprLocAndType::new(l.get_value().get_rng(), tp.typename()),
                             ),
                             frame,
                         );
-                        None
+                        lib_auto_target_properties(&sources, type_)
                     }
                 },
-                None => None,
+                None => lib_auto_target_properties(&sources, type_),
             };
             let lib = frame.new_library(
                 library_name,
@@ -131,10 +141,14 @@ fn get_library_executor() -> CallExecutor {
                 sources,
                 internal_include_dirs,
                 external_include_dirs,
-                language,
+                properties,
             );
             Value::new(Box::new(lib.make_ref()))
         },
         vec!["lib".to_string()],
     )
+}
+
+fn lib_auto_target_properties(sources: &[String], type_: LibType) -> Vec<TargetProperty> {
+    vec![]
 }

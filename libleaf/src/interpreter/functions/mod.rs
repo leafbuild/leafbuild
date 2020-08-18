@@ -2,7 +2,7 @@ use itertools::Itertools;
 use paste::paste;
 
 use crate::interpreter::start_on_subdir;
-use crate::interpreter::types::TypeIdAndValue;
+use crate::interpreter::types::{LibType, OnOff, TargetProperty, TypeIdAndValue};
 use crate::{
     grammar::{ast::AstLoc, ast::AstPositionalArg},
     interpreter::{
@@ -13,6 +13,9 @@ use crate::{
     },
 };
 use libutils::utils::Language;
+use std::collections::HashMap;
+use std::convert::TryFrom;
+use std::iter::FromIterator;
 use std::path::Path;
 
 macro_rules! func_decls {

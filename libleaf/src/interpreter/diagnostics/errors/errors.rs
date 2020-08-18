@@ -1,7 +1,8 @@
+use crate::interpreter::types::InvalidTargetProperty;
 use crate::interpreter::{
     diagnostics::{DiagnosticsCtx, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel, Location},
     types::TypeId,
-    DOCS_ROOT,
+    Value, ValueTypeMarker, DOCS_ROOT,
 };
 
 macro_rules! error_codes {
@@ -25,6 +26,7 @@ error_codes!(
     INVALID_INDEX_BASE_ERROR,
     INVALID_INDEX_ERROR,
     INVALID_NUMBER_OF_POSITIONAL_ARGUMENTS,
+    INVALID_TARGET_PROPERTY_ERROR,
     OPS_TYPE_ERROR,
     OPS_TYPE_ERROR_ERROR,
     SYNTAX_ERROR,
@@ -55,6 +57,7 @@ include!("index_outside_vector.rs");
 include!("invalid_index.rs");
 include!("invalid_index_base.rs");
 include!("invalid_number_of_positional_arguments.rs");
+include!("invalid_target_property_error.rs");
 include!("ops_type_error.rs");
 include!("syntax_error.rs");
 include!("take_ref_error.rs");

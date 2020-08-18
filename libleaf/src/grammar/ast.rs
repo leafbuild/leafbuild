@@ -124,7 +124,7 @@ impl Expr {
                 Some(v) => v.clone_to_value(),
                 None => {
                     diagnostics::push_diagnostic(VariableNotFoundError::new(loc.as_rng()), frame);
-                    Value::new(Box::new(()))
+                    Value::new(Box::new(ErrorValue::new()))
                 }
             },
             Expr::Atom(Atom::ArrayLit((v, _loc))) => {

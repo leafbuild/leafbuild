@@ -301,7 +301,7 @@ impl<'env> EnvFrame<'env> {
         sources: Vec<String>,
         internal_include_dirs: Vec<String>,
         external_include_dirs: Vec<String>,
-        language: Option<Language>,
+        properties: Vec<TargetProperty>,
     ) -> &Library {
         let id = self.env_mut_ref.lib_id;
         self.env_frame_data.lib_decls.push(Library::new(
@@ -312,7 +312,7 @@ impl<'env> EnvFrame<'env> {
             sources,
             internal_include_dirs,
             external_include_dirs,
-            language,
+            properties,
         ));
         self.env_mut_ref.lib_id += 1;
         self.env_frame_data.lib_decls.last().unwrap()
@@ -764,6 +764,8 @@ pub(crate) struct CallPoolsWrapper {
     library_pool: CallPool,
     map_pair_pool: CallPool,
     lib_type_pool: CallPool,
+    target_property_pool: CallPool,
+    on_off_pool: CallPool,
 }
 
 impl CallPoolsWrapper {
@@ -782,6 +784,8 @@ impl CallPoolsWrapper {
             library_pool: types::get_library_call_pool(),
             map_pair_pool: types::get_map_pair_call_pool(),
             lib_type_pool: types::get_lib_type_call_pool(),
+            target_property_pool: types::get_target_property_call_pool(),
+            on_off_pool: types::get_on_off_call_pool(),
         }
     }
     #[inline]
@@ -845,6 +849,16 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
+    pub(crate) fn get_target_property_pool(&self) -> &CallPool {
+        &self.target_property_pool
+    }
+
+    #[inline]
+    pub(crate) fn get_on_off_pool(&self) -> &CallPool {
+        &self.on_off_pool
+    }
+
+    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => self.get_num_pool(),
@@ -858,6 +872,8 @@ impl CallPoolsWrapper {
             TypeId::LibraryReference => self.get_library_pool(),
             TypeId::MapPair => self.get_map_pair_pool(),
             TypeId::LibType => self.get_lib_type_pool(),
+            TypeId::TargetProperty => self.get_target_property_pool(),
+            TypeId::OnOff => self.get_on_off_pool(),
         }
     }
 }
@@ -998,6 +1014,20 @@ pub(crate) fn property_access(
             frame,
         ),
         TypeId::LibType => resolve_lib_type_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::TargetProperty => resolve_target_property_type_property_access(
+            base,
+            base_location,
+            property_name,
+            property.get_property_name_loc().clone(),
+            frame,
+        ),
+        TypeId::OnOff => resolve_on_off_type_property_access(
             base,
             base_location,
             property_name,

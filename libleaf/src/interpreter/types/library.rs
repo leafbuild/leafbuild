@@ -7,7 +7,7 @@ pub(crate) struct Library {
     sources: Vec<String>,
     internal_include_dirs: Vec<String>,
     external_include_dirs: Vec<String>,
-    language: Option<Language>,
+    properties: Vec<TargetProperty>,
 }
 
 impl Library {
@@ -19,7 +19,7 @@ impl Library {
         sources: Vec<String>,
         internal_include_dirs: Vec<String>,
         external_include_dirs: Vec<String>,
-        language: Option<Language>,
+        properties: Vec<TargetProperty>,
     ) -> Self {
         Self {
             id,
@@ -29,7 +29,7 @@ impl Library {
             sources,
             internal_include_dirs,
             external_include_dirs,
-            language,
+            properties,
         }
     }
 
@@ -55,16 +55,23 @@ impl Library {
     pub(crate) fn get_external_include_dirs(&self) -> &Vec<String> {
         &self.external_include_dirs
     }
-    pub(crate) fn get_language(&self) -> Option<Language> {
-        self.language
+    pub(crate) fn get_properties(&self) -> &Vec<TargetProperty> {
+        &self.properties
     }
 
-    pub(crate) fn source_compilation_flags(&self) -> CompilationFlags {
+    pub(crate) fn source_compilation_flags(&self, env: &Env) -> CompilationFlags {
         CompilationFlags::new(
             self.internal_include_dirs
                 .iter()
                 .map(|inc_dir| CompilationFlag::IncludeDir {
-                    include_dir: format!("../{}", inc_dir),
+                    include_dir: env
+                        .get_root_path_for_module(self.mod_id)
+                        .unwrap()
+                        .clone()
+                        .join(inc_dir)
+                        .to_str()
+                        .unwrap()
+                        .to_string(),
                 })
                 .chain(
                     match self.type_ {
