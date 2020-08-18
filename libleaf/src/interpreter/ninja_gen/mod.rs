@@ -28,19 +28,23 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
 
     let signal_build_failure = env.mut_.diagnostics_ctx.get_signal_build_failure();
 
-    let internal_compilation_failed_call = "|| $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
-    let internal_linking_failed_call = "|| $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id";
+    let internal_compilation_failed_call = if signal_build_failure {
+        "|| $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id"
+    } else {
+        ""
+    };
+    let internal_linking_failed_call = if signal_build_failure {
+        "|| $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id"
+    } else {
+        ""
+    };
 
     let cc_compile = gen.new_rule(
         "cc_compile",
         NinjaCommand::new(format!(
             "$CC ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
             Language::C.get_compilation_flags_varname(),
-            if signal_build_failure {
-                internal_compilation_failed_call
-            } else {
-                ""
-            }
+            internal_compilation_failed_call
         )),
         vec![
             NinjaVariable::new("depfile", "$out.d"),
@@ -52,11 +56,7 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
         NinjaCommand::new(format!(
             "$CC $in -o $out ${} {}",
             Language::C.get_link_flags_varname(),
-            if signal_build_failure {
-                internal_linking_failed_call
-            } else {
-                ""
-            }
+            internal_linking_failed_call
         )),
         vec![NinjaVariable::new("description", "Linking C object $out")],
     );
@@ -66,11 +66,7 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
         NinjaCommand::new(format!(
             "$CXX ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
             Language::CPP.get_compilation_flags_varname(),
-            if signal_build_failure {
-                internal_compilation_failed_call
-            } else {
-                ""
-            }
+            internal_compilation_failed_call
         )),
         vec![
             NinjaVariable::new("depfile", "$out.d"),
@@ -82,11 +78,7 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
         NinjaCommand::new(format!(
             "$CXX $in -o $out ${} {}",
             Language::CPP.get_link_flags_varname(),
-            if signal_build_failure {
-                internal_linking_failed_call
-            } else {
-                ""
-            }
+            internal_linking_failed_call
         )),
         vec![NinjaVariable::new("description", "Linking C++ object $out")],
     );
@@ -94,7 +86,10 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
     let make_static_lib = gen.new_rule(
         "make_static_lib",
         NinjaCommand::new("$AR rcs $out $in"),
-        vec![],
+        vec![NinjaVariable::new(
+            "description",
+            "Making static library $out",
+        )],
     );
     let cc = env.mut_.get_and_cache_cc();
     let cc_loc = cc.get_location();
@@ -136,7 +131,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 let t = gen.new_target(
                     format!("{}@Exe/{}.o", exe.get_name(), src),
                     rl,
-                    vec![NinjaRuleArg::new(format!("../{}", src))],
+                    vec![NinjaRuleArg::new(
+                        env.get_root_path_for_module(exe.get_mod_id())
+                            .unwrap()
+                            .clone()
+                            .join(PathBuf::from(src))
+                            .to_string_lossy()
+                            .to_string(),
+                    )],
                     vec![],
                     vec![
                         NinjaVariable::new("mod_id", exe.get_mod_id().to_string()),
@@ -240,7 +242,14 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 let t = gen.new_target(
                     format!("{}@Lib/{}.o", lib.get_name(), src),
                     rl,
-                    vec![NinjaRuleArg::new(format!("../{}", src))],
+                    vec![NinjaRuleArg::new(
+                        env.get_root_path_for_module(lib.get_mod_id())
+                            .unwrap()
+                            .clone()
+                            .join(PathBuf::from(src))
+                            .to_string_lossy()
+                            .to_string(),
+                    )],
                     vec![],
                     vec![
                         NinjaVariable::new("mod_id", lib.get_mod_id().to_string()),

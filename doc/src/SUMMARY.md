@@ -13,6 +13,7 @@
     - [Project and Module related](reference/functions/project_and_module/index.md)
       - [project()](reference/functions/project_and_module/project.md)
       - [module()](reference/functions/project_and_module/module.md)
+      - [add_subdirectory()](reference/functions/project_and_module/add_subdirectory.md)
     - [Libraries-related](reference/functions/libraries/index.md)
       - [library()](reference/functions/libraries/library.md)
     - [Executables-related](reference/functions/executables/index.md)

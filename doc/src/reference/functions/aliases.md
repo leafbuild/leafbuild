@@ -13,13 +13,18 @@ A `-` means there is no alias.
         <th>Category</th><th>Function name</th><th>Alias(es)</th>
     </tr>
     <tr>
-        <td rowspan="2">Project & module related</td>
+        <td rowspan="3">Project & module related</td>
         <td><a href="project_and_module/project.md"><code>project()</code></a></td>
         <td>-</td>
     </tr>
     <tr>
         <td><a href="project_and_module/module.md"><code>module()</code></a></td>
-        <td><code>mod()</code></td></tr>
+        <td><code>mod()</code></td>
+    </tr>
+    <tr>
+        <td><a href="project_and_module/add_subdirectory.md"><code>add_subdirectory()</code></a></td>
+        <td><code>subdir()</code></td>
+    </tr>
     <tr>
         <td rowspan="1">Executables-related</td>
         <td><a href="executables/executable.md"><code>executable()</code></a></td>

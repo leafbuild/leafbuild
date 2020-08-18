@@ -189,15 +189,13 @@ impl Env {
     }
 
     pub(crate) fn get_root_path_for_module(&self, mod_id: usize) -> Option<&PathBuf> {
-        Some(
-            &self
-                .mut_
-                .modules
-                .get(
-                    mod_id - 1, /*modules start at 1 so we must shift this by 1*/
-                )?
-                .path,
-        )
+        let path = &self
+            .mut_
+            .modules
+            .iter()
+            .find(|module| module.mod_id == mod_id)?
+            .path;
+        Some(path)
     }
 }
 
@@ -381,21 +379,24 @@ impl From<EnvFrameData> for EnvFrameReturns {
 }
 
 impl EnvFrameReturns {
-    fn apply_changes_to_env(self, env: &mut Env) {
+    fn apply_changes_to_env_struct(self, env: &mut Env) {
+        self.apply_changes_to_env((&env.imut, &mut env.mut_))
+    }
+    fn apply_changes_to_env(self, env: (&EnvImut, &mut EnvMut)) {
         self.exe_decls
             .into_iter()
-            .for_each(|exe| env.mut_.executables.push(exe));
+            .for_each(|exe| env.1.executables.push(exe));
         self.pub_exe_decls
             .into_iter()
-            .for_each(|exe| env.mut_.executables.push(exe));
+            .for_each(|exe| env.1.executables.push(exe));
         self.lib_decls
             .iter()
-            .for_each(|lib| env.mut_.libraries.push(lib.clone()));
+            .for_each(|lib| env.1.libraries.push(lib.clone()));
         self.pub_lib_decls
             .iter()
-            .for_each(|lib| env.mut_.libraries.push(lib.clone()));
+            .for_each(|lib| env.1.libraries.push(lib.clone()));
 
-        env.mut_
+        env.1
             .modules
             .push(EnvModData::new(self.mod_id, self.root_path))
     }
@@ -597,7 +598,12 @@ where
 }
 
 pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
-    env.mut_.diagnostics_ctx.new_file(file, src)
+    add_file_ctx(file, src, &mut env.mut_.diagnostics_ctx)
+}
+
+#[inline]
+pub(crate) fn add_file_ctx(file: String, src: String, ctx: &mut DiagnosticsCtx) -> usize {
+    ctx.new_file(file, src)
 }
 
 pub(crate) fn interpret<'env>(
@@ -622,7 +628,7 @@ pub(crate) fn interpret<'env>(
     });
 
     let efr = EnvFrameReturns::from(frame.env_frame_data);
-    efr.apply_changes_to_env(env);
+    efr.apply_changes_to_env_struct(env);
 }
 
 pub fn start_on(proj_path: &Path, handle: &mut Handle) {
@@ -668,6 +674,79 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
                 },
             };
             push_diagnostic_ctx(syntax_error, &handle.env.mut_.diagnostics_ctx)
+        }
+    }
+}
+
+// code to load and work with subdirectories
+
+pub(crate) fn interpret_subdir<'env>(
+    env: (&'env EnvImut, &'env mut EnvMut),
+    program: &'_ AstProgram,
+    file_id: usize,
+    root_path: PathBuf,
+) {
+    let statements = program.get_statements();
+    let mut frame = EnvFrame {
+        variables: HashMap::new(),
+        env_frame_data: EnvFrameData::empty(root_path.clone()),
+        env_ref: env.0,
+        env_mut_ref: env.1,
+        file_id,
+        fr_type: EnvFrameType::Unknown,
+        root_path,
+    };
+
+    statements.iter().for_each(|statement| {
+        run_in_env_frame(statement, &mut frame);
+    });
+
+    let efr = EnvFrameReturns::from(frame.env_frame_data);
+    efr.apply_changes_to_env(env);
+}
+
+pub(crate) fn start_on_subdir(root_path: &Path, env: (&EnvImut, &mut EnvMut)) {
+    let path = root_path.join("build.leaf");
+    let path_clone = path.clone();
+    let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap() + "\n";
+    let src_len = src.len();
+    let result = grammar::parse(&src);
+    let file_id = add_file_ctx(
+        path_clone.to_str().unwrap().to_string(),
+        src,
+        &mut env.1.diagnostics_ctx,
+    );
+    match result {
+        Ok(program) => {
+            interpret_subdir(env, &program, file_id, PathBuf::from(root_path));
+        }
+        Err(e) => {
+            let syntax_error = match e {
+                ParseError::InvalidToken { location } => {
+                    SyntaxError::new(location..location + 1, "invalid token")
+                }
+                ParseError::UnrecognizedEOF { location, expected } => SyntaxError::new(
+                    location..location + 1,
+                    format!("unrecognized EOF, expected {:?}", expected),
+                ),
+                ParseError::UnrecognizedToken { token, expected } => SyntaxError::new(
+                    token.0..token.2,
+                    format!("Unexpected token {}, expected {:?}", token.1, expected),
+                ),
+                ParseError::ExtraToken { token } => {
+                    SyntaxError::new(token.0..token.2, format!("extra token: {}", token.1))
+                }
+                ParseError::User { error } => match error {
+                    LexicalError::UnrecognizedToken { location } => SyntaxError::new(
+                        location..location + 1,
+                        "Unexpected character at beginning of token",
+                    ),
+                    LexicalError::StringStartedButNotEnded { start_loc } => {
+                        SyntaxError::new(start_loc..src_len, "No end of string found")
+                    }
+                },
+            };
+            push_diagnostic_ctx(syntax_error, &env.1.diagnostics_ctx)
         }
     }
 }

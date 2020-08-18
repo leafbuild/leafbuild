@@ -1,6 +1,7 @@
 use itertools::Itertools;
 use paste::paste;
 
+use crate::interpreter::start_on_subdir;
 use crate::interpreter::types::TypeIdAndValue;
 use crate::{
     grammar::{ast::AstLoc, ast::AstPositionalArg},
@@ -12,6 +13,7 @@ use crate::{
     },
 };
 use libutils::utils::Language;
+use std::path::Path;
 
 macro_rules! func_decls {
     ($([$name:ident, $file:expr]),* $(,)?) => {
@@ -65,4 +67,5 @@ func_decls!(
     [project, "project.rs"],
     [executable, "executable.rs"],
     [library, "library.rs"],
+    [subdir, "subdir.rs"],
 );
