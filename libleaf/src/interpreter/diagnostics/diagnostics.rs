@@ -22,6 +22,7 @@ pub(crate) struct LeafDiagnostic {
     notes: Vec<String>,
 }
 
+/// A diagnostic - basically a thin wrapper over the `codespan_reporting` `Diagnostic<usize>`
 impl LeafDiagnostic {
     pub(crate) fn new(diagnostic_type: LeafDiagnosticType) -> LeafDiagnostic {
         LeafDiagnostic {
@@ -147,8 +148,12 @@ impl Into<Label<usize>> for LeafLabel {
     }
 }
 
+/// Basically a thing that can be converted into the `LeafDiagnostic` type above
 pub(crate) trait LeafDiagnosticTrait {
+    /// Converts `&self` to `LeafDiagnostic`
     fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic;
+
+    /// Specifies whether this diagnostic should be printed, given a diagnostics context `ctx`
     fn should_print(&self, ctx: &DiagnosticsCtx) -> bool;
 }
 
@@ -165,7 +170,9 @@ where
     }
 }
 
-/// the diagnostics context
+/// The diagnostics context
+/// Basically has some data about the diagnostics-related commandline options and index of the
+/// current file we are in, as well as owns all the `codespan_reporting` files.
 pub(crate) struct DiagnosticsCtx {
     files: SimpleFiles<String, String>,
     angry_errors: bool,

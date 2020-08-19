@@ -1,8 +1,8 @@
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 #[repr(u8)]
 pub(crate) enum OnOff {
-    On,
-    Off,
+    Off = 0,
+    On = 1,
 }
 
 impl Display for OnOff {
@@ -37,21 +37,17 @@ impl ValueTypeMarker for OnOff {
 }
 
 #[derive(Copy, Clone)]
-pub(crate) enum TargetProperty {
-    PositionIndependentCode(OnOff),
-    Language(Language),
+pub(crate) struct TargetProperties {
+    pic: OnOff,
+    language: Language,
 }
 
-impl ValueTypeMarker for TargetProperty {
+impl ValueTypeMarker for TargetProperties {
     fn stringify(&self) -> String {
-        match self {
-            TargetProperty::PositionIndependentCode(on_off) => {
-                format!("target_property {{ pic = {} }}", on_off)
-            }
-            TargetProperty::Language(lang) => {
-                format!("target_property {{ language = {:?} }}", lang)
-            }
-        }
+        format!(
+            "target_properties: {{ pic = {}, language = {:?} }}",
+            self.pic, self.language
+        )
     }
 
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>> {
@@ -59,31 +55,41 @@ impl ValueTypeMarker for TargetProperty {
     }
 
     fn get_type_id(&self) -> TypeId {
-        TypeId::TargetProperty
+        TypeId::TargetProperties
     }
 
     fn get_type_id_and_value(&self) -> TypeIdAndValue {
-        TypeIdAndValue::TargetProperty(self)
+        TypeIdAndValue::TargetProperties(self)
     }
 }
 
 pub(crate) struct InvalidTargetProperty {
     msg: String,
+    note: Option<String>,
 }
 
 impl InvalidTargetProperty {
-    pub(crate) fn new(msg: impl Into<String>) -> Self {
-        Self { msg: msg.into() }
+    pub(crate) fn new(msg: impl Into<String>, note: Option<&str>) -> Self {
+        Self {
+            msg: msg.into(),
+            note: match note {
+                Some(v) => Some(v.into()),
+                None => None,
+            },
+        }
     }
 
     pub(crate) fn get_message(&self) -> &String {
         &self.msg
     }
+    pub(crate) fn get_note(&self) -> &Option<String> {
+        &self.note
+    }
 }
 
 impl From<NotALanguageError> for InvalidTargetProperty {
     fn from(err: NotALanguageError) -> Self {
-        InvalidTargetProperty::new(err.get_msg())
+        InvalidTargetProperty::new(err.get_msg(), None)
     }
 }
 
@@ -93,41 +99,125 @@ impl TryFrom<&Value<Box<dyn ValueTypeMarker>>> for OnOff {
     fn try_from(value: &Value<Box<dyn ValueTypeMarker>>) -> Result<Self, Self::Error> {
         match value.get_type_id_and_value().get_on_off() {
             Ok(v) => Ok(v),
-            Err(_) => Err(InvalidTargetProperty::new(format!(
-                "Cannot parse OnOff from {}",
-                value.stringify()
-            ))),
+            Err(tp) => Err(InvalidTargetProperty::new(
+                format!(
+                    "Cannot parse OnOff from {} (of type {})",
+                    value.stringify(),
+                    tp.typename(),
+                ),
+                match tp {
+                    TypeId::Bool => {
+                        Some("Consider converting this bool to OnOff with `( ... ? on : off )'")
+                    }
+                    _ => None,
+                },
+            )),
         }
     }
 }
 
-impl TryFrom<(&String, &Value<Box<dyn ValueTypeMarker>>)> for TargetProperty {
-    type Error = InvalidTargetProperty;
-
-    fn try_from(value: (&String, &Value<Box<dyn ValueTypeMarker>>)) -> Result<Self, Self::Error> {
-        match value.0 as &str {
-            "position_independent_code" => {
-                Ok(Self::PositionIndependentCode(OnOff::try_from(value.1)?))
+impl TargetProperties {
+    pub(crate) fn from_expr(value: &Expr, frame: &mut EnvFrame) -> Self {
+        let mut pic: OnOff = OnOff::Off;
+        let mut language: Language = Language::C;
+        match value
+            .eval_in_env(frame)
+            .get_type_id_and_value_required(TypeId::Map)
+        {
+            Ok(map) => {
+                map.get_map()
+                    .unwrap()
+                    .into_iter()
+                    .for_each(|val| match val.0 as &str {
+                        "position_independent_code" | "pic" => match OnOff::try_from(val.1) {
+                            Ok(v) => {
+                                pic = v;
+                            }
+                            Err(err) => {
+                                diagnostics::push_diagnostic(
+                                    InvalidTargetPropertyError::new(
+                                        err,
+                                        value.get_rng(),
+                                        val.0,
+                                        val.1,
+                                    ),
+                                    frame,
+                                );
+                            }
+                        },
+                        "language" => match val.1.get_type_id_and_value_required(TypeId::String) {
+                            Ok(v) => match v.get_string().unwrap().parse() {
+                                Ok(lng) => {
+                                    language = lng;
+                                }
+                                Err(err) => {
+                                    diagnostics::push_diagnostic(
+                                        InvalidTargetPropertyError::new(
+                                            InvalidTargetProperty::from(err),
+                                            value.get_rng(),
+                                            val.0,
+                                            val.1,
+                                        ),
+                                        frame,
+                                    );
+                                }
+                            },
+                            Err(tp) => {
+                                diagnostics::push_diagnostic(
+                                    InvalidTargetPropertyError::new(
+                                        InvalidTargetProperty::new(
+                                            format!(
+                                                "Cannot parse language from non-string '{}'",
+                                                val.1.stringify()
+                                            ),
+                                            None,
+                                        ),
+                                        value.get_rng(),
+                                        val.0,
+                                        val.1,
+                                    ),
+                                    frame,
+                                );
+                            }
+                        },
+                        v => {
+                            diagnostics::push_diagnostic(
+                                InvalidTargetPropertyError::new(
+                                    InvalidTargetProperty::new(
+                                        format!("Unknown target property: {}", v),
+                                        None,
+                                    ),
+                                    value.get_rng(),
+                                    val.0,
+                                    val.1,
+                                ),
+                                frame,
+                            );
+                        }
+                    });
             }
-            "language" => match value.1.get_type_id_and_value_required(TypeId::String) {
-                Ok(v) => Ok(Self::Language({
-                    let lang: Language = v.get_string().unwrap().parse()?;
-                    lang
-                })),
-                Err(tp) => Err(InvalidTargetProperty::new(format!(
-                    "Cannot parse language from non-string '{}'",
-                    value.1.stringify()
-                ))),
-            },
-            v => Err(InvalidTargetProperty::new(format!(
-                "Unknown target property: {}",
-                v
-            ))),
+            Err(tp) => diagnostics::push_diagnostic(
+                ExpectedTypeError::new(
+                    TypeId::Map.typename(),
+                    ExprLocAndType::new(value.get_rng(), tp.typename()),
+                ),
+                frame,
+            ),
+        }
+        TargetProperties { pic, language }
+    }
+}
+
+impl Default for TargetProperties {
+    fn default() -> Self {
+        Self {
+            pic: OnOff::Off,
+            language: Language::C,
         }
     }
 }
 
-pub(crate) fn get_target_property_call_pool() -> CallPool {
+pub(crate) fn get_target_properties_call_pool() -> CallPool {
     CallPool::new(vec![])
 }
 
@@ -135,7 +225,7 @@ pub(crate) fn get_on_off_call_pool() -> CallPool {
     CallPool::new(vec![])
 }
 
-pub(crate) fn resolve_target_property_type_property_access(
+pub(crate) fn resolve_target_properties_type_property_access(
     base: Value<Box<dyn ValueTypeMarker>>,
     base_location: Location,
     name: &str,
@@ -146,7 +236,7 @@ pub(crate) fn resolve_target_property_type_property_access(
         _ => {
             push_diagnostic(
                 UnknownPropertyError::new(
-                    ExprLocAndType::new(base_location, TypeId::TargetProperty.typename()),
+                    ExprLocAndType::new(base_location, TypeId::TargetProperties.typename()),
                     name,
                     name_location.as_rng(),
                 ),

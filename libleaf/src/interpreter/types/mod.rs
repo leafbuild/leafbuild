@@ -2,9 +2,11 @@ use crate::interpreter::{
     diagnostics, CallExecutor, CallPool, Env, EnvFrame, Value, ValueTypeMarker,
 };
 
+use crate::grammar::ast::{AstLoc, Expr};
 use crate::grammar::TokLoc;
 use crate::interpreter::diagnostics::errors::{
-    ExpectedTypeError, ExprLocAndType, UnexpectedTypeInArray, UnknownPropertyError,
+    ExpectedTypeError, ExprLocAndType, InvalidTargetPropertyError, UnexpectedTypeInArray,
+    UnknownPropertyError,
 };
 use crate::interpreter::diagnostics::{push_diagnostic, DiagnosticsCtx, Location};
 use itertools::Itertools;
@@ -32,7 +34,7 @@ pub(crate) enum TypeIdAndValue<'a> {
     LibraryReference(&'a LibRef),
     MapPair(&'a MapPair),
     LibType(LibType),
-    TargetProperty(&'a TargetProperty),
+    TargetProperties(&'a TargetProperties),
     OnOff(&'a OnOff),
 }
 
@@ -219,7 +221,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::LibraryReference(v) => v.stringify(),
             TypeIdAndValue::MapPair(v) => v.stringify(),
             TypeIdAndValue::LibType(v) => v.stringify(),
-            TypeIdAndValue::TargetProperty(v) => v.stringify(),
+            TypeIdAndValue::TargetProperties(v) => v.stringify(),
             TypeIdAndValue::OnOff(v) => v.stringify(),
         }
     }
@@ -241,7 +243,7 @@ impl<'a> TypeIdAndValue<'a> {
             TypeIdAndValue::MapPair(_) => TypeId::MapPair,
             TypeIdAndValue::LibraryReference(_) => TypeId::LibraryReference,
             TypeIdAndValue::LibType(_) => TypeId::LibType,
-            TypeIdAndValue::TargetProperty(_) => TypeId::TargetProperty,
+            TypeIdAndValue::TargetProperties(_) => TypeId::TargetProperties,
             TypeIdAndValue::OnOff(_) => TypeId::OnOff,
         }
     }
@@ -263,7 +265,7 @@ pub(crate) enum TypeId {
     LibraryReference,
     MapPair,
     LibType,
-    TargetProperty,
+    TargetProperties,
     OnOff,
 }
 
@@ -285,7 +287,7 @@ impl TypeId {
             TypeId::LibraryReference => "lib_ref",
             TypeId::MapPair => "map_pair",
             TypeId::LibType => "lib_type",
-            TypeId::TargetProperty => "target_property",
+            TypeId::TargetProperties => "target_properties",
             TypeId::OnOff => "on_off",
         }
     }

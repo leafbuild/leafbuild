@@ -7,7 +7,7 @@ pub(crate) struct Library {
     sources: Vec<String>,
     internal_include_dirs: Vec<String>,
     external_include_dirs: Vec<String>,
-    properties: Vec<TargetProperty>,
+    properties: TargetProperties,
 }
 
 impl Library {
@@ -19,7 +19,7 @@ impl Library {
         sources: Vec<String>,
         internal_include_dirs: Vec<String>,
         external_include_dirs: Vec<String>,
-        properties: Vec<TargetProperty>,
+        properties: TargetProperties,
     ) -> Self {
         Self {
             id,
@@ -55,8 +55,17 @@ impl Library {
     pub(crate) fn get_external_include_dirs(&self) -> &Vec<String> {
         &self.external_include_dirs
     }
-    pub(crate) fn get_properties(&self) -> &Vec<TargetProperty> {
-        &self.properties
+    // pub(crate) fn get_properties(&self) -> &Vec<TargetProperty> {
+    //     &self.properties
+    // }
+
+    pub(crate) fn validate(&self) -> Result<(), LibraryValidationError> {
+        if let LibType::Shared = self.type_ {
+            if self.properties.pic == OnOff::Off {
+                return Err(LibraryValidationError::new("Cannot create a shared library with property `position_independent_code = off'"));
+            }
+        }
+        Ok(())
     }
 
     pub(crate) fn source_compilation_flags(&self, env: &Env) -> CompilationFlags {
@@ -74,16 +83,30 @@ impl Library {
                         .to_string(),
                 })
                 .chain(
-                    match self.type_ {
-                        LibType::Shared => vec![CompilationFlag::Flag {
+                    match self.properties.pic {
+                        OnOff::On => vec![CompilationFlag::Flag {
                             flag: Flag::PositionIndependentCode,
                         }],
-                        LibType::Static => vec![],
+                        OnOff::Off => vec![],
                     }
                     .into_iter(),
                 )
                 .collect_vec(),
         )
+    }
+}
+
+pub(crate) struct LibraryValidationError {
+    msg: String,
+}
+
+impl LibraryValidationError {
+    pub(crate) fn new(msg: impl Into<String>) -> Self {
+        Self { msg: msg.into() }
+    }
+
+    pub(crate) fn get_message(self) -> String {
+        self.msg
     }
 }
 

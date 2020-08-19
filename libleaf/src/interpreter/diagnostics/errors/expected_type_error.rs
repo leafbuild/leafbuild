@@ -1,3 +1,6 @@
+/// Thrown (usually) when a function/method expects a certain type from an argument and the actual
+/// value isn't of that type.
+/// Also applies when conditions don't evaluate to boolean values.
 pub(crate) struct ExpectedTypeError {
     expected_type: String,
     loc_and_type: ExprLocAndType,

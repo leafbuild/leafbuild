@@ -23,7 +23,7 @@ impl<'a> InvalidTargetPropertyError<'a> {
 
 impl<'a> LeafDiagnosticTrait for InvalidTargetPropertyError<'a> {
     fn get_diagnostic(&self, ctx: &DiagnosticsCtx) -> LeafDiagnostic {
-        LeafDiagnostic::error()
+        let diagnostic = LeafDiagnostic::error()
             .with_message(self.msg.get_message().clone())
             .with_code(INVALID_TARGET_PROPERTY_ERROR)
             .with_labels(vec![LeafLabel::primary(
@@ -34,7 +34,11 @@ impl<'a> LeafDiagnosticTrait for InvalidTargetPropertyError<'a> {
                 "here(key: {}, value: {})",
                 self.key_name,
                 self.value.stringify()
-            ))])
+            ))]);
+        match self.msg.get_note() {
+            Some(m) => diagnostic.with_notes(vec![m.clone()]),
+            None => diagnostic,
+        }
     }
 
     fn should_print(&self, _: &DiagnosticsCtx) -> bool {

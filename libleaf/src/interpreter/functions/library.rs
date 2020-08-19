@@ -5,7 +5,8 @@ fn get_library_executor() -> CallExecutor {
         "library".to_string(),
         |loc, args, frame, _| {
             let pos_args = args.get_positional_args();
-            if let Err(e) = require_pos_args(pos_args, loc, frame, 3, LIBRARY_FUNCTION_DOCS) {
+            if let Err(e) = require_pos_args(pos_args, loc.clone(), frame, 3, LIBRARY_FUNCTION_DOCS)
+            {
                 return e;
             }
             let library_name_arg = &pos_args[0];
@@ -102,37 +103,7 @@ fn get_library_executor() -> CallExecutor {
                 .iter()
                 .find(|arg| arg.get_name() == "properties")
             {
-                Some(l) => match l
-                    .get_value()
-                    .eval_in_env(frame)
-                    .get_type_id_and_value_required(TypeId::Map)
-                {
-                    Ok(mp) => mp
-                        .get_map()
-                        .unwrap()
-                        .into_iter()
-                        .filter_map(|v| match TargetProperty::try_from(v) {
-                            Ok(target_prop) => Some(target_prop),
-                            Err(err) => {
-                                diagnostics::push_diagnostic(
-                                    InvalidTargetPropertyError::new(err, l.get_rng(), v.0, v.1),
-                                    frame,
-                                );
-                                None
-                            }
-                        })
-                        .collect_vec(),
-                    Err(tp) => {
-                        diagnostics::push_diagnostic(
-                            ExpectedTypeError::new(
-                                TypeId::Map.typename(),
-                                ExprLocAndType::new(l.get_value().get_rng(), tp.typename()),
-                            ),
-                            frame,
-                        );
-                        lib_auto_target_properties(&sources, type_)
-                    }
-                },
+                Some(l) => TargetProperties::from_expr(l.get_value(), frame),
                 None => lib_auto_target_properties(&sources, type_),
             };
             let lib = frame.new_library(
@@ -143,12 +114,22 @@ fn get_library_executor() -> CallExecutor {
                 external_include_dirs,
                 properties,
             );
-            Value::new(Box::new(lib.make_ref()))
+            match lib {
+                Ok(l) => Value::new(Box::new(l.make_ref())),
+                Err(err) => {
+                    diagnostics::push_diagnostic(
+                        LibValidationError::new(err.get_message(), loc),
+                        frame,
+                    );
+
+                    Value::new(Box::new(ErrorValue::new()))
+                }
+            }
         },
         vec!["lib".to_string()],
     )
 }
 
-fn lib_auto_target_properties(sources: &[String], type_: LibType) -> Vec<TargetProperty> {
-    vec![]
+fn lib_auto_target_properties(sources: &[String], type_: LibType) -> TargetProperties {
+    Default::default()
 }

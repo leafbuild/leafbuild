@@ -2,16 +2,16 @@ use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
 
+use itertools::Itertools;
+
 use libutils::{
-    compilers::{cc::*, cxx::*, *},
+    compilers::{cc::*, cxx::*, flags::*, *},
     generators::{ninja::*, *},
+    utils::*,
 };
 
 use crate::interpreter::types::LibType;
 use crate::interpreter::Env;
-use itertools::Itertools;
-use libutils::compilers::flags::{CompilationFlag, LinkFlag, LinkFlags};
-use libutils::utils::{get_ar, Language};
 
 pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>> {
     let ninja_file = dir.join("build.ninja");
@@ -121,10 +121,10 @@ pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>
                 } else if CC::can_consume(src) || CXX::can_consume(src) {
                     return None;
                 } else {
-                    println!(
-                        "Warning: ignoring file '{}' while building executable '{}'",
+                    warn!(
+                        "ignoring file '{}' while building executable '{}'",
                         src,
-                        exe.get_name()
+                        exe.get_name(),
                     );
                     return None;
                 }

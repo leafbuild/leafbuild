@@ -1,5 +1,8 @@
+/// An error displayed when we cannot find the function/method to call
 pub(crate) struct CannotFindCallError {
+    /// the location of the identifier for the function/method name
     call_loc: Location,
+    /// the name of the function/method we're trying to call
     call_name: String,
     /// Some if it is a method call on the type TypeId, or None if it is a plain function call.
     base_type: Option<TypeId>,

@@ -14,6 +14,7 @@ macro_rules! warning_codes {
     };
 }
 
-warning_codes!(VAR_NAME_IN_PRELUDE,);
+warning_codes!(KEY_ALREADY_IN_MAP, VAR_NAME_IN_PRELUDE);
 
+include!("key_already_in_map.rs");
 include!("var_name_in_prelude.rs");

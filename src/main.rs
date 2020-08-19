@@ -8,6 +8,8 @@ use clap::{App, AppSettings, Arg};
 
 use libleaf::interpreter::EnvConfig;
 use libleaf::{handle::Handle, interpreter};
+use log::LevelFilter;
+use pretty_env_logger::env_logger::WriteStyle;
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
@@ -38,6 +40,10 @@ arg_names! {
 }
 
 fn main() {
+    pretty_env_logger::formatted_timed_builder()
+        .write_style(WriteStyle::Always)
+        .filter_level(LevelFilter::Trace)
+        .init();
     let angry_errors_help = format!(
         "Makes all error messages uppercase{}",
         if cfg!(feature = "angry-errors") {

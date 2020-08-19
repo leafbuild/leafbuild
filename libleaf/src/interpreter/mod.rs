@@ -301,10 +301,10 @@ impl<'env> EnvFrame<'env> {
         sources: Vec<String>,
         internal_include_dirs: Vec<String>,
         external_include_dirs: Vec<String>,
-        properties: Vec<TargetProperty>,
-    ) -> &Library {
+        properties: TargetProperties,
+    ) -> Result<&Library, LibraryValidationError> {
         let id = self.env_mut_ref.lib_id;
-        self.env_frame_data.lib_decls.push(Library::new(
+        let lib = Library::new(
             id,
             self.get_mod_id(),
             name,
@@ -313,9 +313,13 @@ impl<'env> EnvFrame<'env> {
             internal_include_dirs,
             external_include_dirs,
             properties,
-        ));
+        );
+        if let Err(err) = lib.validate() {
+            return Err(err);
+        }
+        self.env_frame_data.lib_decls.push(lib);
         self.env_mut_ref.lib_id += 1;
-        self.env_frame_data.lib_decls.last().unwrap()
+        Ok(self.env_frame_data.lib_decls.last().unwrap())
     }
 
     #[inline]
@@ -495,6 +499,7 @@ where
 {
     base_type_id: TypeId,
     value: T,
+    creation_location: Location,
 }
 
 impl<T> Value<T>
@@ -506,7 +511,13 @@ where
         Self {
             value,
             base_type_id,
+            creation_location: 0..1,
         }
+    }
+
+    pub(crate) fn with_location(mut self, location: Location) -> Self {
+        self.creation_location = location;
+        self
     }
 
     #[inline]
@@ -764,7 +775,7 @@ pub(crate) struct CallPoolsWrapper {
     library_pool: CallPool,
     map_pair_pool: CallPool,
     lib_type_pool: CallPool,
-    target_property_pool: CallPool,
+    target_properties_pool: CallPool,
     on_off_pool: CallPool,
 }
 
@@ -784,7 +795,7 @@ impl CallPoolsWrapper {
             library_pool: types::get_library_call_pool(),
             map_pair_pool: types::get_map_pair_call_pool(),
             lib_type_pool: types::get_lib_type_call_pool(),
-            target_property_pool: types::get_target_property_call_pool(),
+            target_properties_pool: types::get_target_properties_call_pool(),
             on_off_pool: types::get_on_off_call_pool(),
         }
     }
@@ -849,8 +860,8 @@ impl CallPoolsWrapper {
     }
 
     #[inline]
-    pub(crate) fn get_target_property_pool(&self) -> &CallPool {
-        &self.target_property_pool
+    pub(crate) fn get_target_properties_pool(&self) -> &CallPool {
+        &self.target_properties_pool
     }
 
     #[inline]
@@ -872,7 +883,7 @@ impl CallPoolsWrapper {
             TypeId::LibraryReference => self.get_library_pool(),
             TypeId::MapPair => self.get_map_pair_pool(),
             TypeId::LibType => self.get_lib_type_pool(),
-            TypeId::TargetProperty => self.get_target_property_pool(),
+            TypeId::TargetProperties => self.get_target_properties_pool(),
             TypeId::OnOff => self.get_on_off_pool(),
         }
     }
@@ -1020,7 +1031,7 @@ pub(crate) fn property_access(
             property.get_property_name_loc().clone(),
             frame,
         ),
-        TypeId::TargetProperty => resolve_target_property_type_property_access(
+        TypeId::TargetProperties => resolve_target_properties_type_property_access(
             base,
             base_location,
             property_name,

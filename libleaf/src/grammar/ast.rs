@@ -1,5 +1,6 @@
 use crate::interpreter::diagnostics::errors::{ExpectedTypeError, VariableNotFoundError};
 use crate::interpreter::diagnostics::push_diagnostic;
+use crate::interpreter::diagnostics::warnings::KeyAlreadyInMap;
 use crate::interpreter::Variable;
 use crate::{
     grammar::lexer::TokLoc,
@@ -132,10 +133,18 @@ impl Expr {
                 v.iter().for_each(|x| val.push(x.eval_in_env(frame)));
                 Value::new(Box::new(val))
             }
-            Expr::Atom(Atom::MapLit((v, _loc))) => {
+            Expr::Atom(Atom::MapLit((v, map_lit_loc))) => {
                 let mut val = HashMap::with_capacity(v.capacity());
                 v.iter().for_each(|x: &AstNamedExpr| {
-                    val.insert(x.name.0.clone(), x.value.eval_in_env(frame));
+                    if val
+                        .insert(x.name.0.clone(), x.value.eval_in_env(frame))
+                        .is_some()
+                    {
+                        diagnostics::push_diagnostic(
+                            KeyAlreadyInMap::new(&x.name.0, map_lit_loc.as_rng(), x.get_rng()),
+                            frame,
+                        );
+                    }
                 });
                 Value::new(Box::new(val))
             }
