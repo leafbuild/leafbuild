@@ -139,7 +139,9 @@ impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
     }
 }
 
-impl<'buildsys> Target<'buildsys, NinjaRule> for NinjaTarget<'buildsys> {
+impl<'buildsys> Target<'buildsys> for NinjaTarget<'buildsys> {
+    type TargetRule = NinjaRule;
+
     fn new_from(
         name: impl Into<String>,
         rule: &'buildsys NinjaRuleRef,
@@ -203,9 +205,10 @@ pub struct NinjaGen<'buildsys> {
     global_values: Vec<NinjaGlobalValue>,
 }
 
-impl<'buildsys> Generator<'buildsys, NinjaRule, NinjaTarget<'buildsys>, NinjaCommand>
-    for NinjaGen<'buildsys>
-{
+impl<'buildsys> Generator<'buildsys> for NinjaGen<'buildsys> {
+    type RuleType = NinjaRule;
+    type TargetType = NinjaTarget<'buildsys>;
+    type CommandType = NinjaCommand;
     fn new() -> NinjaGen<'buildsys> {
         // we start out with an empty build system
         NinjaGen {

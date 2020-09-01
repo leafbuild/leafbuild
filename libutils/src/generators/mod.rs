@@ -27,29 +27,27 @@ pub trait RuleOpt: ToBuildSystemSyntax {
 
 pub trait RuleRef {}
 
-pub trait Target<'buildsys, TargetRule>: ToBuildSystemSyntax
-where
-    TargetRule: Rule + Sized,
-{
+pub trait Target<'buildsys>: ToBuildSystemSyntax {
+    type TargetRule: Rule + Sized;
     fn new_from(
         name: impl Into<String>,
-        rule: &'buildsys TargetRule::RefType,
-        rule_args: Vec<TargetRule::ArgType>,
-        implicit_args: Vec<TargetRule::ArgType>,
-        rule_opts: Vec<TargetRule::VarType>,
+        rule: &'buildsys <Self::TargetRule as Rule>::RefType,
+        rule_args: Vec<<Self::TargetRule as Rule>::ArgType>,
+        implicit_args: Vec<<Self::TargetRule as Rule>::ArgType>,
+        rule_opts: Vec<<Self::TargetRule as Rule>::VarType>,
     ) -> Self;
     fn get_name(&self) -> &String;
-    fn get_rule(&self) -> &TargetRule::RefType;
-    fn get_args(&self) -> &Vec<TargetRule::ArgType>;
-    fn get_implicit_args(&self) -> &Vec<TargetRule::ArgType>;
-    fn get_opts(&self) -> &Vec<TargetRule::VarType>;
+    fn get_rule(&self) -> &<Self::TargetRule as Rule>::RefType;
+    fn get_args(&self) -> &Vec<<Self::TargetRule as Rule>::ArgType>;
+    fn get_implicit_args(&self) -> &Vec<<Self::TargetRule as Rule>::ArgType>;
+    fn get_opts(&self) -> &Vec<<Self::TargetRule as Rule>::VarType>;
 }
 
-pub trait Generator<'buildsys, RuleType, TargetType, CommandType>: ToBuildSystemSyntax
-where
-    RuleType: Rule + Sized,
-    TargetType: Target<'buildsys, RuleType> + Sized,
-{
+pub trait Generator<'buildsys>: ToBuildSystemSyntax {
+    type RuleType: Rule + Sized;
+    type TargetType: Target<'buildsys, TargetRule = Self::RuleType> + Sized;
+    type CommandType;
+
     fn new() -> Self;
 
     fn new_global_value(&mut self, unique_name: impl Into<String>, value: impl Into<String>);
@@ -57,17 +55,17 @@ where
     fn new_rule(
         &mut self,
         unique_name: impl Into<String>,
-        command: CommandType,
-        variables: Vec<RuleType::VarType>,
-    ) -> RuleType::RefType;
+        command: Self::CommandType,
+        variables: Vec<<Self::RuleType as Rule>::VarType>,
+    ) -> <Self::RuleType as Rule>::RefType;
     fn new_target(
         &mut self,
         name: impl Into<String>,
-        rule: &'buildsys RuleType::RefType,
-        args: Vec<RuleType::ArgType>,
-        implicit_args: Vec<RuleType::ArgType>,
-        variables: Vec<RuleType::VarType>,
-    ) -> &TargetType;
+        rule: &'buildsys <Self::RuleType as Rule>::RefType,
+        args: Vec<<Self::RuleType as Rule>::ArgType>,
+        implicit_args: Vec<<Self::RuleType as Rule>::ArgType>,
+        variables: Vec<<Self::RuleType as Rule>::VarType>,
+    ) -> &Self::TargetType;
 
     fn filename(&self) -> String;
     fn write_to(&self, file: File) -> std::io::Result<()>;

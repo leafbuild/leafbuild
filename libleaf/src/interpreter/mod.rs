@@ -280,9 +280,8 @@ impl<'env> EnvFrame<'env> {
         include_dirs: Vec<String>,
         dependencies: Vec<Box<dyn Dependency>>,
     ) -> &Executable {
-        let id = self.env_mut_ref.exec_id;
         self.env_frame_data.exe_decls.push(Executable::new(
-            id,
+            self.env_mut_ref.exec_id,
             self.get_mod_id(),
             name,
             sources,
@@ -303,9 +302,8 @@ impl<'env> EnvFrame<'env> {
         external_include_dirs: Vec<String>,
         properties: TargetProperties,
     ) -> Result<&Library, LibraryValidationError> {
-        let id = self.env_mut_ref.lib_id;
         let lib = Library::new(
-            id,
+            self.env_mut_ref.lib_id,
             self.get_mod_id(),
             name,
             type_,
