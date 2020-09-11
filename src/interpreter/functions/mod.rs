@@ -2,7 +2,7 @@ use itertools::Itertools;
 use paste::paste;
 
 use crate::interpreter::start_on_subdir;
-use crate::interpreter::types::{LibType, OnOff, TargetProperties, TypeIdAndValue};
+use crate::interpreter::types::{ExeRef, LibRef, LibType, OnOff, TargetProperties, TypeIdAndValue};
 use crate::{
     grammar::{ast::AstLoc, ast::AstPositionalArg},
     interpreter::{

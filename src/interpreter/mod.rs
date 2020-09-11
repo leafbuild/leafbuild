@@ -20,7 +20,6 @@ use crate::{
         types::*,
     },
 };
-use libutils::utils::Language;
 
 #[path = "diagnostics/diagnostics.rs"]
 pub(crate) mod diagnostics;
@@ -37,7 +36,7 @@ pub struct EnvConfig {
     error_cascade_enabled: bool,
     signal_build_failure: bool,
 
-    output_directory: String,
+    output_directory: PathBuf,
 }
 
 impl EnvConfig {
@@ -46,7 +45,7 @@ impl EnvConfig {
             angry_errors_enabled: false,
             error_cascade_enabled: true,
             signal_build_failure: false,
-            output_directory: "".to_string(),
+            output_directory: PathBuf::from("."),
         }
     }
 
@@ -63,8 +62,8 @@ impl EnvConfig {
     }
 
     #[inline]
-    pub fn set_output_directory(&mut self, output_directory: impl Into<String>) -> &mut EnvConfig {
-        self.output_directory = output_directory.into();
+    pub fn set_output_directory(&mut self, output_directory: PathBuf) -> &mut EnvConfig {
+        self.output_directory = output_directory;
         self
     }
 
@@ -100,11 +99,8 @@ impl EnvModData {
 }
 
 pub(crate) struct EnvMut {
-    /// the current executable id we are at, universally unique
-    exec_id: usize,
-
-    /// the current library id we are at, universally unique
-    lib_id: usize,
+    /// the current task id we are at, universally unique
+    task_id: usize,
 
     /// the current module id we are at, universally unique
     mod_id: usize,
@@ -116,8 +112,7 @@ pub(crate) struct EnvMut {
     /// the C++ compiler, if necessary
     cxx: Option<CXX>,
 
-    executables: Vec<Executable>,
-    libraries: Vec<Library>,
+    tasks: Vec<Box<dyn LeafTask>>,
 
     diagnostics_ctx: DiagnosticsCtx,
 }
@@ -162,13 +157,11 @@ impl Env {
                     cfg.error_cascade_enabled,
                     cfg.signal_build_failure,
                 ),
-                exec_id: 0,
-                lib_id: 0,
+                task_id: 0,
                 mod_id: 1,
                 cc: None,
                 cxx: None,
-                executables: vec![],
-                libraries: vec![],
+                tasks: vec![],
                 modules: vec![],
             },
             imut: EnvImut {
@@ -234,10 +227,10 @@ impl<'env> EnvFrame<'env> {
         if let Some(v) = self.env_ref.prelude_values.get(id) {
             return Some(v);
         }
-        match self.variables.iter().find(|&(var_name, _)| var_name == id) {
-            Some(var) => Some(var.1.get_value()),
-            None => None,
-        }
+        self.variables
+            .iter()
+            .find(|&(var_name, _)| var_name == id)
+            .map(|var| var.1.get_value())
     }
 
     #[inline]
@@ -273,58 +266,15 @@ impl<'env> EnvFrame<'env> {
     }
 
     #[inline]
-    pub(crate) fn new_executable(
-        &mut self,
-        name: String,
-        sources: Vec<String>,
-        include_dirs: Vec<String>,
-        dependencies: Vec<Box<dyn Dependency>>,
-    ) -> &Executable {
-        self.env_frame_data.exe_decls.push(Executable::new(
-            self.env_mut_ref.exec_id,
-            self.get_mod_id(),
-            name,
-            sources,
-            include_dirs,
-            dependencies,
-        ));
-        self.env_mut_ref.exec_id += 1;
-        self.env_frame_data.exe_decls.last().unwrap()
-    }
-
-    #[inline]
-    pub(crate) fn new_library(
-        &mut self,
-        name: String,
-        type_: LibType,
-        sources: Vec<String>,
-        internal_include_dirs: Vec<String>,
-        external_include_dirs: Vec<String>,
-        properties: TargetProperties,
-    ) -> Result<&Library, LibraryValidationError> {
-        let lib = Library::new(
-            self.env_mut_ref.lib_id,
-            self.get_mod_id(),
-            name,
-            type_,
-            sources,
-            internal_include_dirs,
-            external_include_dirs,
-            properties,
-        );
-        if let Err(err) = lib.validate() {
-            return Err(err);
-        }
-        self.env_frame_data.lib_decls.push(lib);
-        self.env_mut_ref.lib_id += 1;
-        Ok(self.env_frame_data.lib_decls.last().unwrap())
+    pub(crate) fn allocate_new_task(&mut self) -> usize {
+        let new_task_id = self.env_mut_ref.task_id + 1;
+        std::mem::replace(&mut self.env_mut_ref.task_id, new_task_id)
     }
 
     #[inline]
     pub(crate) fn next_mod_id(&mut self) -> usize {
-        let id = self.env_mut_ref.mod_id;
-        self.env_mut_ref.mod_id += 1;
-        id
+        let new_mod_id = self.env_mut_ref.mod_id + 1;
+        std::mem::replace(&mut self.env_mut_ref.mod_id, new_mod_id)
     }
 }
 
@@ -332,35 +282,20 @@ pub struct EnvFrameData {
     mod_id: usize,
     root_path: PathBuf,
 
-    /// the executables that need to be built and are private
-    exe_decls: Vec<Executable>,
-    /// the executables accessible from the outer build system
-    pub_exe_decls: Vec<Executable>,
-
-    /// the libraries that need to be built and are private
-    lib_decls: Vec<Library>,
-    /// the libraries accessible from the outer build system
-    pub_lib_decls: Vec<Library>,
+    tasks: Vec<Box<dyn LeafTask>>,
 }
 
 pub(crate) struct EnvFrameReturns {
     mod_id: usize,
     root_path: PathBuf,
 
-    exe_decls: Vec<Executable>,
-    pub_exe_decls: Vec<Executable>,
-
-    lib_decls: Vec<Library>,
-    pub_lib_decls: Vec<Library>,
+    tasks: Vec<Box<dyn LeafTask>>,
 }
 
 impl EnvFrameData {
     pub(crate) fn empty(root_path: PathBuf) -> Self {
         Self {
-            exe_decls: vec![],
-            pub_exe_decls: vec![],
-            lib_decls: vec![],
-            pub_lib_decls: vec![],
+            tasks: vec![],
             mod_id: 0,
             root_path,
         }
@@ -372,10 +307,7 @@ impl From<EnvFrameData> for EnvFrameReturns {
         Self {
             mod_id: r.mod_id,
             root_path: r.root_path,
-            exe_decls: r.exe_decls,
-            pub_exe_decls: r.pub_exe_decls,
-            lib_decls: r.lib_decls,
-            pub_lib_decls: r.pub_lib_decls,
+            tasks: r.tasks,
         }
     }
 }
@@ -385,18 +317,9 @@ impl EnvFrameReturns {
         self.apply_changes_to_env((&env.imut, &mut env.mut_))
     }
     fn apply_changes_to_env(self, env: (&EnvImut, &mut EnvMut)) {
-        self.exe_decls
+        self.tasks
             .into_iter()
-            .for_each(|exe| env.1.executables.push(exe));
-        self.pub_exe_decls
-            .into_iter()
-            .for_each(|exe| env.1.executables.push(exe));
-        self.lib_decls
-            .iter()
-            .for_each(|lib| env.1.libraries.push(lib.clone()));
-        self.pub_lib_decls
-            .iter()
-            .for_each(|lib| env.1.libraries.push(lib.clone()));
+            .for_each(|task| env.1.tasks.push(task));
 
         env.1
             .modules
@@ -643,7 +566,7 @@ pub(crate) fn interpret<'env>(
 pub fn start_on(proj_path: &Path, handle: &mut Handle) {
     let path = proj_path.join("build.leaf");
     let path_clone = path.clone();
-    let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap() + "\n";
+    let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap();
     let src_len = src.len();
     let result = grammar::parse(&src);
     let file_id = add_file(
@@ -717,7 +640,7 @@ pub(crate) fn interpret_subdir<'env>(
 pub(crate) fn start_on_subdir(root_path: &Path, env: (&EnvImut, &mut EnvMut)) {
     let path = root_path.join("build.leaf");
     let path_clone = path.clone();
-    let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap() + "\n";
+    let src = String::from_utf8(std::fs::read(path).unwrap()).unwrap();
     let src_len = src.len();
     let result = grammar::parse(&src);
     let file_id = add_file_ctx(
@@ -1047,3 +970,4 @@ pub(crate) fn property_access(
 }
 
 include!("interpreter_internal.rs");
+include!("task.rs");

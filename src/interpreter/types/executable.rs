@@ -52,7 +52,7 @@ pub(crate) struct ExeRef {
 }
 
 impl ExeRef {
-    fn new(id: usize) -> Self {
+    pub(crate) fn new(id: usize) -> Self {
         Self { id }
     }
 }

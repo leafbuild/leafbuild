@@ -116,17 +116,17 @@ pub(crate) struct LibRef {
 }
 
 impl LibRef {
-    fn new(id: usize) -> Self {
+    pub(crate) fn new(id: usize) -> Self {
         Self { id }
     }
 
-    fn get_lib_in_env<'a>(&self, env: &'a Env) -> &'a Library {
-        env.mut_
-            .libraries
-            .iter()
-            .find(|lib| lib.id == self.id)
-            .unwrap()
-    }
+    // fn get_lib_in_env<'a>(&self, env: &'a Env) -> &'a Library {
+    //     env.mut_
+    //         .libraries
+    //         .iter()
+    //         .find(|lib| lib.id == self.id)
+    //         .unwrap()
+    // }
 }
 
 impl ValueTypeMarker for LibRef {
@@ -149,36 +149,38 @@ impl ValueTypeMarker for LibRef {
 
 impl Dependency for LibRef {
     fn get_compiler_flags(&self, language: Language, env: &Env) -> CompilationFlags {
-        let lib = self.get_lib_in_env(env);
+        // let lib = self.get_lib_in_env(env);
         CompilationFlags::new(
-            lib.external_include_dirs
-                .iter()
-                .map(|inc_dir| CompilationFlag::IncludeDir {
-                    include_dir: env
-                        .get_root_path_for_module(lib.mod_id)
-                        .unwrap()
-                        .clone()
-                        .join(inc_dir)
-                        .to_str()
-                        .unwrap()
-                        .to_string(),
-                })
-                .collect_vec(),
+            // lib.external_include_dirs
+            //     .iter()
+            //     .map(|inc_dir| CompilationFlag::IncludeDir {
+            //         include_dir: env
+            //             .get_root_path_for_module(lib.mod_id)
+            //             .unwrap()
+            //             .clone()
+            //             .join(inc_dir)
+            //             .to_str()
+            //             .unwrap()
+            //             .to_string(),
+            //     })
+            //     .collect_vec(),
+            vec![],
         )
     }
 
     fn get_linker_flags(&self, language: Language, env: &Env) -> LinkFlags {
         LinkFlags::new(vec![
             LinkFlag::LibLocation { s: ".".to_string() },
-            LinkFlag::Lib {
-                name: self.get_lib_in_env(env).name.clone(),
-            },
+            // LinkFlag::Lib {
+            //     name: self.get_lib_in_env(env).name.clone(),
+            // },
         ])
     }
 
     fn get_implicit_requirements(&self, language: Language, env: &Env) -> Vec<String> {
-        let lib = self.get_lib_in_env(env);
-        vec![lib.type_.fmt_name(&lib.name)]
+        // let lib = self.get_lib_in_env(env);
+        // vec![lib.type_.fmt_name(&lib.name)]
+        vec![]
     }
 }
 

@@ -78,8 +78,9 @@ fn get_executable_executor() -> CallExecutor {
                 },
                 None => vec![],
             };
-            let exe = frame.new_executable(executable_name, sources, include_dirs, dependencies);
-            Value::new(Box::new(exe.make_ref()))
+            // let exe = frame.new_executable(executable_name, sources, include_dirs, dependencies);
+            // Value::new(Box::new(exe.make_ref()))
+            Value::new(Box::new(ExeRef::new(0)))
         },
         vec!["bin".to_string(), "binary".to_string()],
     )

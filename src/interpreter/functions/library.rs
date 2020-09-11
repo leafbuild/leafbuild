@@ -106,25 +106,26 @@ fn get_library_executor() -> CallExecutor {
                 Some(l) => TargetProperties::from_expr(l.get_value(), frame),
                 None => lib_auto_target_properties(&sources, type_),
             };
-            let lib = frame.new_library(
-                library_name,
-                type_,
-                sources,
-                internal_include_dirs,
-                external_include_dirs,
-                properties,
-            );
-            match lib {
-                Ok(l) => Value::new(Box::new(l.make_ref())),
-                Err(err) => {
-                    diagnostics::push_diagnostic(
-                        LibValidationError::new(err.get_message(), loc),
-                        frame,
-                    );
-
-                    Value::new(Box::new(ErrorValue::new()))
-                }
-            }
+            // let lib = frame.new_library(
+            //     library_name,
+            //     type_,
+            //     sources,
+            //     internal_include_dirs,
+            //     external_include_dirs,
+            //     properties,
+            // );
+            // match lib {
+            //     Ok(l) => Value::new(Box::new(l.make_ref())),
+            //     Err(err) => {
+            //         diagnostics::push_diagnostic(
+            //             LibValidationError::new(err.get_message(), loc),
+            //             frame,
+            //         );
+            //
+            //         Value::new(Box::new(ErrorValue::new()))
+            //     }
+            // }
+            Value::new(Box::new(LibRef::new(0)))
         },
         vec!["lib".to_string()],
     )

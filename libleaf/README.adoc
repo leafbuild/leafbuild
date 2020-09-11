@@ -1,3 +1,0 @@
-= libleaf
-
-The library behind the meta-build system
