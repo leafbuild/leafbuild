@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
@@ -5,7 +8,6 @@ use leafbuild::handle::Handle;
 use leafbuild::interpreter;
 use leafbuild::interpreter::EnvConfig;
 use log::LevelFilter;
-use pretty_env_logger::env_logger::WriteStyle;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 
@@ -82,7 +84,6 @@ struct Cli {
 
 fn main() {
     pretty_env_logger::formatted_timed_builder()
-        .write_style(WriteStyle::Always)
         .filter_level(LevelFilter::Trace)
         .init();
     let cli: Cli = Cli::from_args();
@@ -96,9 +97,7 @@ fn main() {
             #[cfg(feature = "angry-errors")]
             config.set_angry_errors(build_command.angry_errors);
             if build_command.angry_errors && !(cfg!(feature = "angry-errors")) {
-                println!(
-                    "\x1B[4;33m[WARN]\x1B[0m Cannot use --angry-errors without the angry-errors feature"
-                );
+                warn!("Cannot use --angry-errors without the angry-errors feature");
             }
 
             if build_command.disable_error_cascade {

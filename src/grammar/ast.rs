@@ -18,7 +18,9 @@ use crate::{
         EnvFrame, LaterValue, ValRefMut, Value, ValueTypeMarker,
     },
 };
+use itertools::Itertools;
 use std::collections::HashMap;
+use std::convert::TryFrom;
 use std::ops::Deref;
 
 pub(crate) trait AstLoc {
@@ -43,8 +45,123 @@ pub(crate) trait IndexedAstLoc {
     }
 }
 
+#[derive(Copy, Clone)]
+pub enum NumVal {
+    I32(i32),
+    I64(i64),
+    U32(u32),
+    U64(u64),
+}
+
+macro_rules! add_digit_decl {
+    ($name:ident, $coef:literal) => {
+        fn $name(self, digit: u32) -> Self {
+            match self {
+                Self::I32(v) => Self::I32(v * $coef + (digit as i32)),
+                Self::I64(v) => Self::I64(v * $coef + (digit as i64)),
+                Self::U32(v) => Self::U32(v * $coef + (digit as u32)),
+                Self::U64(v) => Self::U64(v * $coef + (digit as u64)),
+            }
+        }
+    };
+}
+
+impl NumVal {
+    fn to_boxed_value(self) -> Box<dyn ValueTypeMarker> {
+        match self {
+            Self::I32(v) => Box::new(v),
+            Self::I64(v) => Box::new(v),
+            Self::U32(v) => Box::new(v),
+            Self::U64(v) => Box::new(v),
+        }
+    }
+
+    add_digit_decl! {add_hex_digit, 16}
+    add_digit_decl! {add_oct_digit, 8}
+    add_digit_decl! {add_bin_digit, 2}
+    add_digit_decl! {add_dec_digit, 10}
+}
+
+impl From<&str> for NumVal {
+    /// parse a number from a number literal string
+    fn from(s: &str) -> Self {
+        #[derive(Copy, Clone)]
+        enum Tp {
+            I32,
+            I64,
+            U32,
+            U64,
+        }
+        impl Tp {
+            fn into_unsigned(self) -> Self {
+                match self {
+                    Self::I32 => Self::U32,
+                    Self::I64 => Self::U64,
+                    x => x,
+                }
+            }
+            fn into_long(self) -> Self {
+                match self {
+                    Self::I32 => Self::I64,
+                    Self::U32 => Self::U64,
+                    x => x,
+                }
+            }
+            fn into_default_num_val(self) -> NumVal {
+                match self {
+                    Self::I32 => NumVal::I32(0),
+                    Self::I64 => NumVal::I64(0),
+                    Self::U32 => NumVal::U32(0),
+                    Self::U64 => NumVal::U64(0),
+                }
+            }
+        }
+        let mut tp = Tp::I32;
+        s.chars().rev().try_for_each(|chr| match chr {
+            'u' | 'U' => {
+                tp = tp.into_unsigned();
+                Ok(())
+            }
+            'l' | 'L' => {
+                tp = tp.into_long();
+                Ok(())
+            }
+            _ => Err(()),
+        });
+        if s.starts_with("0x") {
+            s.chars()
+                .skip(2)
+                .take_while(|chr| chr.is_digit(16))
+                .fold(tp.into_default_num_val(), |nmv, chr| {
+                    nmv.add_hex_digit(chr.to_digit(16).unwrap())
+                })
+        } else if s.starts_with("0b") {
+            s.chars()
+                .skip(2)
+                .take_while(|chr| chr.is_digit(2))
+                .fold(tp.into_default_num_val(), |nmv, chr| {
+                    nmv.add_hex_digit(chr.to_digit(2).unwrap())
+                })
+        } else if s.starts_with('0') {
+            s.chars()
+                .skip(2)
+                .take_while(|chr| chr.is_digit(8))
+                .fold(tp.into_default_num_val(), |nmv, chr| {
+                    nmv.add_hex_digit(chr.to_digit(8).unwrap())
+                })
+        } else {
+            s.chars()
+                .skip(2)
+                .take_while(|chr| chr.is_digit(10))
+                .fold(tp.into_default_num_val(), |nmv, chr| {
+                    nmv.add_hex_digit(chr.to_digit(10).unwrap())
+                })
+        }
+    }
+}
+
 pub enum Atom {
-    Number((i32, TokLoc)),
+    Number((NumVal, TokLoc)),
     Bool((bool, TokLoc)),
     Str((String, TokLoc)),
     Id((String, TokLoc)),
@@ -100,25 +217,22 @@ pub enum Expr {
     ParenExpr(usize, Box<Expr>, usize),
     Indexed {
         base: Box<Expr>,
-        bracket_open: TokLoc,
         index: Box<Expr>,
-        bracket_close: TokLoc,
+        end: usize,
     },
     Ternary(
-        TokLoc,    // (
-        Box<Expr>, //   expr
-        TokLoc,    //        ?
-        Box<Expr>, //           expr
-        TokLoc,    //                 :
-        Box<Expr>, //                    expr
-        TokLoc,    //                          )
+        usize,
+        Box<Expr>, //   condition
+        Box<Expr>, //           onTrue
+        Box<Expr>, //                    onFalse
+        usize,
     ),
 }
 
 impl Expr {
     pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
         match self {
-            Expr::Atom(Atom::Number((num, _loc))) => Value::new(Box::new(*num)),
+            Expr::Atom(Atom::Number((num, _loc))) => Value::new(num.to_boxed_value()),
             Expr::Atom(Atom::Bool((v, _loc))) => Value::new(Box::new(*v)),
             Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
             Expr::Atom(Atom::Id((id, loc))) => match frame.get_value_for_variable(&id.clone()) {
@@ -227,7 +341,7 @@ impl Expr {
                     }
                 },
             )),
-            Expr::Ternary(_, condition, _, value_true, _, value_false, _) => {
+            Expr::Ternary(_, condition, value_true, value_false, _) => {
                 let cond = condition.eval_in_env(frame);
                 match cond.get_type_id_and_value_required(TypeId::Bool) {
                     Ok(b) => {
@@ -285,7 +399,7 @@ impl Expr {
             Expr::Indexed { .. } => {
                 Err(TakeRefError::new(self.get_rng(), "an expression like this"))
             }
-            Expr::Ternary(_, _, _, _, _, _, _) => {
+            Expr::Ternary(_, _, _, _, _) => {
                 Err(TakeRefError::new(self.get_rng(), "an expression like this"))
             }
         }
@@ -308,7 +422,7 @@ impl AstLoc for Expr {
             Expr::ParenExpr(begin, _, _) => *begin,
             Expr::UnaryOp(op, _) => op.get_begin(),
             Expr::Indexed { base, .. } => base.get_begin(),
-            Expr::Ternary(b, _, _, _, _, _, _) => b.get_begin(),
+            Expr::Ternary(b, _, _, _, _) => *b,
         }
     }
 
@@ -322,11 +436,8 @@ impl AstLoc for Expr {
             Expr::PropertyAccess(prop_access) => prop_access.get_end(),
             Expr::ParenExpr(_, _, end) => *end,
             Expr::UnaryOp(_, expr) => expr.get_end(),
-            Expr::Indexed {
-                bracket_close: bracket_closed,
-                ..
-            } => bracket_closed.get_end(),
-            Expr::Ternary(_, _, _, _, _, _, e) => e.get_end(),
+            Expr::Indexed { end, .. } => *end,
+            Expr::Ternary(_, _, _, _, e) => *e,
         }
     }
 
@@ -340,12 +451,8 @@ impl AstLoc for Expr {
             Expr::UnaryOp(op, expr) => op.get_begin()..expr.get_end(),
             Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
             Expr::ParenExpr(begin, _, end) => *begin..*end,
-            Expr::Indexed {
-                base: b,
-                bracket_close: e,
-                ..
-            } => b.get_begin()..e.get_end(),
-            Expr::Ternary(b, _, _, _, _, _, e) => b.get_begin()..e.get_end(),
+            Expr::Indexed { base: b, end, .. } => b.get_begin()..*end,
+            Expr::Ternary(b, _, _, _, e) => (*b)..(*e),
         }
     }
 }
@@ -842,16 +949,12 @@ impl AstLoc for AstAssignment {
 pub struct AstDeclaration {
     name: (String, TokLoc),
     value: Box<Expr>,
-    let_tok: TokLoc,
+    begin: usize,
 }
 
 impl AstDeclaration {
-    pub fn new(name: (String, TokLoc), value: Box<Expr>, let_tok: TokLoc) -> Self {
-        Self {
-            name,
-            value,
-            let_tok,
-        }
+    pub fn new(name: (String, TokLoc), value: Box<Expr>, begin: usize) -> Self {
+        Self { name, value, begin }
     }
 
     pub fn get_name(&self) -> &String {
@@ -865,15 +968,11 @@ impl AstDeclaration {
     pub fn get_value(&self) -> &Expr {
         &self.value
     }
-
-    pub fn get_let_tok_location(&self) -> &TokLoc {
-        &self.let_tok
-    }
 }
 
 impl AstLoc for AstDeclaration {
     fn get_begin(&self) -> usize {
-        self.let_tok.get_begin()
+        self.begin
     }
 
     fn get_end(&self) -> usize {
@@ -891,26 +990,26 @@ pub enum AstAtrOp {
 }
 
 pub struct AstIf {
-    /// location of "if"
-    loc: TokLoc,
+    /// index of "if"
+    begin: usize,
     condition: Box<Expr>,
     statements: Vec<AstStatement>,
 
-    end_brace: TokLoc,
+    end: usize,
 }
 
 impl AstIf {
     pub(crate) fn new(
-        loc: TokLoc,
+        begin: usize,
         condition: Box<Expr>,
         statements: Vec<AstStatement>,
-        end_brace: TokLoc,
+        end: usize,
     ) -> Self {
         Self {
-            loc,
+            begin,
             condition,
             statements,
-            end_brace,
+            end,
         }
     }
 
@@ -925,25 +1024,25 @@ impl AstIf {
 impl AstLoc for AstIf {
     #[inline]
     fn get_begin(&self) -> usize {
-        self.loc.get_begin()
+        self.begin
     }
 
     #[inline]
     fn get_end(&self) -> usize {
-        self.end_brace.get_end()
+        self.end
     }
 }
 
 pub struct AstElseIf {
-    /// location of "else"
-    loc: TokLoc,
+    /// start index of "else"
+    begin: usize,
     if_: AstIf,
 }
 
 impl AstLoc for AstElseIf {
     #[inline]
     fn get_begin(&self) -> usize {
-        self.loc.get_begin()
+        self.begin
     }
 
     #[inline]
@@ -953,8 +1052,8 @@ impl AstLoc for AstElseIf {
 }
 
 impl AstElseIf {
-    pub(crate) fn new(loc: TokLoc, if_: AstIf) -> Self {
-        Self { loc, if_ }
+    pub(crate) fn new(begin: usize, if_: AstIf) -> Self {
+        Self { begin, if_ }
     }
 
     pub(crate) fn get_if(&self) -> &AstIf {
@@ -963,30 +1062,30 @@ impl AstElseIf {
 }
 
 pub struct AstElse {
-    /// location of "else"
-    loc: TokLoc,
+    /// index of "else"
+    begin: usize,
     statements: Vec<AstStatement>,
-    end_brace: TokLoc,
+    end: usize,
 }
 
 impl AstLoc for AstElse {
     #[inline]
     fn get_begin(&self) -> usize {
-        self.loc.get_begin()
+        self.begin
     }
 
     #[inline]
     fn get_end(&self) -> usize {
-        self.end_brace.get_end()
+        self.end
     }
 }
 
 impl AstElse {
-    pub(crate) fn new(loc: TokLoc, statements: Vec<AstStatement>, end_brace: TokLoc) -> Self {
+    pub(crate) fn new(begin: usize, statements: Vec<AstStatement>, end: usize) -> Self {
         Self {
-            loc,
+            begin,
             statements,
-            end_brace,
+            end,
         }
     }
 
@@ -1023,7 +1122,7 @@ impl AstConditionalStatement {
 
 impl AstLoc for AstConditionalStatement {
     fn get_begin(&self) -> usize {
-        self.initial_if.loc.get_begin()
+        self.initial_if.get_begin()
     }
 
     fn get_end(&self) -> usize {
@@ -1038,18 +1137,18 @@ impl AstLoc for AstConditionalStatement {
 }
 
 pub struct AstRepetitiveStatement {
-    foreach_tok: TokLoc,
+    foreach_tok: usize,
     for_in_expr: AstForInExpr,
     statements: Vec<AstStatement>,
-    end: TokLoc,
+    end: usize,
 }
 
 impl AstRepetitiveStatement {
     pub fn new(
-        foreach_tok: TokLoc,
+        foreach_tok: usize,
         for_in_expr: AstForInExpr,
         statements: Vec<AstStatement>,
-        end: TokLoc,
+        end: usize,
     ) -> AstRepetitiveStatement {
         Self {
             foreach_tok,
@@ -1073,19 +1172,18 @@ impl AstLoc for AstRepetitiveStatement {
     }
 
     fn get_end(&self) -> usize {
-        self.end.get_end()
+        self.end
     }
 }
 
 pub struct AstForInExpr {
     name: (String, TokLoc),
-    in_tok: TokLoc,
     expr: Box<Expr>,
 }
 
 impl AstForInExpr {
-    pub fn new(name: (String, TokLoc), in_tok: TokLoc, expr: Box<Expr>) -> AstForInExpr {
-        Self { name, in_tok, expr }
+    pub fn new(name: (String, TokLoc), expr: Box<Expr>) -> AstForInExpr {
+        Self { name, expr }
     }
 
     pub(crate) fn get_name(&self) -> &(String, TokLoc) {

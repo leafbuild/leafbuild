@@ -13,7 +13,7 @@ use libutils::compilers::{
 };
 
 use crate::{
-    grammar::{self, ast::*, lexer::LexicalError, TokLoc},
+    grammar::{self, ast::*, TokLoc},
     handle::Handle,
     interpreter::{
         diagnostics::{errors::*, push_diagnostic_ctx, warnings::*, DiagnosticsCtx, Location},
@@ -571,7 +571,7 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
     let result = grammar::parse(&src);
     let file_id = add_file(
         path_clone.to_str().unwrap().to_string(),
-        src,
+        src.clone(),
         &mut handle.env,
     );
     match result {
@@ -595,15 +595,7 @@ pub fn start_on(proj_path: &Path, handle: &mut Handle) {
                 ParseError::ExtraToken { token } => {
                     SyntaxError::new(token.0..token.2, format!("extra token: {}", token.1))
                 }
-                ParseError::User { error } => match error {
-                    LexicalError::UnrecognizedToken { location } => SyntaxError::new(
-                        location..location + 1,
-                        "Unexpected character at beginning of token",
-                    ),
-                    LexicalError::StringStartedButNotEnded { start_loc } => {
-                        SyntaxError::new(start_loc..src_len, "No end of string found")
-                    }
-                },
+                ParseError::User { error } => SyntaxError::new(0..1, error),
             };
             push_diagnostic_ctx(syntax_error, &handle.env.mut_.diagnostics_ctx)
         }
@@ -645,7 +637,7 @@ pub(crate) fn start_on_subdir(root_path: &Path, env: (&EnvImut, &mut EnvMut)) {
     let result = grammar::parse(&src);
     let file_id = add_file_ctx(
         path_clone.to_str().unwrap().to_string(),
-        src,
+        src.clone(),
         &mut env.1.diagnostics_ctx,
     );
     match result {
@@ -668,15 +660,7 @@ pub(crate) fn start_on_subdir(root_path: &Path, env: (&EnvImut, &mut EnvMut)) {
                 ParseError::ExtraToken { token } => {
                     SyntaxError::new(token.0..token.2, format!("extra token: {}", token.1))
                 }
-                ParseError::User { error } => match error {
-                    LexicalError::UnrecognizedToken { location } => SyntaxError::new(
-                        location..location + 1,
-                        "Unexpected character at beginning of token",
-                    ),
-                    LexicalError::StringStartedButNotEnded { start_loc } => {
-                        SyntaxError::new(start_loc..src_len, "No end of string found")
-                    }
-                },
+                ParseError::User { error } => SyntaxError::new(0..1, error),
             };
             push_diagnostic_ctx(syntax_error, &env.1.diagnostics_ctx)
         }

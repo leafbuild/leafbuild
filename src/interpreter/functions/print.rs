@@ -18,12 +18,12 @@ pub(crate) fn get_print_executor() -> CallExecutor {
                 "-- {}",
                 args.get_positional_args()
                     .iter()
-                    .map(|arg| { arg.get_value().eval_in_env(frame).stringify() })
+                    .map(|arg| arg.get_value().eval_in_env(frame).stringify())
                     .chain(named_iter)
                     .join(", ")
             );
             Value::new(Box::new(()))
         },
-        vec![],
+        vec!["debug".to_string(), "message".to_string()],
     )
 }

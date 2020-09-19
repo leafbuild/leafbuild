@@ -33,7 +33,7 @@ structopt = "0.3.17"
 pretty_env_logger = "0.4.0"
 
 [build-dependencies]
-lalrpop = "0.19"
+lalrpop = { version = "0.19", features = ["lexer"] }
 
 [workspace]
 members = [

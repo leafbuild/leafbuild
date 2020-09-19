@@ -43,10 +43,10 @@ pub(crate) enum TypeIdAndValue<'a> {
 impl<'a> TypeIdAndValue<'a> {
     pub(crate) fn cast_to_usize(&self) -> Result<usize, TypeId> {
         match self {
-            TypeIdAndValue::I32(v) => Ok(**v as usize),
-            TypeIdAndValue::I64(v) => Ok(**v as usize),
-            TypeIdAndValue::U32(v) => Ok(**v as usize),
-            TypeIdAndValue::U64(v) => Ok(**v as usize),
+            TypeIdAndValue::I32(&v) => Ok(v as usize),
+            TypeIdAndValue::I64(&v) => Ok(v as usize),
+            TypeIdAndValue::U32(&v) => Ok(v as usize),
+            TypeIdAndValue::U64(&v) => Ok(v as usize),
             v => Err(v.degrade()),
         }
     }
@@ -60,7 +60,7 @@ impl<'a> TypeIdAndValue<'a> {
 
     pub(crate) fn get_bool(&'a self) -> Result<bool, TypeId> {
         match self {
-            TypeIdAndValue::Bool(v) => Ok(**v),
+            TypeIdAndValue::Bool(&v) => Ok(v),
             v => Err(v.degrade()),
         }
     }
@@ -108,44 +108,36 @@ impl<'a> TypeIdAndValue<'a> {
     ) -> Option<Vec<String>> {
         match self {
             TypeIdAndValue::String(v) => Some(vec![(*v).clone()]),
-            TypeIdAndValue::Vec(vec) => {
-                Some(
-                    vec.iter()
-                        .enumerate()
-                        .filter_map(|(idx, v)| {
-                            match v.get_type_id_and_value_required(TypeId::String) {
-                                Ok(s) => Some(s.get_string().unwrap().clone()),
-                                Err(tp) => {
-                                    diagnostics::push_diagnostic_ctx(
-                                        UnexpectedTypeInArray::new(
-                                            location.clone(),
-                                            tp.typename(),
-                                            TypeId::String.typename(),
-                                            idx,
-                                        )
-                                        .with_docs_location_opt(match docs {
-                                            Some(v) => Some(v.to_string()),
-                                            None => None,
-                                        }),
-                                        diag_ctx,
-                                    );
-                                    None
-                                }
+            TypeIdAndValue::Vec(vec) => Some(
+                vec.iter()
+                    .enumerate()
+                    .filter_map(
+                        |(idx, v)| match v.get_type_id_and_value_required(TypeId::String) {
+                            Ok(s) => Some(s.get_string().unwrap().clone()),
+                            Err(tp) => {
+                                diagnostics::push_diagnostic_ctx(
+                                    UnexpectedTypeInArray::new(
+                                        location.clone(),
+                                        tp.typename(),
+                                        TypeId::String.typename(),
+                                        idx,
+                                    )
+                                    .with_docs_location_opt(docs.map(|v| v.to_string())),
+                                    diag_ctx,
+                                );
+                                None
                             }
-                        })
-                        .collect_vec(),
-                )
-            }
+                        },
+                    )
+                    .collect_vec(),
+            ),
             tp => {
                 diagnostics::push_diagnostic_ctx(
                     ExpectedTypeError::new(
                         TypeId::Vec.typename(),
                         ExprLocAndType::new(location, tp.degrade().typename()),
                     )
-                    .with_docs_location_opt(match docs {
-                        Some(v) => Some(v.to_string()),
-                        None => None,
-                    }),
+                    .with_docs_location_opt(docs.map(|v| v.to_string())),
                     diag_ctx,
                 );
                 None
@@ -160,34 +152,29 @@ impl<'a> TypeIdAndValue<'a> {
         diag_ctx: &DiagnosticsCtx,
     ) -> Option<Vec<Box<dyn Dependency>>> {
         match self {
-            TypeIdAndValue::Vec(vec) => {
-                Some(
-                    vec.iter()
-                        .enumerate()
-                        .filter_map(|(idx, v)| -> Option<Box<dyn Dependency>> {
-                            match v.get_type_id_and_value() {
-                                TypeIdAndValue::LibraryReference(ref_) => Some(Box::new(*ref_)),
-                                tp => {
-                                    diagnostics::push_diagnostic_ctx(
-                                        UnexpectedTypeInArray::new(
-                                            location.clone(),
-                                            tp.degrade().typename(),
-                                            TypeId::LibraryReference.typename(),
-                                            idx,
-                                        )
-                                        .with_docs_location_opt(match docs {
-                                            Some(v) => Some(v.to_string()),
-                                            None => None,
-                                        }),
-                                        diag_ctx,
-                                    );
-                                    None
-                                }
+            TypeIdAndValue::Vec(vec) => Some(
+                vec.iter()
+                    .enumerate()
+                    .filter_map(|(idx, v)| -> Option<Box<dyn Dependency>> {
+                        match v.get_type_id_and_value() {
+                            TypeIdAndValue::LibraryReference(ref_) => Some(Box::new(*ref_)),
+                            tp => {
+                                diagnostics::push_diagnostic_ctx(
+                                    UnexpectedTypeInArray::new(
+                                        location.clone(),
+                                        tp.degrade().typename(),
+                                        TypeId::LibraryReference.typename(),
+                                        idx,
+                                    )
+                                    .with_docs_location_opt(docs.map(|v| v.to_string())),
+                                    diag_ctx,
+                                );
+                                None
                             }
-                        })
-                        .collect_vec(),
-                )
-            }
+                        }
+                    })
+                    .collect_vec(),
+            ),
             tp => {
                 diagnostics::push_diagnostic_ctx(
                     ExpectedTypeError::new(
@@ -209,11 +196,11 @@ impl<'a> TypeIdAndValue<'a> {
 impl<'a> TypeIdAndValue<'a> {
     pub(crate) fn stringify(&self) -> String {
         match self {
-            TypeIdAndValue::I32(v) => format!("{}", v),
-            TypeIdAndValue::I64(v) => format!("{}", v),
-            TypeIdAndValue::U32(v) => format!("{}", v),
-            TypeIdAndValue::U64(v) => format!("{}", v),
-            TypeIdAndValue::Bool(v) => format!("{}", v),
+            TypeIdAndValue::I32(&v) => format!("{}", v),
+            TypeIdAndValue::I64(&v) => format!("{}", v),
+            TypeIdAndValue::U32(&v) => format!("{}", v),
+            TypeIdAndValue::U64(&v) => format!("{}", v),
+            TypeIdAndValue::Bool(&v) => format!("{}", v),
             TypeIdAndValue::String(v) => (*v).clone(),
             TypeIdAndValue::Void => "".to_string(),
             TypeIdAndValue::Error => "(error)".to_string(),
