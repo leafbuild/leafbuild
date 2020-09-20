@@ -215,7 +215,6 @@ impl<'a> TypeIdAndValue<'a> {
         }
     }
 
-    #[inline]
     pub(crate) fn degrade(&self) -> TypeId {
         match self {
             TypeIdAndValue::I32(_) => TypeId::I32,
@@ -259,7 +258,6 @@ pub(crate) enum TypeId {
 }
 
 impl TypeId {
-    #[inline]
     pub(crate) fn typename(&self) -> &'static str {
         match self {
             TypeId::I32 => "i32",

@@ -34,35 +34,29 @@ impl LeafDiagnostic {
         }
     }
 
-    #[inline]
     pub(crate) fn error() -> LeafDiagnostic {
         Self::new(LeafDiagnosticType::Error)
     }
 
-    #[inline]
     pub(crate) fn warn() -> LeafDiagnostic {
         Self::new(LeafDiagnosticType::Warn)
     }
 
-    #[inline]
     pub(crate) fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = message.into();
         self
     }
 
-    #[inline]
     pub(crate) fn with_labels(mut self, labels: Vec<LeafLabel>) -> Self {
         self.labels = labels;
         self
     }
 
-    #[inline]
     pub(crate) fn with_notes(mut self, notes: Vec<String>) -> Self {
         self.notes = notes;
         self
     }
 
-    #[inline]
     pub(crate) fn with_code(mut self, code: usize) -> Self {
         self.diagnostic_code = code;
         self
@@ -204,7 +198,6 @@ impl DiagnosticsCtx {
         self.error_cascade
     }
 
-    #[inline]
     pub(crate) fn get_current_file(&self) -> usize {
         self.current_file
     }
@@ -212,18 +205,15 @@ impl DiagnosticsCtx {
         self.current_file = current_file;
     }
 
-    #[inline]
     pub(crate) fn get_signal_build_failure(&self) -> bool {
         self.signal_build_failure
     }
 }
 
-#[inline]
 pub(crate) fn push_diagnostic(diagnostic: impl LeafDiagnosticTrait, frame: &EnvFrame) {
     push_diagnostic_ctx(diagnostic, frame.get_diagnostics_ctx())
 }
 
-#[inline]
 pub(crate) fn push_diagnostic_ctx(diagnostic: impl LeafDiagnosticTrait, ctx: &DiagnosticsCtx) {
     if !diagnostic.should_print(ctx) {
         return;

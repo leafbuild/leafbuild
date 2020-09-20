@@ -49,25 +49,21 @@ impl EnvConfig {
         }
     }
 
-    #[inline]
     pub fn set_angry_errors(&mut self, enabled: bool) -> &mut EnvConfig {
         self.angry_errors_enabled = enabled;
         self
     }
 
-    #[inline]
     pub fn set_error_cascade(&mut self, enabled: bool) -> &mut EnvConfig {
         self.error_cascade_enabled = enabled;
         self
     }
 
-    #[inline]
     pub fn set_output_directory(&mut self, output_directory: PathBuf) -> &mut EnvConfig {
         self.output_directory = output_directory;
         self
     }
 
-    #[inline]
     pub fn set_signal_build_failure(&mut self, signal_build_failure: bool) -> &mut EnvConfig {
         self.signal_build_failure = signal_build_failure;
         self
@@ -233,29 +229,24 @@ impl<'env> EnvFrame<'env> {
             .map(|var| var.1.get_value())
     }
 
-    #[inline]
     pub(crate) fn get_diagnostics_ctx(&'env self) -> &'env DiagnosticsCtx {
         &self.env_mut_ref.diagnostics_ctx
     }
 
-    #[inline]
     pub(crate) fn get_pools_wrapper(&self) -> &'env CallPoolsWrapper {
         &self.env_ref.call_pools
     }
 
-    #[inline]
     pub(crate) fn get_variables_mut(
         &mut self,
     ) -> &mut HashMap<String, Variable<Box<dyn ValueTypeMarker>>> {
         &mut self.variables
     }
 
-    #[inline]
     pub(crate) fn get_file_id(&self) -> usize {
         self.file_id
     }
 
-    #[inline]
     pub(crate) fn get_mod_id(&self) -> usize {
         match self.fr_type {
             EnvFrameType::Workspace => 0,
@@ -265,13 +256,11 @@ impl<'env> EnvFrame<'env> {
         }
     }
 
-    #[inline]
     pub(crate) fn allocate_new_task(&mut self) -> usize {
         let new_task_id = self.env_mut_ref.task_id + 1;
         std::mem::replace(&mut self.env_mut_ref.task_id, new_task_id)
     }
 
-    #[inline]
     pub(crate) fn next_mod_id(&mut self) -> usize {
         let new_mod_id = self.env_mut_ref.mod_id + 1;
         std::mem::replace(&mut self.env_mut_ref.mod_id, new_mod_id)
@@ -342,11 +331,11 @@ where
     pub(crate) fn new(name: String, value: Value<T>) -> Self {
         Self { name, value }
     }
-    #[inline]
+
     pub(crate) fn get_value(&self) -> &Value<T> {
         &self.value
     }
-    #[inline]
+
     pub(crate) fn get_value_mut(&mut self) -> &mut Value<T> {
         &mut self.value
     }
@@ -441,12 +430,10 @@ where
         self
     }
 
-    #[inline]
     pub(crate) fn get_base_type(&self) -> &TypeId {
         &self.base_type_id
     }
 
-    #[inline]
     pub fn get_value(&self) -> &T {
         &self.value
     }
@@ -507,23 +494,19 @@ impl<'a, T> ValueTypeMarker for ValRefMut<'a, T>
 where
     T: ValueTypeMarker,
 {
-    #[inline]
     fn stringify(&self) -> String {
         self.reference.stringify()
     }
 
-    #[inline]
     fn clone_to_value(&self) -> Value<Box<dyn ValueTypeMarker>> {
         // when you clone a reference, it should return a brand new object with the same value
         self.reference.get_value().clone_to_value()
     }
 
-    #[inline]
     fn get_type_id(&self) -> TypeId {
         self.reference.get_value().get_type_id()
     }
 
-    #[inline]
     fn get_type_id_and_value(&self) -> TypeIdAndValue<'_> {
         self.reference.get_value().get_type_id_and_value()
     }
@@ -533,7 +516,6 @@ pub(crate) fn add_file(file: String, src: String, env: &mut Env) -> usize {
     add_file_ctx(file, src, &mut env.mut_.diagnostics_ctx)
 }
 
-#[inline]
 pub(crate) fn add_file_ctx(file: String, src: String, ctx: &mut DiagnosticsCtx) -> usize {
     ctx.new_file(file, src)
 }
@@ -685,7 +667,6 @@ pub(crate) struct CallPoolsWrapper {
 }
 
 impl CallPoolsWrapper {
-    #[inline]
     pub(crate) fn new() -> Self {
         Self {
             global_pool: get_global_functions(),
@@ -704,77 +685,63 @@ impl CallPoolsWrapper {
             on_off_pool: types::get_on_off_call_pool(),
         }
     }
-    #[inline]
+
     pub(crate) fn get_global_pool(&self) -> &CallPool {
         &self.global_pool
     }
 
-    #[inline]
     pub(crate) fn get_num_pool(&self) -> &CallPool {
         &self.num_pool
     }
 
-    #[inline]
     pub(crate) fn get_bool_pool(&self) -> &CallPool {
         &self.bool_pool
     }
 
-    #[inline]
     pub(crate) fn get_string_pool(&self) -> &CallPool {
         &self.string_pool
     }
 
-    #[inline]
     pub(crate) fn get_void_pool(&self) -> &CallPool {
         &self.void_pool
     }
 
-    #[inline]
     pub(crate) fn get_error_pool(&self) -> &CallPool {
         &self.error_pool
     }
 
-    #[inline]
     pub(crate) fn get_vec_pool(&self) -> &CallPool {
         &self.vec_pool
     }
 
-    #[inline]
     pub(crate) fn get_map_pool(&self) -> &CallPool {
         &self.map_pool
     }
 
-    #[inline]
     pub(crate) fn get_executable_pool(&self) -> &CallPool {
         &self.executable_pool
     }
 
-    #[inline]
     pub(crate) fn get_library_pool(&self) -> &CallPool {
         &self.library_pool
     }
 
-    #[inline]
     pub(crate) fn get_map_pair_pool(&self) -> &CallPool {
         &self.map_pair_pool
     }
 
-    #[inline]
     pub(crate) fn get_lib_type_pool(&self) -> &CallPool {
         &self.lib_type_pool
     }
 
-    #[inline]
     pub(crate) fn get_target_properties_pool(&self) -> &CallPool {
         &self.target_properties_pool
     }
 
-    #[inline]
     pub(crate) fn get_on_off_pool(&self) -> &CallPool {
         &self.on_off_pool
     }
 
-    #[inline]
     pub(crate) fn get_type_pool(&self, type_: TypeId) -> &CallPool {
         match type_ {
             TypeId::I32 | TypeId::I64 | TypeId::U32 | TypeId::U64 => self.get_num_pool(),

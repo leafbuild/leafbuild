@@ -15,7 +15,6 @@ impl ValueTypeMarker for String {
     }
 }
 
-#[inline]
 pub(crate) fn get_string_call_pool() -> CallPool {
     CallPool::new(vec![CallExecutor::new(
         "to_string".to_string(),

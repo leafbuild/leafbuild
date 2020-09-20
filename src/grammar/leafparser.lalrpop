@@ -49,7 +49,7 @@ match {
     "break",
     "true",
     "false",
-    r"([1-9]+|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?",
+    r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?",
     r"[a-zA-Z_][a-zA-Z0-9_]*",
     r#"'(\\['nt\\]|[^'\\])+'"#,
     r#"'''([^']*|[']{1,2}[^'])*'''"#,
@@ -58,7 +58,7 @@ match {
 
 IdExpression: (String, TokLoc) = { <begin: @L> <id: r"[a-zA-Z_][a-zA-Z0-9_]*"> <end: @R> => (String::from(id), TokLoc::new(begin, end))};
 Num: (NumVal, TokLoc) = {
-    <begin: @L> <num: r"([1-9]+|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> <end: @R> => (NumVal::from(num), TokLoc::new(begin, end))
+    <begin: @L> <num: r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> <end: @R> => (NumVal::from(num), TokLoc::new(begin, end))
 };
 BoolLit: (bool, TokLoc) = {
     <begin: @L> "true" <end: @R> => (true, TokLoc::new(begin, end)),

@@ -1,7 +1,6 @@
 use crate::interpreter::diagnostics::errors::{ExpectedTypeError, VariableNotFoundError};
 use crate::interpreter::diagnostics::push_diagnostic;
 use crate::interpreter::diagnostics::warnings::KeyAlreadyInMap;
-use crate::interpreter::Variable;
 use crate::{
     grammar::lexer::TokLoc,
     interpreter::{
@@ -18,9 +17,7 @@ use crate::{
         EnvFrame, LaterValue, ValRefMut, Value, ValueTypeMarker,
     },
 };
-use itertools::Itertools;
 use std::collections::HashMap;
-use std::convert::TryFrom;
 use std::ops::Deref;
 
 pub(crate) trait AstLoc {
@@ -28,7 +25,6 @@ pub(crate) trait AstLoc {
 
     fn get_end(&self) -> usize;
 
-    #[inline]
     fn get_rng(&self) -> Location {
         self.get_begin()..self.get_end()
     }
@@ -39,7 +35,6 @@ pub(crate) trait IndexedAstLoc {
     fn get_begin_indexed(&self, index: usize) -> usize;
     fn get_end_indexed(&self, index: usize) -> usize;
 
-    #[inline]
     fn get_rng_indexed(&self, index: usize) -> Location {
         self.get_begin_indexed(index)..self.get_end_indexed(index)
     }
@@ -117,17 +112,21 @@ impl From<&str> for NumVal {
             }
         }
         let mut tp = Tp::I32;
-        s.chars().rev().try_for_each(|chr| match chr {
-            'u' | 'U' => {
-                tp = tp.into_unsigned();
-                Ok(())
-            }
-            'l' | 'L' => {
-                tp = tp.into_long();
-                Ok(())
-            }
-            _ => Err(()),
-        });
+        s.chars()
+            .rev()
+            .take_while(|chr| match chr {
+                'u' | 'U' | 'l' | 'L' => true,
+                _ => false,
+            })
+            .for_each(|chr| match chr {
+                'u' | 'U' => {
+                    tp = tp.into_unsigned();
+                }
+                'l' | 'L' => {
+                    tp = tp.into_long();
+                }
+                _ => {}
+            });
         if s.starts_with("0x") {
             s.chars()
                 .skip(2)
@@ -140,21 +139,21 @@ impl From<&str> for NumVal {
                 .skip(2)
                 .take_while(|chr| chr.is_digit(2))
                 .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_hex_digit(chr.to_digit(2).unwrap())
+                    nmv.add_bin_digit(chr.to_digit(2).unwrap())
                 })
         } else if s.starts_with('0') {
             s.chars()
                 .skip(2)
                 .take_while(|chr| chr.is_digit(8))
                 .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_hex_digit(chr.to_digit(8).unwrap())
+                    nmv.add_oct_digit(chr.to_digit(8).unwrap())
                 })
         } else {
             s.chars()
                 .skip(2)
                 .take_while(|chr| chr.is_digit(10))
                 .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_hex_digit(chr.to_digit(10).unwrap())
+                    nmv.add_dec_digit(chr.to_digit(10).unwrap())
                 })
         }
     }
@@ -171,7 +170,6 @@ pub enum Atom {
 }
 
 impl AstLoc for Atom {
-    #[inline]
     fn get_begin(&self) -> usize {
         match self {
             Atom::Bool((_, loc))
@@ -183,7 +181,6 @@ impl AstLoc for Atom {
         }
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         match self {
             Atom::Bool((_, loc))
@@ -411,7 +408,6 @@ impl Expr {
 }
 
 impl AstLoc for Expr {
-    #[inline]
     fn get_begin(&self) -> usize {
         match self {
             Expr::Atom(atm) => atm.get_begin(),
@@ -426,7 +422,6 @@ impl AstLoc for Expr {
         }
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         match self {
             Expr::Atom(atm) => atm.get_end(),
@@ -441,7 +436,6 @@ impl AstLoc for Expr {
         }
     }
 
-    #[inline]
     fn get_rng(&self) -> diagnostics::Location {
         match self {
             Expr::Atom(atm) => atm.get_rng(),
@@ -488,29 +482,24 @@ impl AstPropertyAccess {
         }
     }
 
-    #[inline]
     pub(crate) fn get_base(&self) -> &Expr {
         &self.base
     }
 
-    #[inline]
     pub(crate) fn get_property_name(&self) -> &String {
         &self.property_name.0
     }
 
-    #[inline]
     pub(crate) fn get_property_name_loc(&self) -> &TokLoc {
         &self.property_name.1
     }
 }
 
 impl AstLoc for AstPropertyAccess {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.base.get_begin()
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.property_name.1.get_end()
     }
@@ -739,12 +728,10 @@ impl AstFuncCall {
 }
 
 impl AstLoc for AstFuncCall {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.func_name.1.get_begin()
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.end_pos
     }
@@ -797,17 +784,14 @@ impl AstPositionalArg {
 }
 
 impl AstLoc for AstPositionalArg {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.value.get_begin()
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.value.get_end()
     }
 
-    #[inline]
     fn get_rng(&self) -> diagnostics::Location {
         self.value.get_rng()
     }
@@ -834,12 +818,10 @@ impl AstNamedExpr {
 }
 
 impl AstLoc for AstNamedExpr {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.name.1.get_begin()
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.value.get_end()
     }
@@ -875,29 +857,24 @@ impl AstMethodCall {
         &self.method_property.base
     }
 
-    #[inline]
     pub(crate) fn get_name(&self) -> &String {
         &self.method_property.get_property_name()
     }
 
-    #[inline]
     pub(crate) fn get_name_loc(&self) -> &TokLoc {
         &self.method_property.get_property_name_loc()
     }
 
-    #[inline]
     pub(crate) fn get_args(&self) -> &AstFuncCallArgs {
         &self.args
     }
 }
 
 impl AstLoc for AstMethodCall {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.method_property.get_begin()
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.end_pos
     }
@@ -918,29 +895,24 @@ impl AstAssignment {
         }
     }
 
-    #[inline]
     pub fn get_bound(&self) -> &Expr {
         &self.bound_name
     }
 
-    #[inline]
     pub fn get_op(&self) -> &AstAtrOp {
         &self.op
     }
 
-    #[inline]
     pub fn get_value(&self) -> &Expr {
         &self.value
     }
 }
 
 impl AstLoc for AstAssignment {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.bound_name.get_begin()
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.value.get_end()
     }
@@ -1022,12 +994,10 @@ impl AstIf {
 }
 
 impl AstLoc for AstIf {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.begin
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.end
     }
@@ -1040,12 +1010,10 @@ pub struct AstElseIf {
 }
 
 impl AstLoc for AstElseIf {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.begin
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.if_.get_end()
     }
@@ -1069,12 +1037,10 @@ pub struct AstElse {
 }
 
 impl AstLoc for AstElse {
-    #[inline]
     fn get_begin(&self) -> usize {
         self.begin
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         self.end
     }
@@ -1211,21 +1177,18 @@ pub enum AstControlStatement {
 }
 
 impl AstLoc for AstControlStatement {
-    #[inline]
     fn get_begin(&self) -> usize {
         match self {
             AstControlStatement::Continue(loc) | AstControlStatement::Break(loc) => loc.get_begin(),
         }
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         match self {
             AstControlStatement::Continue(loc) | AstControlStatement::Break(loc) => loc.get_end(),
         }
     }
 
-    #[inline]
     fn get_rng(&self) -> Location {
         match self {
             AstControlStatement::Continue(loc) | AstControlStatement::Break(loc) => loc.as_rng(),
@@ -1244,7 +1207,6 @@ pub enum AstStatement {
 }
 
 impl AstLoc for AstStatement {
-    #[inline]
     fn get_begin(&self) -> usize {
         match self {
             AstStatement::FuncCall(call) => call.get_begin(),
@@ -1257,7 +1219,6 @@ impl AstLoc for AstStatement {
         }
     }
 
-    #[inline]
     fn get_end(&self) -> usize {
         match self {
             AstStatement::FuncCall(call) => call.get_end(),

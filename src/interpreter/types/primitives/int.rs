@@ -67,7 +67,6 @@ impl ValueTypeMarker for u64 {
     }
 }
 
-#[inline]
 pub(crate) fn get_num_call_pool() -> CallPool {
     CallPool::new(vec![CallExecutor::new(
         "to_string".to_string(),

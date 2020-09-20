@@ -1,4 +1,3 @@
-#[inline]
 pub(crate) fn get_print_executor() -> CallExecutor {
     CallExecutor::new(
         "print".to_string(),

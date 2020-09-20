@@ -5,7 +5,6 @@ pub(crate) enum LibType {
 }
 
 impl LibType {
-    #[inline]
     pub(crate) fn fmt_name(&self, name: &str) -> String {
         #[cfg(target_os = "windows")]
         match self {

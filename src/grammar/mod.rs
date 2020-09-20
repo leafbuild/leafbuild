@@ -9,21 +9,18 @@ pub(crate) mod lexer {
     }
 
     impl TokLoc {
-        #[inline]
         pub(crate) fn new(begin: usize, end: usize) -> TokLoc {
             TokLoc { begin, end }
         }
-        #[inline]
+
         pub(crate) fn as_rng(&self) -> std::ops::Range<usize> {
             self.begin..self.end
         }
 
-        #[inline]
         pub(crate) fn get_begin(&self) -> usize {
             self.begin
         }
 
-        #[inline]
         pub(crate) fn get_end(&self) -> usize {
             self.end
         }

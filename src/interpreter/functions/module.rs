@@ -1,6 +1,5 @@
 const MODULE_FUNCTION_DOCS: &str = "reference/functions/project_and_module/module.html";
 
-#[inline]
 fn get_module_executor() -> CallExecutor {
     CallExecutor::new(
         "module".to_string(),
