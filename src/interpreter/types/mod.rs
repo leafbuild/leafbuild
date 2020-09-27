@@ -3,11 +3,9 @@ use std::convert::TryFrom;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
-use std::path::PathBuf;
 
 use itertools::Itertools;
 
-use libutils::compilers::flags::{CompilationFlag, CompilationFlags, Flag, LinkFlag, LinkFlags};
 use libutils::utils::{Language, NotALanguageError};
 
 use crate::grammar::ast::{AstLoc, Expr};
@@ -18,7 +16,7 @@ use crate::interpreter::diagnostics::errors::{
 };
 use crate::interpreter::diagnostics::{push_diagnostic, DiagnosticsCtx, Location};
 use crate::interpreter::{
-    diagnostics, CallExecutor, CallPool, Env, EnvFrame, LeafTask, Value, ValueTypeMarker,
+    diagnostics, CallExecutor, CallPool, Env, EnvFrame, Value, ValueTypeMarker,
 };
 
 pub(crate) enum TypeIdAndValue<'a> {

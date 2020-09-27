@@ -10,46 +10,40 @@ pub enum CSTD {
     // TODO: add more here as they come
 }
 
-pub enum CPPSTD {
-    CPP98,
-    CPP03,
-
-    // C++11 = CPP1x
-    CPP1x,
-
-    // C++14 = CPP1y
-    CPP1y,
-
-    // C++17 = CPP1z
-    CPP1z,
-
-    // C++20 = CPP2a
-    CPP2a,
+impl CSTD {
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            CSTD::ANSI => "ansi",
+            CSTD::C99 => "c99",
+            CSTD::GNU99 => "gnu99",
+            CSTD::C11 => "c11",
+            CSTD::GNU11 => "gnu11",
+        }
+    }
 }
 
-pub enum Flag {
+pub enum CFlag {
     PositionIndependentCode,
 }
 
-pub enum CompilationFlag {
+pub enum CCompilationFlag {
     FromString { s: String },
     CSTD { std: CSTD },
-    CPPSTD { std: CPPSTD },
     IncludeDir { include_dir: String },
 
-    Flag { flag: Flag },
+    Flag { flag: CFlag },
 
     None,
 }
 
-impl CompilationFlag {
+impl CCompilationFlag {
     /// creates a flag from a string
     fn from_string(s: impl Into<String>) -> Self {
         Self::FromString { s: s.into() }
     }
 }
 
-pub enum LinkFlag {
+pub enum CLinkFlag {
     FromString { s: String },
     LibLocation { s: String },
     Lib { name: String },
@@ -57,47 +51,47 @@ pub enum LinkFlag {
     None,
 }
 
-impl LinkFlag {
+impl CLinkFlag {
     /// creates a flag from a string
     fn from_string(s: impl Into<String>) -> Self {
         Self::FromString { s: s.into() }
     }
 }
 
-pub struct CompilationFlags {
-    flags: Vec<CompilationFlag>,
+pub struct CCompilationFlags {
+    flags: Vec<CCompilationFlag>,
 }
 
-impl CompilationFlags {
+impl CCompilationFlags {
     #[inline]
     pub fn empty() -> Self {
         Self::new(vec![])
     }
     #[inline]
-    pub fn new(flags: Vec<CompilationFlag>) -> Self {
+    pub fn new(flags: Vec<CCompilationFlag>) -> Self {
         Self { flags }
     }
 
-    pub(crate) fn into_flags_iter(self) -> impl Iterator<Item = CompilationFlag> {
+    pub(crate) fn into_flags_iter(self) -> impl Iterator<Item = CCompilationFlag> {
         self.flags.into_iter()
     }
 }
 
-pub struct LinkFlags {
-    flags: Vec<LinkFlag>,
+pub struct CLinkFlags {
+    flags: Vec<CLinkFlag>,
 }
 
-impl LinkFlags {
+impl CLinkFlags {
     #[inline]
     pub fn empty() -> Self {
         Self::new(vec![])
     }
     #[inline]
-    pub fn new(flags: Vec<LinkFlag>) -> Self {
+    pub fn new(flags: Vec<CLinkFlag>) -> Self {
         Self { flags }
     }
 
-    pub(crate) fn into_flags_iter(self) -> impl Iterator<Item = LinkFlag> {
+    pub(crate) fn into_flags_iter(self) -> impl Iterator<Item = CLinkFlag> {
         self.flags.into_iter()
     }
 }

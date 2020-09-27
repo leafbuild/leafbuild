@@ -7,9 +7,10 @@ use std::{
 
 use lalrpop_util::ParseError;
 
-use libutils::compilers::{
-    cc::{get_cc, CC},
-    cxx::{get_cxx, CXX},
+use libutils::toolchain::c::{get_c_toolchain, CTc};
+use libutils::toolchain::cpp::{get_cpp_toolchain, CPPTc};
+use libutils::toolchain::{
+    CCompiler, CPPCompiler, CPPToolchain, CPPToolchainLinker, CToolchain, CToolchainLinker,
 };
 
 use crate::{
@@ -23,7 +24,7 @@ use crate::{
 
 #[path = "diagnostics/diagnostics.rs"]
 pub(crate) mod diagnostics;
-pub(crate) mod ninja_gen;
+pub(crate) mod gen;
 pub(crate) mod ops;
 pub(crate) mod prelude_values;
 pub(crate) mod types;
@@ -103,10 +104,10 @@ pub(crate) struct EnvMut {
 
     modules: Vec<EnvModData>,
 
-    /// the C compiler, if necessary
-    cc: Option<CC>,
-    /// the C++ compiler, if necessary
-    cxx: Option<CXX>,
+    /// the C toolchain
+    cc: Option<CTc>,
+    /// the C++ toolchain
+    cxx: Option<CPPTc>,
 
     tasks: Vec<Box<dyn LeafTask>>,
 
@@ -114,28 +115,28 @@ pub(crate) struct EnvMut {
 }
 
 impl EnvMut {
-    pub(crate) fn get_and_cache_cc(&mut self) -> CC {
+    pub(crate) fn get_and_cache_cc(&mut self) -> &CTc {
         if self.cc.is_none() {
-            let cc = get_cc().expect("Cannot find CC");
+            let cc = get_c_toolchain().expect("Cannot find CC");
             self.cc = Some(cc);
         }
-        self.cc.as_ref().unwrap().clone()
+        self.cc.as_ref().unwrap()
     }
 
-    pub(crate) fn get_and_cache_cxx(&mut self) -> CXX {
+    pub(crate) fn get_and_cache_cxx(&mut self) -> &CPPTc {
         if self.cxx.is_none() {
-            let cxx = get_cxx().expect("Cannot find CXX");
+            let cxx = get_cpp_toolchain().expect("Cannot find CXX");
             self.cxx = Some(cxx);
         }
-        self.cxx.as_ref().unwrap().clone()
+        self.cxx.as_ref().unwrap()
     }
 
-    pub(crate) fn get_cached_cc(&self) -> CC {
-        self.cc.as_ref().unwrap().clone()
+    pub(crate) fn get_cached_cc(&self) -> &CTc {
+        self.cc.as_ref().unwrap()
     }
 
-    pub(crate) fn get_cached_cxx(&self) -> CXX {
-        self.cxx.as_ref().unwrap().clone()
+    pub(crate) fn get_cached_cxx(&self) -> &CPPTc {
+        self.cxx.as_ref().unwrap()
     }
 }
 
@@ -174,7 +175,7 @@ impl Env {
             std::fs::create_dir(buf.as_path())?;
         }
 
-        ninja_gen::write_to(self, buf)
+        gen::ninja::write_to(self, buf)
     }
 
     pub(crate) fn get_root_path_for_module(&self, mod_id: usize) -> Option<&PathBuf> {
@@ -921,4 +922,4 @@ pub(crate) fn property_access(
 }
 
 include!("interpreter_internal.rs");
-include!("task.rs");
+mod tasks;

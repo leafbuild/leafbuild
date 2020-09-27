@@ -2,105 +2,124 @@ use std::error::Error;
 use std::fs::File;
 use std::path::PathBuf;
 
-use itertools::Itertools;
+use itertools::Itertools as _;
 
 use libutils::{
-    compilers::{cc::*, cxx::*, flags::*, *},
     generators::{ninja::*, *},
     utils::*,
 };
 
-use crate::interpreter::types::LibType;
+use crate::interpreter::gen::GenForLeafbuild;
+use crate::interpreter::types::{Executable, Library};
 use crate::interpreter::Env;
+
+pub(in crate::interpreter) struct NinjaLeafbuildGenerator<'gen> {
+    gen: NinjaGen<'gen>,
+}
+
+impl<'gen> NinjaLeafbuildGenerator<'gen> {
+    fn new(mut env: Env, mut gen: NinjaGen<'gen>) -> Self {
+        gen.new_global_value(
+            "lfb_bin",
+            std::env::current_exe()
+                .expect("Cannot get current exe")
+                .to_string_lossy(),
+        );
+
+        let signal_build_failure = env.mut_.diagnostics_ctx.get_signal_build_failure();
+
+        let internal_compilation_failed_call = if signal_build_failure {
+            "|| $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id"
+        } else {
+            ""
+        };
+        let internal_linking_failed_call = if signal_build_failure {
+            "|| $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id"
+        } else {
+            ""
+        };
+
+        let cc_compile = gen.new_rule(
+            "cc_compile",
+            NinjaCommand::new(format!(
+                "$CC ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
+                Language::C.get_compilation_flags_varname(),
+                internal_compilation_failed_call
+            )),
+            vec![
+                NinjaVariable::new("depfile", "$out.d"),
+                NinjaVariable::new("description", "Compiling C object $out"),
+            ],
+        );
+        let cc_link = gen.new_rule(
+            "cc_link",
+            NinjaCommand::new(format!(
+                "$CC $in -o $out ${} {}",
+                Language::C.get_link_flags_varname(),
+                internal_linking_failed_call
+            )),
+            vec![NinjaVariable::new("description", "Linking C object $out")],
+        );
+
+        let cxx_compile = gen.new_rule(
+            "cxx_compile",
+            NinjaCommand::new(format!(
+                "$CXX ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
+                Language::CPP.get_compilation_flags_varname(),
+                internal_compilation_failed_call
+            )),
+            vec![
+                NinjaVariable::new("depfile", "$out.d"),
+                NinjaVariable::new("description", "Compiling C++ object $out"),
+            ],
+        );
+        let cxx_link = gen.new_rule(
+            "cxx_link",
+            NinjaCommand::new(format!(
+                "$CXX $in -o $out ${} {}",
+                Language::CPP.get_link_flags_varname(),
+                internal_linking_failed_call
+            )),
+            vec![NinjaVariable::new("description", "Linking C++ object $out")],
+        );
+
+        let make_static_lib = gen.new_rule(
+            "make_static_lib",
+            NinjaCommand::new("$AR rcs $out $in"),
+            vec![NinjaVariable::new(
+                "description",
+                "Making static library $out",
+            )],
+        );
+        let cc = env.mut_.get_and_cache_cc();
+        let cc_loc = cc.get_compiler_location();
+        gen.new_global_value("CC", cc_loc.to_string_lossy());
+
+        let cxx = env.mut_.get_and_cache_cxx();
+        let cxx_loc = cxx.get_compiler_location();
+        gen.new_global_value("CXX", cxx_loc.to_string_lossy());
+
+        let ar_loc = get_ar().unwrap();
+        gen.new_global_value("AR", ar_loc.to_string_lossy());
+        Self { gen }
+    }
+}
+
+impl<'gen> GenForLeafbuild for NinjaLeafbuildGenerator<'gen> {
+    fn gen_exe(&mut self, exe: &Executable) {
+        unimplemented!()
+    }
+
+    fn gen_lib(&mut self, lib: &Library) {
+        unimplemented!()
+    }
+}
 
 pub(crate) fn write_to(env: &mut Env, dir: PathBuf) -> Result<(), Box<dyn Error>> {
     let ninja_file = dir.join("build.ninja");
     let f = File::create(ninja_file)?;
 
     let mut gen = NinjaGen::new();
-
-    gen.new_global_value(
-        "lfb_bin",
-        std::env::current_exe()
-            .expect("Cannot get current exe")
-            .to_string_lossy(),
-    );
-
-    let signal_build_failure = env.mut_.diagnostics_ctx.get_signal_build_failure();
-
-    let internal_compilation_failed_call = if signal_build_failure {
-        "|| $lfb_bin internal compilation-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id"
-    } else {
-        ""
-    };
-    let internal_linking_failed_call = if signal_build_failure {
-        "|| $lfb_bin internal link-failed --exit-code $$? --in \"$in\" --out \"$out\" --module-id $mod_id"
-    } else {
-        ""
-    };
-
-    let cc_compile = gen.new_rule(
-        "cc_compile",
-        NinjaCommand::new(format!(
-            "$CC ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
-            Language::C.get_compilation_flags_varname(),
-            internal_compilation_failed_call
-        )),
-        vec![
-            NinjaVariable::new("depfile", "$out.d"),
-            NinjaVariable::new("description", "Compiling C object $out"),
-        ],
-    );
-    let cc_link = gen.new_rule(
-        "cc_link",
-        NinjaCommand::new(format!(
-            "$CC $in -o $out ${} {}",
-            Language::C.get_link_flags_varname(),
-            internal_linking_failed_call
-        )),
-        vec![NinjaVariable::new("description", "Linking C object $out")],
-    );
-
-    let cxx_compile = gen.new_rule(
-        "cxx_compile",
-        NinjaCommand::new(format!(
-            "$CXX ${} -MD -MF $out.d $include_dirs $in -c -o $out {}",
-            Language::CPP.get_compilation_flags_varname(),
-            internal_compilation_failed_call
-        )),
-        vec![
-            NinjaVariable::new("depfile", "$out.d"),
-            NinjaVariable::new("description", "Compiling C++ object $out"),
-        ],
-    );
-    let cxx_link = gen.new_rule(
-        "cxx_link",
-        NinjaCommand::new(format!(
-            "$CXX $in -o $out ${} {}",
-            Language::CPP.get_link_flags_varname(),
-            internal_linking_failed_call
-        )),
-        vec![NinjaVariable::new("description", "Linking C++ object $out")],
-    );
-
-    let make_static_lib = gen.new_rule(
-        "make_static_lib",
-        NinjaCommand::new("$AR rcs $out $in"),
-        vec![NinjaVariable::new(
-            "description",
-            "Making static library $out",
-        )],
-    );
-    let cc = env.mut_.get_and_cache_cc();
-    let cc_loc = cc.get_location();
-    gen.new_global_value("CC", cc_loc.to_string_lossy());
-
-    let cxx = env.mut_.get_and_cache_cxx();
-    let cxx_loc = cxx.get_location();
-    gen.new_global_value("CXX", cxx_loc.to_string_lossy());
-
-    let ar_loc = get_ar().unwrap();
-    gen.new_global_value("AR", ar_loc.to_string_lossy());
 
     // env.mut_.executables.iter().for_each(|exe| {
     //     let mut need_cxx_linker = false;

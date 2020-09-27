@@ -46,13 +46,13 @@ impl Library {
     pub(crate) fn get_type(&self) -> LibType {
         self.type_
     }
-    pub(crate) fn get_sources(&self) -> &Vec<String> {
+    pub(crate) fn get_sources(&self) -> &[String] {
         &self.sources
     }
-    pub(crate) fn get_internal_include_dirs(&self) -> &Vec<String> {
+    pub(crate) fn get_internal_include_dirs(&self) -> &[String] {
         &self.internal_include_dirs
     }
-    pub(crate) fn get_external_include_dirs(&self) -> &Vec<String> {
+    pub(crate) fn get_external_include_dirs(&self) -> &[String] {
         &self.external_include_dirs
     }
     // pub(crate) fn get_properties(&self) -> &Vec<TargetProperty> {
@@ -66,33 +66,6 @@ impl Library {
             }
         }
         Ok(())
-    }
-
-    pub(crate) fn source_compilation_flags(&self, env: &Env) -> CompilationFlags {
-        CompilationFlags::new(
-            self.internal_include_dirs
-                .iter()
-                .map(|inc_dir| CompilationFlag::IncludeDir {
-                    include_dir: env
-                        .get_root_path_for_module(self.mod_id)
-                        .unwrap()
-                        .clone()
-                        .join(inc_dir)
-                        .to_str()
-                        .unwrap()
-                        .to_string(),
-                })
-                .chain(
-                    match self.properties.pic {
-                        OnOff::On => vec![CompilationFlag::Flag {
-                            flag: Flag::PositionIndependentCode,
-                        }],
-                        OnOff::Off => vec![],
-                    }
-                    .into_iter(),
-                )
-                .collect_vec(),
-        )
     }
 }
 
@@ -148,35 +121,6 @@ impl ValueTypeMarker for LibRef {
 }
 
 impl Dependency for LibRef {
-    fn get_compiler_flags(&self, language: Language, env: &Env) -> CompilationFlags {
-        // let lib = self.get_lib_in_env(env);
-        CompilationFlags::new(
-            // lib.external_include_dirs
-            //     .iter()
-            //     .map(|inc_dir| CompilationFlag::IncludeDir {
-            //         include_dir: env
-            //             .get_root_path_for_module(lib.mod_id)
-            //             .unwrap()
-            //             .clone()
-            //             .join(inc_dir)
-            //             .to_str()
-            //             .unwrap()
-            //             .to_string(),
-            //     })
-            //     .collect_vec(),
-            vec![],
-        )
-    }
-
-    fn get_linker_flags(&self, language: Language, env: &Env) -> LinkFlags {
-        LinkFlags::new(vec![
-            LinkFlag::LibLocation { s: ".".to_string() },
-            // LinkFlag::Lib {
-            //     name: self.get_lib_in_env(env).name.clone(),
-            // },
-        ])
-    }
-
     fn get_implicit_requirements(&self, language: Language, env: &Env) -> Vec<String> {
         // let lib = self.get_lib_in_env(env);
         // vec![lib.type_.fmt_name(&lib.name)]
