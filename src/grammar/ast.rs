@@ -1,24 +1,8 @@
-use crate::interpreter::diagnostics::errors::{ExpectedTypeError, VariableNotFoundError};
-use crate::interpreter::diagnostics::push_diagnostic;
-use crate::interpreter::diagnostics::warnings::KeyAlreadyInMap;
-use crate::{
-    grammar::lexer::TokLoc,
-    interpreter::{
-        self,
-        diagnostics::{
-            self,
-            errors::{
-                ExprLocAndType, IndexOutsideVectorError, InvalidIndexBaseError, InvalidIndexError,
-                TakeRefError,
-            },
-            Location,
-        },
-        types::{ErrorValue, TypeId, TypeIdAndValue},
-        EnvFrame, LaterValue, ValRefMut, Value, ValueTypeMarker,
-    },
-};
-use std::collections::HashMap;
-use std::ops::Deref;
+use crate::grammar::lexer::TokLoc;
+use std::any::Any;
+use std::ops::{Deref, Range};
+
+type Location = Range<usize>;
 
 pub(crate) trait AstLoc {
     fn get_begin(&self) -> usize;
@@ -27,16 +11,6 @@ pub(crate) trait AstLoc {
 
     fn get_rng(&self) -> Location {
         self.get_begin()..self.get_end()
-    }
-}
-
-/// Present on array and map literal expression
-pub(crate) trait IndexedAstLoc {
-    fn get_begin_indexed(&self, index: usize) -> usize;
-    fn get_end_indexed(&self, index: usize) -> usize;
-
-    fn get_rng_indexed(&self, index: usize) -> Location {
-        self.get_begin_indexed(index)..self.get_end_indexed(index)
     }
 }
 
@@ -62,7 +36,7 @@ macro_rules! add_digit_decl {
 }
 
 impl NumVal {
-    fn to_boxed_value(self) -> Box<dyn ValueTypeMarker> {
+    fn to_boxed_value(self) -> Box<dyn Any> {
         match self {
             Self::I32(v) => Box::new(v),
             Self::I64(v) => Box::new(v),
@@ -192,7 +166,7 @@ impl AstLoc for Atom {
         }
     }
 
-    fn get_rng(&self) -> diagnostics::Location {
+    fn get_rng(&self) -> Location {
         match self {
             Atom::Bool((_, loc))
             | Atom::Number((_, loc))
@@ -218,194 +192,15 @@ pub enum Expr {
         end: usize,
     },
     Ternary(
-        usize,
         Box<Expr>, //   condition
-        Box<Expr>, //           onTrue
-        Box<Expr>, //                    onFalse
-        usize,
+        TokLoc,    //             ?
+        Box<Expr>, //               onTrue
+        TokLoc,    //                      :
+        Box<Expr>, //                        onFalse
     ),
 }
 
-impl Expr {
-    pub(crate) fn eval_in_env(&self, frame: &mut EnvFrame) -> Value<Box<dyn ValueTypeMarker>> {
-        match self {
-            Expr::Atom(Atom::Number((num, _loc))) => Value::new(num.to_boxed_value()),
-            Expr::Atom(Atom::Bool((v, _loc))) => Value::new(Box::new(*v)),
-            Expr::Atom(Atom::Str((str, _loc))) => Value::new(Box::new(str.clone())),
-            Expr::Atom(Atom::Id((id, loc))) => match frame.get_value_for_variable(&id.clone()) {
-                Some(v) => v.clone_to_value(),
-                None => {
-                    diagnostics::push_diagnostic(VariableNotFoundError::new(loc.as_rng()), frame);
-                    Value::new(Box::new(ErrorValue::new()))
-                }
-            },
-            Expr::Atom(Atom::ArrayLit((v, _loc))) => {
-                let mut val = Vec::with_capacity(v.capacity());
-                v.iter().for_each(|x| val.push(x.eval_in_env(frame)));
-                Value::new(Box::new(val))
-            }
-            Expr::Atom(Atom::MapLit((v, map_lit_loc))) => {
-                let mut val = HashMap::with_capacity(v.capacity());
-                v.iter().for_each(|x: &AstNamedExpr| {
-                    if val
-                        .insert(x.name.0.clone(), x.value.eval_in_env(frame))
-                        .is_some()
-                    {
-                        diagnostics::push_diagnostic(
-                            KeyAlreadyInMap::new(&x.name.0, map_lit_loc.as_rng(), x.get_rng()),
-                            frame,
-                        );
-                    }
-                });
-                Value::new(Box::new(val))
-            }
-            Expr::FuncCall(call_expr) => interpreter::func_call_result(call_expr, frame),
-            Expr::MethodCall(call_expr) => {
-                interpreter::method_call_result(&call_expr.method_property, &call_expr.args, frame)
-            }
-            Expr::Op(left, opcode, right) => opcode.compute_result_for(left, right, frame),
-            Expr::UnaryOp(opcode, right) => opcode.compute_result_for(right, frame),
-            Expr::PropertyAccess(access) => interpreter::property_access(access, frame),
-            Expr::ParenExpr(_, e, _) => e.eval_in_env(frame),
-            Expr::Indexed {
-                base,
-                index: index_expr,
-                ..
-            } => Value::new(Box::new(
-                match base.eval_in_env(frame).get_type_id_and_value() {
-                    TypeIdAndValue::Vec(v) => {
-                        let index_result = index_expr
-                            .eval_in_env(frame)
-                            .get_value()
-                            .get_type_id_and_value()
-                            .cast_to_usize();
-                        match index_result {
-                            Ok(index) => {
-                                if index < v.len() {
-                                    v[index].clone_to_value()
-                                } else {
-                                    diagnostics::push_diagnostic(
-                                        IndexOutsideVectorError::new(
-                                            base.get_rng(),
-                                            index_expr.get_rng(),
-                                            v.len(),
-                                            index,
-                                        ),
-                                        frame,
-                                    );
-                                    return Value::new(Box::new(ErrorValue::new()));
-                                }
-                            }
-                            Err(t) => {
-                                diagnostics::push_diagnostic(
-                                    InvalidIndexError::new(
-                                        ExprLocAndType::new(base.get_rng(), TypeId::Vec.typename()),
-                                        ExprLocAndType::new(index_expr.get_rng(), t.typename()),
-                                    ),
-                                    frame,
-                                );
-                                return Value::new(Box::new(ErrorValue::new()));
-                            }
-                        }
-                    }
-                    TypeIdAndValue::Map(v) => {
-                        let index_val = index_expr.eval_in_env(frame);
-                        let index_typeid_and_value = index_val.get_value().get_type_id_and_value();
-                        let index_result = index_typeid_and_value.get_string();
-                        match index_result {
-                            Ok(index) => v[index].clone_to_value(),
-                            Err(t) => {
-                                diagnostics::push_diagnostic(
-                                    InvalidIndexError::new(
-                                        ExprLocAndType::new(base.get_rng(), TypeId::Vec.typename()),
-                                        ExprLocAndType::new(index_expr.get_rng(), t.typename()),
-                                    ),
-                                    frame,
-                                );
-                                return Value::new(Box::new(ErrorValue::new()));
-                            }
-                        }
-                    }
-                    t => {
-                        diagnostics::push_diagnostic(
-                            InvalidIndexBaseError::new(ExprLocAndType::new(
-                                base.get_rng(),
-                                t.degrade().typename(),
-                            )),
-                            frame,
-                        );
-                        return Value::new(Box::new(ErrorValue::new()));
-                    }
-                },
-            )),
-            Expr::Ternary(_, condition, value_true, value_false, _) => {
-                let cond = condition.eval_in_env(frame);
-                match cond.get_type_id_and_value_required(TypeId::Bool) {
-                    Ok(b) => {
-                        /*safe to unwrap here*/
-                        if b.get_bool().unwrap() {
-                            value_true.eval_in_env(frame)
-                        } else {
-                            value_false.eval_in_env(frame)
-                        }
-                    }
-                    Err(tp) => {
-                        push_diagnostic(
-                            ExpectedTypeError::new(
-                                TypeId::Bool.typename(),
-                                ExprLocAndType::new(condition.get_rng(), tp.typename()),
-                            ),
-                            frame,
-                        );
-                        Value::new(Box::new(ErrorValue::new()))
-                    }
-                }
-            }
-        }
-    }
-
-    pub(crate) fn eval_mut_ref<'a>(
-        &self,
-        frame: &'a mut EnvFrame,
-    ) -> Result<ValRefMut<'a, Box<dyn ValueTypeMarker>>, TakeRefError> {
-        match self {
-            Expr::Atom(atom) => match atom {
-                Atom::Id((name, _)) => match frame.get_variables_mut().get_mut(name) {
-                    Some(v) => Ok(ValRefMut::new(v.get_value_mut())),
-                    None => Err(TakeRefError::new(self.get_rng(), "a non-existent variable")),
-                },
-                Atom::Number((_, loc)) => Err(TakeRefError::new(loc.as_rng(), "a number literal")),
-                Atom::Str((_, loc)) => Err(TakeRefError::new(loc.as_rng(), "a string literal")),
-                Atom::Bool((_v, loc)) => Err(TakeRefError::new(loc.as_rng(), "a bool literal")),
-                Atom::ArrayLit((_v, loc)) => {
-                    Err(TakeRefError::new(loc.as_rng(), "an array literal"))
-                }
-                Atom::MapLit((_v, loc)) => Err(TakeRefError::new(loc.as_rng(), "a map literal")),
-            },
-            Expr::FuncCall(_) => Err(TakeRefError::new(self.get_rng(), "a function call")),
-            Expr::MethodCall(_) => Err(TakeRefError::new(self.get_rng(), "a method call")),
-            Expr::PropertyAccess(_) => Err(TakeRefError::new(self.get_rng(), "a property")),
-            Expr::Op(_, _, _) => Err(TakeRefError::new(
-                self.get_rng(),
-                "an arithmetic expression",
-            )),
-            Expr::UnaryOp(_, _) => {
-                Err(TakeRefError::new(self.get_rng(), "an expression like this"))
-            }
-            Expr::ParenExpr(_, e, _) => e.eval_mut_ref(frame),
-            Expr::Indexed { .. } => {
-                Err(TakeRefError::new(self.get_rng(), "an expression like this"))
-            }
-            Expr::Ternary(_, _, _, _, _) => {
-                Err(TakeRefError::new(self.get_rng(), "an expression like this"))
-            }
-        }
-    }
-
-    fn later_eval(&self) -> LaterValue {
-        LaterValue::new(self)
-    }
-}
+impl Expr {}
 
 impl AstLoc for Expr {
     fn get_begin(&self) -> usize {
@@ -418,7 +213,7 @@ impl AstLoc for Expr {
             Expr::ParenExpr(begin, _, _) => *begin,
             Expr::UnaryOp(op, _) => op.get_begin(),
             Expr::Indexed { base, .. } => base.get_begin(),
-            Expr::Ternary(b, _, _, _, _) => *b,
+            Expr::Ternary(b, _, _, _, _) => b.get_begin(),
         }
     }
 
@@ -432,11 +227,11 @@ impl AstLoc for Expr {
             Expr::ParenExpr(_, _, end) => *end,
             Expr::UnaryOp(_, expr) => expr.get_end(),
             Expr::Indexed { end, .. } => *end,
-            Expr::Ternary(_, _, _, _, e) => *e,
+            Expr::Ternary(_, _, _, _, e) => e.get_end(),
         }
     }
 
-    fn get_rng(&self) -> diagnostics::Location {
+    fn get_rng(&self) -> Location {
         match self {
             Expr::Atom(atm) => atm.get_rng(),
             Expr::FuncCall(call) => call.get_rng(),
@@ -446,25 +241,7 @@ impl AstLoc for Expr {
             Expr::PropertyAccess(prop_access) => prop_access.get_rng(),
             Expr::ParenExpr(begin, _, end) => *begin..*end,
             Expr::Indexed { base: b, end, .. } => b.get_begin()..*end,
-            Expr::Ternary(b, _, _, _, e) => (*b)..(*e),
-        }
-    }
-}
-
-impl IndexedAstLoc for Expr {
-    fn get_begin_indexed(&self, index: usize) -> usize {
-        match self {
-            Expr::Atom(Atom::ArrayLit((lit, _))) => lit[index].get_begin(),
-            Expr::Atom(Atom::MapLit((lit, _))) => lit[index].get_begin(),
-            _ => self.get_begin(),
-        }
-    }
-
-    fn get_end_indexed(&self, index: usize) -> usize {
-        match self {
-            Expr::Atom(Atom::ArrayLit((lit, _))) => lit[index].get_end(),
-            Expr::Atom(Atom::MapLit((lit, _))) => lit[index].get_end(),
-            _ => self.get_end(),
+            Expr::Ternary(b, _, _, _, e) => b.get_begin()..e.get_end(),
         }
     }
 }
@@ -505,196 +282,109 @@ impl AstLoc for AstPropertyAccess {
     }
 }
 
+#[derive(Copy, Clone)]
 pub enum Opcode {
-    Mul,
-    Div,
-    Add,
-    Sub,
-    Mod,
-    And,
-    Or,
-    In,
-    NotIn,
-    Equal,
-    G,
-    L,
-    GE,
-    LE,
-    NE,
+    Mul(TokLoc),
+    Div(TokLoc),
+    Add(TokLoc),
+    Sub(TokLoc),
+    Mod(TokLoc),
+    And(TokLoc),
+    Or(TokLoc),
+    In(TokLoc),
+    NotIn(TokLoc),
+    Equal(TokLoc),
+    G(TokLoc),
+    L(TokLoc),
+    GE(TokLoc),
+    LE(TokLoc),
+    NE(TokLoc),
+    LBitshift(TokLoc),
+    RBitshift(TokLoc),
 }
 
-impl Opcode {
-    pub(crate) fn compute_result_for(
-        &self,
-        ls: &Expr,
-        rs: &Expr,
-        frame: &mut EnvFrame,
-    ) -> Value<Box<dyn ValueTypeMarker>> {
-        match self {
-            Opcode::Add => match interpreter::ops::op_add(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-            ) {
-                (v, Ok(())) => v,
-                (v, Err(diagnostic)) => {
-                    diagnostics::push_diagnostic(diagnostic, frame);
-                    v
-                }
-            },
-            Opcode::Sub => match interpreter::ops::op_sub(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-            ) {
-                (v, Ok(())) => v,
-                (v, Err(diagnostic)) => {
-                    diagnostics::push_diagnostic(diagnostic, frame);
-                    v
-                }
-            },
-            Opcode::Mul => match interpreter::ops::op_mul(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-            ) {
-                (v, Ok(())) => v,
-                (v, Err(diagnostic)) => {
-                    diagnostics::push_diagnostic(diagnostic, frame);
-                    v
-                }
-            },
-            Opcode::Div => match interpreter::ops::op_div(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-            ) {
-                (v, Ok(())) => v,
-                (v, Err(diagnostic)) => {
-                    diagnostics::push_diagnostic(diagnostic, frame);
-                    v
-                }
-            },
-            Opcode::Mod => match interpreter::ops::op_mod(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-            ) {
-                (v, Ok(())) => v,
-                (v, Err(diagnostic)) => {
-                    diagnostics::push_diagnostic(diagnostic, frame);
-                    v
-                }
-            },
-            Opcode::And => interpreter::ops::op_and(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.later_eval(),
-                rs.get_rng(),
-                frame,
-            ),
-            Opcode::Or => interpreter::ops::op_or(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.later_eval(),
-                rs.get_rng(),
-                frame,
-            ),
-            Opcode::In => Value::new(Box::new(())),
-            Opcode::NotIn => Value::new(Box::new(())),
-            Opcode::Equal => interpreter::ops::op_eq(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::G => interpreter::ops::op_g(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::L => interpreter::ops::op_l(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::GE => interpreter::ops::op_ge(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::LE => interpreter::ops::op_le(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            Opcode::NE => interpreter::ops::op_neq(
-                &ls.eval_in_env(frame),
-                ls.get_rng(),
-                &rs.eval_in_env(frame),
-                rs.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-        }
-    }
-}
+impl Opcode {}
 
-pub enum UnaryOpcode {
-    Not(TokLoc),
-    Neg(TokLoc),
-}
-
-impl UnaryOpcode {
-    pub(crate) fn compute_result_for(
-        &self,
-        expr: &Expr,
-        frame: &mut EnvFrame,
-    ) -> Value<Box<dyn ValueTypeMarker>> {
-        match self {
-            UnaryOpcode::Not(_lc) => interpreter::ops::op_unary_not(
-                &expr.eval_in_env(frame),
-                expr.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-            UnaryOpcode::Neg(_lc) => interpreter::ops::op_unary_neg(
-                &expr.eval_in_env(frame),
-                expr.get_rng(),
-                frame.get_diagnostics_ctx(),
-            ),
-        }
-    }
-}
-
-impl AstLoc for UnaryOpcode {
+impl AstLoc for Opcode {
     fn get_begin(&self) -> usize {
         match self {
-            UnaryOpcode::Not(loc) | UnaryOpcode::Neg(loc) => loc.get_begin(),
+            Opcode::Mul(loc)
+            | Opcode::Div(loc)
+            | Opcode::Add(loc)
+            | Opcode::Sub(loc)
+            | Opcode::Mod(loc)
+            | Opcode::And(loc)
+            | Opcode::Or(loc)
+            | Opcode::In(loc)
+            | Opcode::NotIn(loc)
+            | Opcode::Equal(loc)
+            | Opcode::G(loc)
+            | Opcode::L(loc)
+            | Opcode::GE(loc)
+            | Opcode::LE(loc)
+            | Opcode::NE(loc)
+            | Opcode::LBitshift(loc)
+            | Opcode::RBitshift(loc) => loc.get_begin(),
         }
     }
 
     fn get_end(&self) -> usize {
         match self {
-            UnaryOpcode::Not(loc) | UnaryOpcode::Neg(loc) => loc.get_end(),
+            Opcode::Mul(loc)
+            | Opcode::Div(loc)
+            | Opcode::Add(loc)
+            | Opcode::Sub(loc)
+            | Opcode::Mod(loc)
+            | Opcode::And(loc)
+            | Opcode::Or(loc)
+            | Opcode::In(loc)
+            | Opcode::NotIn(loc)
+            | Opcode::Equal(loc)
+            | Opcode::G(loc)
+            | Opcode::L(loc)
+            | Opcode::GE(loc)
+            | Opcode::LE(loc)
+            | Opcode::NE(loc)
+            | Opcode::LBitshift(loc)
+            | Opcode::RBitshift(loc) => loc.get_end(),
+        }
+    }
+}
+
+pub enum UnaryOpcode {
+    Plus(TokLoc),
+    Minus(TokLoc),
+    Not(TokLoc),
+    BitwiseNot(TokLoc),
+}
+
+impl UnaryOpcode {}
+
+impl AstLoc for UnaryOpcode {
+    fn get_begin(&self) -> usize {
+        match self {
+            UnaryOpcode::BitwiseNot(loc)
+            | UnaryOpcode::Not(loc)
+            | UnaryOpcode::Plus(loc)
+            | UnaryOpcode::Minus(loc) => loc.get_begin(),
+        }
+    }
+
+    fn get_end(&self) -> usize {
+        match self {
+            UnaryOpcode::BitwiseNot(loc)
+            | UnaryOpcode::Not(loc)
+            | UnaryOpcode::Plus(loc)
+            | UnaryOpcode::Minus(loc) => loc.get_end(),
         }
     }
 
     fn get_rng(&self) -> Location {
         match self {
-            UnaryOpcode::Not(loc) | UnaryOpcode::Neg(loc) => loc.as_rng(),
+            UnaryOpcode::BitwiseNot(loc)
+            | UnaryOpcode::Not(loc)
+            | UnaryOpcode::Plus(loc)
+            | UnaryOpcode::Minus(loc) => loc.as_rng(),
         }
     }
 }
@@ -792,7 +482,7 @@ impl AstLoc for AstPositionalArg {
         self.value.get_end()
     }
 
-    fn get_rng(&self) -> diagnostics::Location {
+    fn get_rng(&self) -> Location {
         self.value.get_rng()
     }
 }
@@ -953,12 +643,12 @@ impl AstLoc for AstDeclaration {
 }
 
 pub enum AstAtrOp {
-    Atr,
-    AddAtr,
-    SubAtr,
-    MulAtr,
-    DivAtr,
-    ModAtr,
+    Atr(TokLoc),
+    AddAtr(TokLoc),
+    SubAtr(TokLoc),
+    MulAtr(TokLoc),
+    DivAtr(TokLoc),
+    ModAtr(TokLoc),
 }
 
 pub struct AstIf {

@@ -1,5 +1,5 @@
 [package]
-name = "libutils"
+name = "buildsys-utils"
 version = "0.1.0"
 authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
 edition = "2018"

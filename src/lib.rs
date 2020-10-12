@@ -1,6 +1,6 @@
+extern crate buildsys_utils;
 extern crate codespan_reporting;
 extern crate lalrpop_util;
-extern crate libutils;
 #[macro_use]
 extern crate log;
 extern crate paste;

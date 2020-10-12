@@ -26,6 +26,8 @@ match {
     "<",
     "!=",
     "=",
+    "<<",
+    ">>",
     "(",
     "[",
     "{",
@@ -37,6 +39,7 @@ match {
     "?",
     ";",
     ",",
+    "~",
     "and",
     "or",
     "not",
@@ -55,152 +58,191 @@ match {
     r#"'''([^']*|[']{1,2}[^'])*'''"#,
 }
 
+SpannedTok<Rule>: (Rule, TokLoc) = <begin: @L> <rule: Rule> <end: @R> => (rule, TokLoc::new(begin, end));
+SpannedLocation<Rule>: TokLoc = <begin: @L> <rule: Rule> <end: @R> => TokLoc::new(begin, end);
 
-IdExpression: (String, TokLoc) = { <begin: @L> <id: r"[a-zA-Z_][a-zA-Z0-9_]*"> <end: @R> => (String::from(id), TokLoc::new(begin, end))};
-Num: (NumVal, TokLoc) = {
-    <begin: @L> <num: r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> <end: @R> => (NumVal::from(num), TokLoc::new(begin, end))
+SingleComma: () = {
+    "," => (),
 };
-BoolLit: (bool, TokLoc) = {
-    <begin: @L> "true" <end: @R> => (true, TokLoc::new(begin, end)),
-    <begin: @L> "false" <end: @R> => (false, TokLoc::new(begin, end)),
+
+#[inline]
+Comma<Rule>: Vec<Rule> =
+    <mut rules: (<Rule> SingleComma)*> <last: Rule?> => {
+        rules.extend(last);
+        rules
+    };
+
+#[inline]
+CommaNoTrailing<Rule>: Vec<Rule> =
+    <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
+
+IdExpressionUnspanned: String =
+    <id: r"[a-zA-Z_][a-zA-Z0-9_]*"> => String::from(id);
+
+IdExpression = SpannedTok<IdExpressionUnspanned>;
+
+NumTok: NumVal = {
+    <num: r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> => NumVal::from(num)
 };
-Str: (String, TokLoc) = {
-    <begin: @L> <s: r#"'(\\['nt\\]|[^'\\])+'"#> <end: @R> => (String::from(&s[1..(s.len()-1)]), TokLoc::new(begin, end)),
-    <begin: @L> <s: r#"'''([^']*|[']{1,2}[^'])*'''"#> <end: @R> => (String::from(&s[3..(s.len()-3)]), TokLoc::new(begin, end)),
+
+Num = SpannedTok<NumTok>;
+
+BoolTok: bool = {
+    "true" => true,
+    "false" => false,
 };
-UnaryNot: UnaryOpcode = { <begin: @L> "not" <end: @R> => UnaryOpcode::Not(TokLoc::new(begin, end)) };
+
+BoolLit = SpannedTok<BoolTok>;
+
+StrTok: String = {
+    <s: r#"'(\\['nt\\]|[^'\\])+'"#> => String::from(&s[1..(s.len()-1)]),
+    <s: r#"'''([^']*|[']{1,2}[^'])*'''"#> => String::from(&s[3..(s.len()-3)]),
+};
+
+Str = SpannedTok<StrTok>;
+
+UnaryNot: UnaryOpcode = { <l: SpannedLocation<"not">> => UnaryOpcode::Not(l) };
 
 pub Program = <Statement*>;
 Statement: AstStatement = {
-    <MethodCall> ";" => AstStatement::MethodCall(<>),
-	<FuncCall> ";" => AstStatement::FuncCall(<>),
-	<Assignment> ";" => AstStatement::Assignment(<>),
-	<Declaration> ";" => AstStatement::Declaration(<>),
-	<ConditionalStatement> => AstStatement::Conditional(<>),
-	//<ControlStatement> => AstStatement::ControlStatement(<>),
-	<RepetitiveStatement> => AstStatement::Repetitive(<>),
+//    <call: MethodCall> ";" => AstStatement::MethodCall(call),
+	<call: FuncCall> ";" => AstStatement::FuncCall(call),
+	<assignment: Assignment> ";" => AstStatement::Assignment(assignment),
+	<declaration: Declaration> ";" => AstStatement::Declaration(declaration),
+	<statement: ConditionalStatement> => AstStatement::Conditional(statement),
+	//<statement ControlStatement> => AstStatement::ControlStatement(statement),
+	<statement: RepetitiveStatement> => AstStatement::Repetitive(statement),
 };
 
+// function calls
 FuncCall: AstFuncCall = {
 	<name:IdExpression> "(" <args:FuncArgs> ")" <end: @R> => AstFuncCall::new(name, args, end)
 };
 
-FuncArgs:AstFuncCallArgs = {
-	<pos_args:PositionalFuncArgs> "," <named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new(pos_args,named_args),
-	<pos_args:PositionalFuncArgs> ","? => AstFuncCallArgs::new_only_positional(pos_args),
-	<named_args:NamedFuncArgs> ","? => AstFuncCallArgs::new_only_named(named_args),
+FuncArgs: AstFuncCallArgs = {
+	<pos_args:PositionalFuncArgs> SingleComma <named_args:NamedFuncArgs> SingleComma? => AstFuncCallArgs::new(pos_args,named_args),
+	<pos_args:PositionalFuncArgs> SingleComma? => AstFuncCallArgs::new_only_positional(pos_args),
+	<named_args:NamedFuncArgs> SingleComma? => AstFuncCallArgs::new_only_named(named_args),
 	() => AstFuncCallArgs::empty(),
 };
 
 #[inline]
-PositionalFuncArgs: Vec<AstPositionalArg> = {
-	<arg1:PositionalFuncArg> <rest:("," <PositionalFuncArg>)*> => {let mut v = vec![arg1]; v.extend(rest); v.into_iter().map(|box_ : Box<Expr>| AstPositionalArg::from(box_)).collect()},
-};
+PositionalFuncArgs = CommaNoTrailing<PositionalFuncArg>;
 
-PositionalFuncArg = { Expr };
+PositionalFuncArg: AstPositionalArg = <expr: Expr> => AstPositionalArg::from(expr);
 
 #[inline]
-NamedFuncArgs: Vec<AstNamedExpr> = {
-	<arg1:NamedExpr> <rest:("," <NamedExpr>)*> => {let mut v = vec![arg1]; v.extend(rest); v}
-};
+NamedFuncArgs = CommaNoTrailing<NamedExpr>;
 
 NamedExpr: AstNamedExpr = {
-	<name:IdExpression> ":" <value:Expr> => AstNamedExpr::from((name, value))
+	<name:IdExpression> "=" <value:Expr> => AstNamedExpr::from((name, value))
 };
 
-AddExpr: Box<Expr> = { // (1)
-    AddExpr AddOp Factor => Box::new(Expr::Op(<>)), // (2)
+UnaryPlusMinusOpcode: UnaryOpcode = {
+	<l: SpannedLocation<"-">> => UnaryOpcode::Minus(l),
+	<l: SpannedLocation<"+">> => UnaryOpcode::Plus(l),
+};
+
+UnaryPlusMinusExpression: Box<Expr> = {
+    <op: UnaryPlusMinusOpcode> <expr: UnaryPlusMinusExpression> => Box::new(Expr::UnaryOp(op, expr)),
+};
+
+UnaryLogicalAndBitwiseNot: UnaryOpcode = {
+	<l: SpannedLocation<"not">> => UnaryOpcode::Not(l),
+	<l: SpannedLocation<"~">> => UnaryOpcode::BitwiseNot(l),
+};
+
+UnaryLogicalAndBitwiseNotExpression: Box<Expr> = {
+    <op: UnaryLogicalAndBitwiseNot> <expr: UnaryPlusMinusExpression> => Box::new(Expr::UnaryOp(op, expr)),
+};
+
+MulOp: Opcode = {
+    <l: SpannedLocation<"*">> => Opcode::Mul(l),
+    <l: SpannedLocation<"/">> => Opcode::Div(l),
+    <l: SpannedLocation<"%">> => Opcode::Mod(l),
+};
+
+Factor: Box<Expr> = {
+    <left: Factor> <op: MulOp> <right: UnaryLogicalAndBitwiseNotExpression> => Box::new(Expr::Op(left, op, right)),
+    UnaryLogicalAndBitwiseNotExpression,
+};
+
+AddOp: Opcode = {
+    <l: SpannedLocation<"+">> => Opcode::Add(l),
+    <l: SpannedLocation<"-">> => Opcode::Sub(l),
+};
+
+AddExpr: Box<Expr> = {
+    <left: AddExpr> <op: AddOp> <right: Factor> => Box::new(Expr::Op(left, op, right)),
     Factor,
 };
 
-AddOp: Opcode = { // (3)
-    "+" => Opcode::Add,
-    "-" => Opcode::Sub,
+BitShiftOp: Opcode = {
+    <l: SpannedLocation<"<<">> => Opcode::LBitshift(l),
+    <l: SpannedLocation<">>">> => Opcode::RBitshift(l)
 };
 
-CheckExpr: Box<Expr> = {
-	AddExpr RelOp AddExpr => Box::new(Expr::Op(<>)),
+BitShiftExpr: Box<Expr> = {
+    <left: BitShiftExpr> <op: BitShiftOp> <right: AddExpr> => Box::new(Expr::Op(left, op, right)),
+    AddExpr,
+};
+
+RelOp: Opcode = {
+	<l: SpannedLocation<">">> => Opcode::G(l),
+	<l: SpannedLocation<"<">> => Opcode::L(l),
+	<l: SpannedLocation<">=">> => Opcode::GE(l),
+	<l: SpannedLocation<"<=">> => Opcode::LE(l),
+	<l: SpannedLocation<"in">> => Opcode::In(l),
+	<l: SpannedLocation<("not" "in")>> => Opcode::NotIn(l),
+};
+
+RelExpr: Box<Expr> = {
+	<left: RelExpr> <op: RelOp> <right: BitShiftExpr> => Box::new(Expr::Op(left, op, right)),
 	AddExpr,
 };
 
+RelOp2: Opcode = {
+    <l: SpannedLocation<"==">> => Opcode::Equal(l),
+    <l: SpannedLocation<"!=">> => Opcode::NE(l),
+}
+
+RelExpr2: Box<Expr> = {
+	<left: RelExpr2> <op: RelOp2> <right: RelExpr> => Box::new(Expr::Op(left, op, right)),
+	RelExpr,
+};
+
 AndConditionalExpr: Box<Expr> = {
-	AndConditionalExpr AndOp CheckExpr => Box::new(Expr::Op(<>)),
-	CheckExpr,
+	<left: AndConditionalExpr> <op: AndOp> <right: RelExpr2> => Box::new(Expr::Op(left, op, right)),
+	RelExpr2,
 };
 
 AndOp: Opcode = {
-	"and" => Opcode::And,
+	<l: SpannedLocation<"and">> => Opcode::And(l),
 };
 
 OrConditionalExpr: Box<Expr> = {
-	OrConditionalExpr OrOp AndConditionalExpr => Box::new(Expr::Op(<>)),
+	<left: OrConditionalExpr> <op: OrOp> <right: AndConditionalExpr> => Box::new(Expr::Op(left, op, right)),
 	AndConditionalExpr,
 };
 
 OrOp: Opcode = {
-	"or" => Opcode::Or,
+    <l: SpannedLocation<"or">> => Opcode::Or(l),
 };
 
-RelOp: Opcode = {
-	"==" => Opcode::Equal,
-	">" => Opcode::G,
-	"<" => Opcode::L,
-	">=" => Opcode::GE,
-	"<=" => Opcode::LE,
-	"!=" => Opcode::NE,
-	"in" => Opcode::In,
-	"not" "in" => Opcode::NotIn,
+TernaryExpr: Box<Expr> = {
+    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">> <val_true: TernaryExpr> <colon: SpannedLocation<":">> <val_false: OrConditionalExpr> => Box::new(Expr::Ternary(condition, qmark, val_true, colon, val_false)),
+    OrConditionalExpr
 };
 
-Expr: Box<Expr> = {
-	OrConditionalExpr,
-};
+Expr = TernaryExpr;
 
-Factor: Box<Expr> = {
-    Factor FactorOp TermWithUnaryOps => Box::new(Expr::Op(<>)),
-    TermWithUnaryOps,
-};
-
-FactorOp: Opcode = {
-    "*" => Opcode::Mul,
-    "/" => Opcode::Div,
-    "%" => Opcode::Mod,
-};
-
-TermWithUnaryOps: Box<Expr> = {
-	UnaryNeg Term => Box::new(Expr::UnaryOp(<>)),
-	UnaryNot Term => Box::new(Expr::UnaryOp(<>)),
-	Term,
-};
-
-Term: Box<Expr> = {
-    Num => Box::new(Expr::Atom(Atom::Number(<>))),
-    Str => Box::new(Expr::Atom(Atom::Str(<>))),
-    BoolLit => Box::new(Expr::Atom(Atom::Bool(<>))),
-    <begin: @L> "(" <value:Expr> ")" <end: @R> => Box::new(Expr::ParenExpr(begin, value, end)),
-    <MethodCall> => Box::new(Expr::MethodCall(<>)),
-    <PropertyAccess> => Box::new(Expr::PropertyAccess(<>)),
-    <FuncCall> => Box::new(Expr::FuncCall(<>)),
-    <IdExpression> => Box::new(Expr::Atom(Atom::Id(<>))),
-    <base:Term> "[" <ind:Expr> "]" <end: @R> => Box::new(Expr::Indexed{base, index: ind, end}),
-    ArrayLit, MapLit, Ternary,
-};
-
-Ternary: Box<Expr> = {
-    <begin: @L> "(" <cond: Expr> "?" <tr: Expr> ":" <fal: Expr> ")" <end: @R> => Box::new(Expr::Ternary(<>)),
-};
-
-UnaryNeg: UnaryOpcode = {
-	<begin: @L> "-" <end: @R> => UnaryOpcode::Neg(TokLoc::new(<>)),
-};
-
-PropertyAccess: AstPropertyAccess = {
-    <t:Term> "." <prop_name:IdExpression> => AstPropertyAccess::new(t, prop_name)
-};
-
-MethodCall: AstMethodCall = {
-	<property_access:PropertyAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
-};
+//MemberAccessExpr: AstPropertyAccess = {
+//    <t:Term> <dot: SpannedLocation<".">> <prop_name:IdExpression> => AstPropertyAccess::new(t, dot, prop_name),
+//};
+//
+//MethodCall: AstMethodCall = {
+//	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
+//};
 
 Declaration: AstDeclaration = {
 	<begin: @L> "let" <name: IdExpression> "=" <value: Expr> => AstDeclaration::new(name, value, begin)
@@ -211,20 +253,28 @@ Assignment: AstAssignment = {
 };
 
 AtrOp: AstAtrOp = {
-	"=" => AstAtrOp::Atr,
-	"+=" => AstAtrOp::AddAtr,
-	"-=" => AstAtrOp::SubAtr,
-	"*=" => AstAtrOp::MulAtr,
-	"/=" => AstAtrOp::DivAtr,
-	"%=" => AstAtrOp::ModAtr,
+	<l: SpannedLocation<"=">> => AstAtrOp::Atr(l),
+	<l: SpannedLocation<"+=">> => AstAtrOp::AddAtr(l),
+	<l: SpannedLocation<"-=">> => AstAtrOp::SubAtr(l),
+	<l: SpannedLocation<"*=">> => AstAtrOp::MulAtr(l),
+	<l: SpannedLocation<"/=">> => AstAtrOp::DivAtr(l),
+	<l: SpannedLocation<"%=">> => AstAtrOp::ModAtr(l),
 };
 
 ArrayLit: Box<Expr> = {
-	<begin: @L> "{" <arg1:Expr> <rest:("," <Expr>)*> ","? "}" <end: @R> => Box::new(Expr::Atom(Atom::ArrayLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(begin, end)))))
+	<begin: @L> "{" <arg1:Expr> <rest:("," <Expr>)*> ","? "}" <end: @R> =>
+            Box::new(Expr::Atom(Atom::ArrayLit((
+                { let mut v = Vec::with_capacity(1 + rest.len()); v.push(arg1); v.extend(rest); v },
+                TokLoc::new(begin, end),
+            ))))
 };
 
 MapLit: Box<Expr> = {
-	<begin: @L> "{" <arg1:NamedExpr> <rest:("," <NamedExpr>)*>  ","?  "}" <end: @R> => Box::new(Expr::Atom(Atom::MapLit(({let mut v = vec![arg1]; v.extend(rest); v}, TokLoc::new(begin, end)))))
+	<begin: @L> "{" <arg1:NamedExpr> <rest:("," <NamedExpr>)*>  ","?  "}" <end: @R> =>
+            Box::new(Expr::Atom(Atom::MapLit((
+                { let mut v = Vec::with_capacity(1 + rest.len()); v.push(arg1); v.extend(rest); v },
+                TokLoc::new(begin, end),
+            ))))
 };
 
 #[inline]
