@@ -1,39 +1,17 @@
 pub mod ast;
 /// the parser
+#[allow(clippy::all)]
 mod leafparser;
-pub(crate) mod lexer {
-    #[derive(Copy, Clone, std::fmt::Debug)]
-    pub struct TokLoc {
-        begin: usize,
-        end: usize,
-    }
+pub(crate) mod lexer;
 
-    impl TokLoc {
-        pub(crate) fn new(begin: usize, end: usize) -> TokLoc {
-            TokLoc { begin, end }
-        }
-
-        pub(crate) fn as_rng(&self) -> std::ops::Range<usize> {
-            self.begin..self.end
-        }
-
-        pub(crate) fn get_begin(&self) -> usize {
-            self.begin
-        }
-
-        pub(crate) fn get_end(&self) -> usize {
-            self.end
-        }
-    }
-}
-
-use lalrpop_util::lexer::Token;
+use crate::grammar::lexer::LexicalError;
 use lalrpop_util::ParseError;
-pub use lexer::TokLoc;
+pub use lexer::Span;
 
-pub fn parse<'input>(
-    source: &'input str,
-) -> Result<ast::AstProgram, ParseError<usize, Token<'input>, &'static str>> {
-    let statements = leafparser::ProgramParser::new().parse(source)?;
-    Ok(ast::AstProgram::new(statements))
+pub fn parse(
+    source: &str,
+) -> Result<ast::AstBuildDefinition, ParseError<usize, lexer::Token, LexicalError>> {
+    leafparser::ProgramParser::new()
+        .parse(source, lexer::Lexer::new(source))
+        .map(ast::AstBuildDefinition::new)
 }

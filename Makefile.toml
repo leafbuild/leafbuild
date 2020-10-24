@@ -1,0 +1,112 @@
+[tasks.format]
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--", "--emit=files"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+dependencies = ["build"]
+
+[tasks.lint]
+install_crate = "clippy"
+workspace = false
+command = "cargo"
+args = ["clippy", "--", "-D", "warnings"]
+
+[tasks.check]
+workspace = false
+dependencies = [
+    "format",
+    "lint",
+    "test"
+]
+
+[tasks.doc-build]
+workspace = false
+install_crate = "mdbook"
+cwd = "doc"
+command = "mdbook"
+args = ["build"]
+
+[tasks.doc-serve]
+workspace = false
+install_crate = "mdbook"
+cwd = "doc"
+command = "mdbook"
+args = ["serve"]
+
+[tasks.doc-nuke]
+workspace = false
+cwd = "doc"
+command = "rm"
+args = ["-rf", "book"]
+
+[tasks.doc-push]
+workspace = false
+cwd = "doc/book"
+script = [
+'''
+mkdir -p .public
+mv ./* .nojekyll .public
+mv .public public
+
+cp ../pages.gitlab-ci.yml ./.gitlab-ci.yml
+
+git init
+git remote add origin git@gitlab.com:leafbuild/docs.git
+git add -A
+git commit -S -a -m "Update docs"
+git push -f origin master
+'''
+]
+dependencies = [
+    "doc-build"
+]
+
+[tasks.doc-build-highlighter]
+workspace = false
+cwd = "doc"
+script = [
+'''
+cp ./leafbuild_highlight.js hl_clone/highlight.js/src/languages/leafbuild.js
+pushd hl_clone || exit $?
+cd highlight.js || exit $?
+node tools/build.js -n leafbuild rust bash || exit $?
+popd || exit $?
+cp hl_clone/highlight.js/build/highlight.js theme/highlight.js || exit $?
+'''
+]
+
+[tasks.setup-dev-env]
+workspace = false
+script = [
+'''
+git config core.hooksPath git/hooks
+mkdir -p doc/hl_clone
+git clone https://github.com/highlightjs/highlight.js doc/hl_clone/highlight.js
+cd doc/hl_clone/highlight.js
+npm install
+'''
+]
+
+[tasks.clean-dev-env]
+workspace = false
+script = [
+'''
+rm -rf doc/hl_clone
+'''
+]
+
+[tasks.verify-commit-message]
+workspace = false
+command = "cargo"
+args = ["run", "--bin", "verify_commit_message", "--", "${@}"]

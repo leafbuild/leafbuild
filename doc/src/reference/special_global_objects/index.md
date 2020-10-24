@@ -1,1 +1,0 @@
-# Special Global Objects

@@ -150,7 +150,7 @@ fabric.properties
 .idea/dictionaries/
 .idea/codestream.xml
 
-/testenv
+#/testenv
 
 /.idea/.gitignore
 /.idea/codeStyles/codeStyleConfig.xml

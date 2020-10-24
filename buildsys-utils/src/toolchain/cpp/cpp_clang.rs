@@ -18,11 +18,18 @@ impl CPPClangToolchain {
 
 impl Toolchain for CPPClangToolchain {
     fn can_consume(filename: &str) -> bool {
-        unimplemented!()
+        filename.ends_with(".c")
+            || filename.ends_with(".cpp")
+            || filename.ends_with(".c++")
+            || filename.ends_with(".cxx")
     }
 
     fn can_compile(filename: &str) -> bool {
-        unimplemented!()
+        Self::can_consume(filename)
+            || filename.ends_with(".h")
+            || filename.ends_with(".hpp")
+            || filename.ends_with(".hxx")
+            || filename.ends_with(".h++")
     }
 }
 

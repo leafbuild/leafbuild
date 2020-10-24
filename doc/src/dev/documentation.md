@@ -1,5 +1,5 @@
-## The `gh-pages` Branch and Documentation
-The `gh-pages` branch was created from the `doc/book` directory.
+## The `docs` Repo and Documentation
+The `docs` repo was created from the `doc/book` directory.
 The `doc/book` directory is generated from `doc/src` and `doc/book.toml` by [mdbook](https://github.com/rust-lang/mdBook).
 
 If you want to see the changes after you made them, make sure you have mdbook installed. 

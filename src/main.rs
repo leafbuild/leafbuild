@@ -6,7 +6,8 @@ use std::process::exit;
 
 use clap::AppSettings;
 use clap::Clap;
-use leafbuild::handle::Handle;
+use leafbuild::handle::{config::EnvConfig, Handle};
+use leafbuild::interpreter;
 use log::LevelFilter;
 
 #[derive(Debug, Clap)]
@@ -20,8 +21,6 @@ struct BuildCommand {
         default_value = "leafbuild-dir"
     )]
     output_directory: PathBuf,
-    #[clap(long = "angry-errors")]
-    angry_errors: bool,
     #[clap(long = "disable-error-cascade")]
     disable_error_cascade: bool,
     #[clap(long = "ci")]
@@ -91,26 +90,14 @@ fn main() {
         Subcommand::Build { build_command } => {
             let _wd = std::env::current_dir().unwrap();
             let proj_path = Path::new(&build_command.directory);
-            // #[allow(unused_mut)]
-            // let mut config = EnvConfig::new();
-            // #[cfg(feature = "angry-errors")]
-            // config.set_angry_errors(build_command.angry_errors);
-            // if build_command.angry_errors && !(cfg!(feature = "angry-errors")) {
-            //     warn!("Cannot use --angry-errors without the angry-errors feature");
-            // }
-            //
-            // if build_command.disable_error_cascade {
-            //     config.set_error_cascade(false);
-            // }
-            //
-            // config.set_output_directory(build_command.output_directory);
-            //
-            // let ci_enabled = build_command.ci_enabled;
-            //
-            // config.set_signal_build_failure(ci_enabled || build_command.build_failure_signals);
+            let ci_enabled = build_command.ci_enabled;
+            let config = EnvConfig::new()
+                .with_error_cascade(!build_command.disable_error_cascade)
+                .with_output_directory(build_command.output_directory)
+                .with_signal_build_failure(ci_enabled || build_command.build_failure_signals);
 
-            // let mut handle = Handle::new(config);
-            // interpreter::start_on(&proj_path, &mut handle);
+            let mut handle = Handle::new(config);
+            interpreter::start_on(&mut handle, proj_path.to_path_buf());
         }
         Subcommand::Internal {
             internal_subcommand,
