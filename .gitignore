@@ -151,6 +151,7 @@ fabric.properties
 .idea/codestream.xml
 
 #/testenv
+/testenv/leafbuild-dir
 
 /.idea/.gitignore
 /.idea/codeStyles/codeStyleConfig.xml

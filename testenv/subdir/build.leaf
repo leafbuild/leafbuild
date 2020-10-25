@@ -1,0 +1,9 @@
+project('v');
+
+print('entered subdir');
+
+print('1', '2', '3', '4');
+
+let exe = executable('exe', 'src/exe.cpp');
+
+print('exiting subdir');
