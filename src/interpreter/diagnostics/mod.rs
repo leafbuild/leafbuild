@@ -64,11 +64,11 @@ impl<'a> Files<'a> for LeafbuildFiles {
     type Source = &'a String;
 
     fn name(&'a self, id: Self::FileId) -> Option<Self::Name> {
-        self.files.get(id.0).map(|f| f.name())
+        self.files.get(id.0).map(LeafbuildFile::name)
     }
 
     fn source(&'a self, id: Self::FileId) -> Option<Self::Source> {
-        self.files.get(id.0).map(|f| f.source())
+        self.files.get(id.0).map(LeafbuildFile::source)
     }
 
     fn line_index(&self, file_id: Self::FileId, byte_index: usize) -> Option<usize> {

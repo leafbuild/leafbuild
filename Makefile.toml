@@ -55,14 +55,8 @@ workspace = false
 cwd = "doc/book"
 script = [
 '''
-mkdir -p .public
-mv ./* .nojekyll .public
-mv .public public
-
-cp ../pages.gitlab-ci.yml ./.gitlab-ci.yml
-
 git init
-git remote add origin git@gitlab.com:leafbuild/docs.git
+git remote add origin git@github.com:leafbuild/leafbuild.github.io.git
 git add -A
 git commit -S -a -m "Update docs"
 git push -f origin master

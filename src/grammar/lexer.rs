@@ -130,10 +130,10 @@ pub enum Tk {
     String,
     #[regex(r#"'''([^']*|'[^']|''[^'])*'''"#)]
     MultilineString,
-    #[token("\n")]
-    Newline,
+    // #[token("\n")]
+    // Newline,
     #[error]
-    #[regex(r"[ \t\r]+", logos::skip)]
+    #[regex(r"[ \n\t\r]+", logos::skip)]
     Error,
 }
 
