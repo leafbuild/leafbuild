@@ -21,7 +21,6 @@ The current state of the implementation, along with future plans.
 - [x] Variable assignment
 - [x] Function calls
 - [x] Method calls
-- [x] Functions and methods alias system
 - [x] If expressions
 - [x] Ternary expressions
 - [x] Loops
@@ -30,11 +29,6 @@ The current state of the implementation, along with future plans.
 <td><div>
 
 ### Functions
-- [x] `print()`
-- [x] `project()`
-- [x] `module()`
-- [x] `executable()`
-- [ ] `library()`
  
 </div></td> 
 </tr>
@@ -43,8 +37,6 @@ The current state of the implementation, along with future plans.
 <td><div>
 
 ### Types, methods & properties
-- [x] executable
-- [ ] library
 
 </div></td>
 

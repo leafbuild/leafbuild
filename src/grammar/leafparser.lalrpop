@@ -1,0 +1,320 @@
+use crate::{
+	grammar::{
+		lexer,
+		lexer::*,
+		ast::*,
+	},
+};
+
+grammar<'input>(input: &'input str);
+
+Spanned<Rule>: (Rule, Span) = <start: @L> <rule: Rule> <end: @R> => (rule, Span::new(start, end));
+SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
+
+SingleComma: () = {
+    "," => (),
+}
+
+#[inline]
+Comma<Rule>: Vec<Rule> =
+    <mut rules: (<Rule> SingleComma)*> <last: Rule?> => {
+        rules.extend(last);
+        rules
+    };
+
+#[inline]
+CommaNoTrailing<Rule>: Vec<Rule> =
+    <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
+
+IdExpressionUnspanned: String =
+    <id: r"[a-zA-Z_][a-zA-Z0-9_]*"> => String::from(id);
+
+IdExpression = Spanned<IdExpressionUnspanned>;
+
+NumTok: NumVal = {
+    <num: r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> => NumVal::from(num)
+}
+
+Num = Spanned<NumTok>;
+
+BoolTok: bool = {
+    "true" => true,
+    "false" => false,
+}
+
+BoolLit = Spanned<BoolTok>;
+
+StrTok: String = {
+    <s: r#"'(\\['nt\\]|[^'\\])+'"#> => String::from(&s[1..(s.len()-1)]),
+    <s: r#"'''([^']*|[']{1,2}[^'])*'''"#> => String::from(&s[3..(s.len()-3)]),
+}
+
+Str = Spanned<StrTok>;
+
+UnaryNot: UnaryOpcode = { <l: SpannedLocation<"not">> => UnaryOpcode::Not(l) }
+
+pub Program = <Statement*>;
+Statement: AstStatement = {
+//    <call: MethodCall> ";" => AstStatement::MethodCall(call),
+	<call: FuncCall> ";" => AstStatement::FuncCall(call),
+	<assignment: Assignment> ";" => AstStatement::Assignment(assignment),
+	<declaration: Declaration> ";" => AstStatement::Declaration(declaration),
+	<statement: ConditionalStatement> => AstStatement::Conditional(statement),
+	//<statement ControlStatement> => AstStatement::ControlStatement(statement),
+	<statement: RepetitiveStatement> => AstStatement::Repetitive(statement),
+}
+
+// function calls
+FuncCall: AstFuncCall = {
+	<name:IdExpression> "(" <args:FuncArgs> ")" <end: @R> => AstFuncCall::new(name, args, end)
+}
+
+FuncArgs: AstFuncCallArgs = {
+	<pos_args:PositionalFuncArgs> SingleComma <named_args:NamedFuncArgs> SingleComma? => AstFuncCallArgs::new(pos_args,named_args),
+	<pos_args:PositionalFuncArgs> SingleComma? => AstFuncCallArgs::new_only_positional(pos_args),
+	<named_args:NamedFuncArgs> SingleComma? => AstFuncCallArgs::new_only_named(named_args),
+	() => AstFuncCallArgs::empty(),
+}
+
+#[inline]
+PositionalFuncArgs = CommaNoTrailing<PositionalFuncArg>;
+
+PositionalFuncArg: AstPositionalArg = <expr: Expr> => AstPositionalArg::from(expr);
+
+#[inline]
+NamedFuncArgs = CommaNoTrailing<NamedExpr>;
+
+NamedExpr: AstNamedExpr = {
+	<name:IdExpression> "=" <value:Expr> => AstNamedExpr::from((name, value))
+}
+
+UnaryPlusMinusOpcode: UnaryOpcode = {
+	<l: SpannedLocation<"-">> => UnaryOpcode::Minus(l),
+	<l: SpannedLocation<"+">> => UnaryOpcode::Plus(l),
+}
+
+ExprAtom: Box<Expr> = {
+    <f: FuncCall> => Box::new(Expr::FuncCall(f)),
+    <n: Num> => Box::new(Expr::Atom(Atom::Number(n))),
+//    MethodCall,
+}
+
+UnaryPlusMinusExpression: Box<Expr> = {
+    <op: UnaryPlusMinusOpcode> <expr: UnaryPlusMinusExpression> => Box::new(Expr::UnaryOp(op, expr)),
+    ExprAtom,
+}
+
+UnaryLogicalAndBitwiseNot: UnaryOpcode = {
+	<l: SpannedLocation<"not">> => UnaryOpcode::Not(l),
+	<l: SpannedLocation<"~">> => UnaryOpcode::BitwiseNot(l),
+}
+
+UnaryLogicalAndBitwiseNotExpression: Box<Expr> = {
+    <op: UnaryLogicalAndBitwiseNot> <expr: UnaryPlusMinusExpression> => Box::new(Expr::UnaryOp(op, expr)),
+    UnaryPlusMinusExpression
+}
+
+MulOp: Opcode = {
+    <l: SpannedLocation<"*">> => Opcode::Mul(l),
+    <l: SpannedLocation<"/">> => Opcode::Div(l),
+    <l: SpannedLocation<"%">> => Opcode::Mod(l),
+}
+
+Factor: Box<Expr> = {
+    <left: Factor> <op: MulOp> <right: UnaryLogicalAndBitwiseNotExpression> => Box::new(Expr::Op(left, op, right)),
+    UnaryLogicalAndBitwiseNotExpression,
+}
+
+AddOp: Opcode = {
+    <l: SpannedLocation<"+">> => Opcode::Add(l),
+    <l: SpannedLocation<"-">> => Opcode::Sub(l),
+}
+
+AddExpr: Box<Expr> = {
+    <left: AddExpr> <op: AddOp> <right: Factor> => Box::new(Expr::Op(left, op, right)),
+    Factor,
+}
+
+BitShiftOp: Opcode = {
+    <l: SpannedLocation<"<<">> => Opcode::LBitshift(l),
+    <l: SpannedLocation<">>">> => Opcode::RBitshift(l)
+}
+
+BitShiftExpr: Box<Expr> = {
+    <left: BitShiftExpr> <op: BitShiftOp> <right: AddExpr> => Box::new(Expr::Op(left, op, right)),
+    AddExpr,
+}
+
+RelOp: Opcode = {
+	<l: SpannedLocation<">">> => Opcode::G(l),
+	<l: SpannedLocation<"<">> => Opcode::L(l),
+	<l: SpannedLocation<">=">> => Opcode::GE(l),
+	<l: SpannedLocation<"<=">> => Opcode::LE(l),
+	<l: SpannedLocation<"in">> => Opcode::In(l),
+	<l: SpannedLocation<("not" "in")>> => Opcode::NotIn(l),
+}
+
+RelExpr: Box<Expr> = {
+	<left: RelExpr> <op: RelOp> <right: BitShiftExpr> => Box::new(Expr::Op(left, op, right)),
+	AddExpr,
+}
+
+RelOp2: Opcode = {
+    <l: SpannedLocation<"==">> => Opcode::Equal(l),
+    <l: SpannedLocation<"!=">> => Opcode::NE(l),
+}
+
+RelExpr2: Box<Expr> = {
+	<left: RelExpr2> <op: RelOp2> <right: RelExpr> => Box::new(Expr::Op(left, op, right)),
+	RelExpr,
+}
+
+AndConditionalExpr: Box<Expr> = {
+	<left: AndConditionalExpr> <op: AndOp> <right: RelExpr2> => Box::new(Expr::Op(left, op, right)),
+	RelExpr2,
+}
+
+AndOp: Opcode = {
+	<l: SpannedLocation<"and">> => Opcode::And(l),
+}
+
+OrConditionalExpr: Box<Expr> = {
+	<left: OrConditionalExpr> <op: OrOp> <right: AndConditionalExpr> => Box::new(Expr::Op(left, op, right)),
+	AndConditionalExpr,
+}
+
+OrOp: Opcode = {
+    <l: SpannedLocation<"or">> => Opcode::Or(l),
+}
+
+TernaryExpr: Box<Expr> = {
+    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">> <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
+        Box::new(Expr::Ternary{condition, qmark, if_true, colon, if_false}),
+    OrConditionalExpr
+}
+
+Expr = TernaryExpr;
+
+//MemberAccessExpr: AstPropertyAccess = {
+//    <t:Term> <dot: SpannedLocation<".">> <prop_name:IdExpression> => AstPropertyAccess::new(t, dot, prop_name),
+//}
+//
+//MethodCall: AstMethodCall = {
+//	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
+//}
+
+Declaration: AstDeclaration = {
+	<let_tok: SpannedLocation<"let">> <name: IdExpression> <eq: SpannedLocation<"=">> <value: Expr> => AstDeclaration::new(let_tok, name, eq, value)
+}
+
+Assignment: AstAssignment = {
+	<bind_name: Expr> <op: AtrOp> <val: Expr> => AstAssignment::new(bind_name, op, val),
+}
+
+AtrOp: AstAtrOp = {
+	<l: SpannedLocation<"=">> => AstAtrOp::Atr(l),
+	<l: SpannedLocation<"+=">> => AstAtrOp::AddAtr(l),
+	<l: SpannedLocation<"-=">> => AstAtrOp::SubAtr(l),
+	<l: SpannedLocation<"*=">> => AstAtrOp::MulAtr(l),
+	<l: SpannedLocation<"/=">> => AstAtrOp::DivAtr(l),
+	<l: SpannedLocation<"%=">> => AstAtrOp::ModAtr(l),
+}
+
+ArrayLit: Box<Expr> = {
+	<lbrace: SpannedLocation<"{">> <args: Comma<Expr>> <rbrace: SpannedLocation<"}">> =>
+            Box::new(Expr::Atom(Atom::ArrayLit((args, lbrace, rbrace))))
+}
+
+MapLit: Box<Expr> = {
+	<lbrace: SpannedLocation<"{">> <args: Comma<NamedExpr>> <rbrace: SpannedLocation<"}">> =>
+                Box::new(Expr::Atom(Atom::MapLit((args, lbrace, rbrace))))
+}
+
+#[inline]
+ConditionalStatement: AstConditionalStatement = {
+	<initial: If> <others: ElseIf*> <else_statement: Else?> => AstConditionalStatement::new(initial, others, else_statement),
+}
+
+If: AstIf = {
+	<if_tok: SpannedLocation<"if">> <cond: Expr> <lbrace: SpannedLocation<"{">> <statements: Statement*> <rbrace: SpannedLocation<"}">> =>
+        AstIf::new(if_tok, cond, lbrace, statements, rbrace),
+}
+
+ElseIf: AstElseIf = {
+	<else_tok: SpannedLocation<"else">> <if_: If> => AstElseIf::new(else_tok, if_),
+}
+
+Else: AstElse = {
+	<else_tok: SpannedLocation<"else">> <lbrace: SpannedLocation<"{">> <statements: Statement+> <rbrace: SpannedLocation<"}">> =>
+        AstElse::new(else_tok, lbrace, statements, rbrace),
+}
+
+RepetitiveStatement: AstRepetitiveStatement = {
+    <foreach_tok: SpannedLocation<"foreach">> <for_in_expr: ForInExpr> <lbrace: SpannedLocation<"{">> <statements:Statement*> <rbrace: SpannedLocation<"}">> =>
+        AstRepetitiveStatement::new(foreach_tok, for_in_expr, lbrace, statements, rbrace),
+}
+
+ForInExpr: AstForInExpr = {
+    <id: IdExpression> <in_tok: SpannedLocation<"in">> <expr: Expr> => AstForInExpr::new(id, in_tok, expr),
+}
+
+ControlStatement: AstControlStatement = {
+	<break_tok: SpannedLocation<"break">> => AstControlStatement::Break(break_tok),
+	<continue_tok: SpannedLocation<"continue">> => AstControlStatement::Continue(continue_tok),
+}
+
+
+extern {
+    type Location = usize;
+    type Error = lexer::LexicalError<'input>;
+
+    enum lexer::Token<'input> {
+        "+=" => Token {token: Tk::PlusEq, data: <&'input str>},
+        "-=" => Token {token: Tk::MinusEq, data: <&'input str>},
+        "*=" => Token {token: Tk::MulEq, data: <&'input str>},
+        "/=" => Token {token: Tk::DivEq, data: <&'input str>},
+        "%=" => Token {token: Tk::ModEq, data: <&'input str>},
+        "+" => Token {token: Tk::Plus, data: <&'input str>},
+        "-" => Token {token: Tk::Minus, data: <&'input str>},
+        "*" => Token {token: Tk::Mul, data: <&'input str>},
+        "/" => Token {token: Tk::Slash, data: <&'input str>},
+        "%" => Token {token: Tk::Percent, data: <&'input str>},
+        "==" => Token {token: Tk::EqualEqual, data: <&'input str>},
+        ">=" => Token {token: Tk::GreaterEqual, data: <&'input str>},
+        ">" => Token {token: Tk::GreaterThan, data: <&'input str>},
+        "<=" => Token {token: Tk::LessEqual, data: <&'input str>},
+        "<" => Token {token: Tk::LessThan, data: <&'input str>},
+        "!=" => Token {token: Tk::NotEqual, data: <&'input str>},
+        "=" => Token {token: Tk::Equal, data: <&'input str>},
+        "<<" => Token {token: Tk::ShiftLeft, data: <&'input str>},
+        ">>" => Token {token: Tk::ShiftRight, data: <&'input str>},
+        "(" => Token {token: Tk::LParen, data: <&'input str>},
+        "[" => Token {token: Tk::LBracket, data: <&'input str>},
+        "{" => Token {token: Tk::LBrace, data: <&'input str>},
+        ")" => Token {token: Tk::RParen, data: <&'input str>},
+        "]" => Token {token: Tk::RBracket, data: <&'input str>},
+        "}" => Token {token: Tk::RBrace, data: <&'input str>},
+        "." => Token {token: Tk::Dot, data: <&'input str>},
+        ":" => Token {token: Tk::Colon, data: <&'input str>},
+        "?" => Token {token: Tk::QMark, data: <&'input str>},
+        ";" => Token {token: Tk::Semicolon, data: <&'input str>},
+        "," => Token {token: Tk::Comma, data: <&'input str>},
+        "~" => Token {token: Tk::Tilda, data: <&'input str>},
+        "and" => Token {token: Tk::And, data: <&'input str>},
+        "or" => Token {token: Tk::Or, data: <&'input str>},
+        "not" => Token {token: Tk::Not, data: <&'input str>},
+        "in" => Token {token: Tk::In, data: <&'input str>},
+        "let" => Token {token: Tk::Let, data: <&'input str>},
+        "if" => Token {token: Tk::If, data: <&'input str>},
+        "else" => Token {token: Tk::Else, data: <&'input str>},
+        "foreach" => Token {token: Tk::ForEach, data: <&'input str>},
+        "continue" => Token {token: Tk::Continue, data: <&'input str>},
+        "break" => Token {token: Tk::Break, data: <&'input str>},
+        "true" => Token {token: Tk::True, data: <&'input str>},
+        "false" => Token {token: Tk::False, data: <&'input str>},
+        r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?" => Token {token: Tk::Number, data: <&'input str>},
+        r"[a-zA-Z_][a-zA-Z0-9_]*" => Token {token: Tk::Id, data: <&'input str>},
+        r#"'(\\['nt\\]|[^'\\])+'"# => Token {token: Tk::String, data: <&'input str>},
+        r#"'''([^']*|[']{1,2}[^'])*'''"# => Token {token: Tk::MultilineString, data: <&'input str>},
+    }
+}

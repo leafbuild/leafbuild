@@ -1,5 +1,5 @@
-## The `gh-pages` Branch and Documentation
-The `gh-pages` branch was created from the `doc/book` directory.
+## The `docs` Repo and Documentation
+The `docs` repo was created from the `doc/book` directory.
 The `doc/book` directory is generated from `doc/src` and `doc/book.toml` by [mdbook](https://github.com/rust-lang/mdBook).
 
 If you want to see the changes after you made them, make sure you have mdbook installed. 
@@ -19,5 +19,5 @@ Please use reference-style links for all links to the main repo.
 You can use `rust` and `leafbuild` for syntax highlighting.
 Also the `leafbuild` language declaration for `highlight.js` can be found [here][leafbuild_highlight]. 
 
-[master_branch]: https://gitlab.com/leafbuild/leafbuild/tree/master
-[leafbuild_highlight]: https://gitlab.com/leafbuild/leafbuild/blob/master/doc/leafbuild_highlight.js
+[master_branch]: https://github.com/leafbuild/leafbuild/tree/master
+[leafbuild_highlight]: https://github.com/leafbuild/leafbuild/blob/master/doc/leafbuild_highlight.js

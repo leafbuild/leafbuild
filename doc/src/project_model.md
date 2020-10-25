@@ -15,8 +15,4 @@ The metadata present in the project should apply to all of its submodules.
 
 # The `build.leaf` file
 
-A `build.leaf` file should always start with a call to either
-[the `project()` function](reference/functions/project_and_module/project.md) or
-[the `module()` function](reference/functions/project_and_module/module.md).
-
  

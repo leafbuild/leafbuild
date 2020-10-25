@@ -55,7 +55,7 @@ Examples:
 ```leafbuild
 'A simple single line string',
 
-'A simple string with \'escaped\' apostropes'
+'A simple string with \'escaped\' apostrophes'
 
 '''A
 multiline
@@ -69,7 +69,7 @@ example
 {v0, v1, v2, ...}
 ```
 
-Where `v0`, `v1`, `v2`, ... can be of any type.
+Where `v0`, `v1`, `v2`, ... are of the same type.
 
 #### Getting a value out of a vector
 
@@ -86,7 +86,7 @@ Same as in C/C++:
 {k0: v0, k1: v1, k2: v2, ...}
 ```
 
-Where `v0`, `v1`, `v2`, ... can be of any type, and `k0`, `k1`, `k2` should be names.
+Where `v0`, `v1`, `v2`, ... are of the same type, and `k0`, `k1`, `k2` should be names.
 Example:
 
 ```leafbuild
@@ -105,17 +105,18 @@ Example:
 #### Getting a value out of a map
 Same as with vectors, but pass a string with the key instead of the index.
 ```leafbuild
-{a: 1, b: 2+3, c: '1'}['a'] = 1
-{a: 1, b: 2+3, c: '1'}['b'] = 5
-{a: 1, b: 2+3, c: '1'}['c'] = '1'
+{a: 1, b: 2+3, c: 9*10}['a'] = 1
+{a: 1, b: 2+3, c: 9*10}['b'] = 5
+{a: 1, b: 2+3, c: 9*10}['c'] = 90
 ```
 
 ### The ternary conditional operator `?:`
-You can also use C/C++'s ternary conditional operator, with only a small constraint:
-It always has to be enclosed in parentheses. Examples:
+You can also use C/C++'s ternary conditional operator.
+Examples:
 ```leafbuild
-(true ? 1 : 0) // valid
-true ? 1 : 0 // invalid
+true ? 1 : 0
+
+false ? 2 + 3 : 4 + 5
 ```
 
 ## Variables
@@ -154,7 +155,7 @@ a /= 2; // divide by 2; same as a = a / 2
 a %= 3; // take modulo 3 and assign it back; same as a = a % 3
 ``` 
 values cannot change their type, unless the type changes into
-[the error type](reference/special_types/error.md), in which case it can be assigned back
+[the error type](), in which case it can be assigned back
 to the type of the original value.
 
 ## Accessing properties
@@ -174,7 +175,7 @@ function_name(positional_args, kwargs)
 
 The `positional_args` is a list of comma-separated args, and `kwargs`
 is a list of comma-separated key-value arguments, the key and value
-being separated by `:`.
+being separated by `=`.
 
 Examples:
 

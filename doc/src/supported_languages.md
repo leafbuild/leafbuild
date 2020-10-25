@@ -7,13 +7,13 @@ The build system supports the following languages:
 
 ## C
 ### What compilers will it be able to use?
-`gcc`, `clang`, `msvc`, `tcc`
+`gcc`, `clang` and `msvc`
 
 ## C++
 ## What compilers will it be able to use?
-`gcc`, `clang`, `msvc`
+`gcc`, `clang` and `msvc`
 
 
 ## Assembly
 ### What assemblers will it be able to use?
-`gas`, `nasm`, `yasm`
+`gas` and `nasm`
