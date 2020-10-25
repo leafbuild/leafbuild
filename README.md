@@ -1,13 +1,13 @@
 # The Leaf Build system
 
-![pipeline](https://gitlab.com/leafbuild/leafbuild/badges/master/pipeline.svg)
-![](https://tokei.rs/b1/gitlab/leafbuild/leafbuild?category=code)
+![pipeline](https://github.com/leafbuild/leafbuild/workflows/rust/pipeline.svg)
+![](https://tokei.rs/b1/github/leafbuild/leafbuild?category=code)
 
 An work in progress meta build system for C/C++ projects written in Rust.
-See [the documentation](https://leafbuild.gitlab.io/docs) for more.
+See [the documentation](https://leafbuild.github.io/) for more.
 
 # Developers
-See [the "Developer Resources" section of the docs](https://leafbuild.gitlab.io/docs/dev/setup.html).
+See [the "Developer Resources" section of the docs](https://leafbuild.github.io/docs/dev/setup.html).
 
-# Support server
-[![Discord support server](https://discord.com/api/guilds/736172943759114250/embed.png?style=banner3)](https://discord.gg/KF45NYK)
+# Discord server
+[![Discord server](https://discord.com/api/guilds/736172943759114250/embed.png?style=banner3)](https://discord.gg/KF45NYK)
