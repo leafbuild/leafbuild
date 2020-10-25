@@ -1,6 +1,6 @@
 # The Leaf Build system
 
-![pipeline](https://github.com/leafbuild/leafbuild/workflows/rust/pipeline.svg)
+![pipeline](https://github.com/leafbuild/leafbuild/workflows/rust/badge.svg)
 ![](https://tokei.rs/b1/github/leafbuild/leafbuild?category=code)
 
 An work in progress meta build system for C/C++ projects written in Rust.
