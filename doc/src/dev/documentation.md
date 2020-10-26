@@ -4,10 +4,10 @@ The `doc/book` directory is generated from `doc/src` and `doc/book.toml` by [mdb
 
 If you want to see the changes after you made them, make sure you have mdbook installed. 
 
-Running `tools/doc.sh build` from the root of the repo will automatically
+Running `makers doc-build` from the root of the repo will automatically
 generate `doc/book` with all of its contents.
 
-If you run `tools/doc.sh serve` from the root of the repo, you will have a
+If you run `makers doc-serve` from the root of the repo, you will have a
 local instance of the doc site at [http://localhost:3000](http://localhost:3000).
 
 After you are happy with the changes, submit a PR on

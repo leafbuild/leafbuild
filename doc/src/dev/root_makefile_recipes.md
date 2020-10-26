@@ -17,7 +17,7 @@ Calls cargo clean, removing all built artifacts.
 Builds the `leafbuild` executable.
 
 ## `lint`
-Calls our good friend `clippy` to help improve code(denies warnings!).
+Calls our good friend `clippy` to help improve code.
 
 ## `check`
 Checks the database, by first formatting, then invoking clippy and testing.
