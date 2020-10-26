@@ -6,7 +6,7 @@ authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
 edition = "2018"
 license = "BSD-3-Clause"
 repository = "https://github.com/leafbuild/leafbuild"
-documentation = "https://leafbuild.github.com/docs"
+documentation = "https://leafbuild.github.io/docs"
 readme = "README.md"
 
 build = "build.rs" # LALRPOP preprocessing
