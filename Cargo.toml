@@ -1,6 +1,7 @@
 [package]
 name = "leafbuild"
-version = "0.0.1"
+description = "A WIP C/C++ buildsystem."
+version = "0.0.1-dev.1"
 authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
 edition = "2018"
 license = "BSD-3-Clause"

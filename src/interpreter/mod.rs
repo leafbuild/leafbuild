@@ -6,7 +6,7 @@ use crate::{grammar, handle::Handle};
 use lalrpop_util::ParseError;
 use std::{error::Error, path::PathBuf};
 
-pub(crate) const DOCS_ROOT: &str = "https://leafbuild.gitlab.io/docs";
+pub(crate) const DOCS_ROOT: &str = "https://leafbuild.github.io/";
 
 pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: PathBuf) -> Result<(), Box<dyn Error>> {
     info!("Entering folder {:?}", root_path);
