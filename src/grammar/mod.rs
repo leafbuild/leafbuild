@@ -1,7 +1,8 @@
 pub mod ast;
+lalrpop_mod!(
 /// the parser
 #[allow(clippy::all)]
-mod leafparser;
+pub leafparser, "/grammar/leafparser.rs");
 pub(crate) mod lexer;
 
 use crate::grammar::lexer::LexicalError;

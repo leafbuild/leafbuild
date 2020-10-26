@@ -1,4 +1,5 @@
 extern crate codespan_reporting;
+#[macro_use]
 extern crate lalrpop_util;
 #[macro_use]
 extern crate log;
