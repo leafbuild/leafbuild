@@ -6,7 +6,7 @@ edition = "2018"
 license = "BSD-3-Clause"
 repository = "https://github.com/leafbuild/leafbuild"
 documentation = "https://leafbuild.github.com/docs"
-readme = "README.adoc"
+readme = "README.md"
 
 build = "build.rs" # LALRPOP preprocessing
 
@@ -36,6 +36,5 @@ which = "4.0"
 [build-dependencies]
 lalrpop = "0.19"
 
-[[bin]]
-name = "verify_commit_message"
-path = "git/verify_commit_message.rs"
+[workspace]
+members = ["git"]

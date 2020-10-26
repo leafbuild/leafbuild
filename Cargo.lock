@@ -417,6 +417,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "leafbuild-git-utils"
+version = "0.0.1"
+
+[[package]]
 name = "libc"
 version = "0.2.71"
 source = "registry+https://github.com/rust-lang/crates.io-index"

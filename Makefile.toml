@@ -103,4 +103,4 @@ rm -rf doc/hl_clone
 [tasks.verify-commit-message]
 workspace = false
 command = "cargo"
-args = ["run", "--bin", "verify_commit_message", "--", "${@}"]
+args = ["run", "--package", "leafbuild-git-utils", "--bin", "verify_commit_message", "--", "${@}"]
