@@ -2,7 +2,6 @@ mod diagnostics;
 pub(crate) mod env;
 mod internal;
 
-use crate::grammar::lexer::{LexicalError, Token};
 use crate::{grammar, handle::Handle};
 use lalrpop_util::ParseError;
 use std::{error::Error, path::PathBuf};

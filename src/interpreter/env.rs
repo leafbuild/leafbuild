@@ -9,7 +9,7 @@ pub(crate) struct Env<'env> {
 }
 
 impl<'env> Env<'env> {
-    pub(crate) fn new(config: EnvConfig) -> Self {
+    pub(crate) fn new(_config: EnvConfig) -> Self {
         Self {
             files: LeafbuildFiles::default(),
             __phantom: PhantomData,

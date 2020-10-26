@@ -1,5 +1,5 @@
-use crate::toolchain::flags::c::{CCompilationFlag, CFlag, CLinkFlag};
-use crate::toolchain::{CCompiler, CToolchain, CToolchainLinker, Toolchain};
+use crate::buildsys_utils::toolchain::flags::c::{CCompilationFlag, CFlag, CLinkFlag};
+use crate::buildsys_utils::toolchain::{CCompiler, CToolchain, CToolchainLinker, Toolchain};
 use std::path::{Path, PathBuf};
 
 pub struct CClangToolchain {

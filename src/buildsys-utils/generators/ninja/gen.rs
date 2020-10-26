@@ -1,4 +1,6 @@
-use crate::generators::{Generator, Rule, RuleArg, RuleOpt, RuleRef, Target, ToBuildSystemSyntax};
+use crate::buildsys_utils::generators::{
+    Generator, Rule, RuleArg, RuleOpt, RuleRef, Target, ToBuildSystemSyntax,
+};
 use itertools::Itertools;
 use std::fs::File;
 use std::io::{Result as IoResult, Write};

@@ -1,7 +1,9 @@
 //! # Stuff related to the toolchains
 
-use crate::toolchain::flags::c::{CCompilationFlag, CCompilationFlags, CLinkFlag, CLinkFlags};
-use crate::toolchain::flags::cpp::{
+use crate::buildsys_utils::toolchain::flags::c::{
+    CCompilationFlag, CCompilationFlags, CLinkFlag, CLinkFlags,
+};
+use crate::buildsys_utils::toolchain::flags::cpp::{
     CXXCompilationFlag, CXXCompilationFlags, CXXLinkFlag, CXXLinkFlags,
 };
 use itertools::Itertools as _;

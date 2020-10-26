@@ -4,8 +4,8 @@ version = "0.0.1"
 authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
 edition = "2018"
 license = "BSD-3-Clause"
-repository = "https://gitlab.com/leafbuild/leafbuild"
-documentation = "https://leafbuild.gitlab.com/docs"
+repository = "https://github.com/leafbuild/leafbuild"
+documentation = "https://leafbuild.github.com/docs"
 readme = "README.adoc"
 
 build = "build.rs" # LALRPOP preprocessing
@@ -20,7 +20,6 @@ cpp = []
 
 [dependencies]
 itertools = "0.9"
-buildsys-utils = { path = "buildsys-utils" }
 lalrpop-util = "0.19"
 regex = "1"
 codespan-reporting = "0.9"
@@ -30,16 +29,12 @@ termcolor = "1.1"
 paste = "1.0"
 log = "0.4"
 clap = "3.0.0-beta.2"
-pretty_env_logger = "0.4.0"
-logos = "0.11.4"
+pretty_env_logger = "0.4"
+logos = "0.11"
+which = "4.0"
 
 [build-dependencies]
 lalrpop = "0.19"
-
-[workspace]
-members = [
-	"buildsys-utils",
-]
 
 [[bin]]
 name = "verify_commit_message"

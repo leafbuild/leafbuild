@@ -20,7 +20,7 @@ dependencies = ["build"]
 install_crate = "clippy"
 workspace = false
 command = "cargo"
-args = ["clippy", "--", "-D", "warnings"]
+args = ["clippy"]
 
 [tasks.check]
 workspace = false

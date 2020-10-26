@@ -1,7 +1,7 @@
 use crate::grammar::ast::AstStatement;
 use crate::interpreter::env::EnvFrame;
 
-pub(crate) fn run_statement(frame: &mut EnvFrame, statement: &AstStatement) {
+pub(crate) fn run_statement(_frame: &mut EnvFrame, statement: &AstStatement) {
     debug!("Executing statement {:#?}", statement);
     match statement {
         AstStatement::FuncCall(call) => println!("Func call {}", call.get_name()),

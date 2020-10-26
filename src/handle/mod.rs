@@ -3,7 +3,6 @@
 pub mod config;
 
 use crate::interpreter::env::Env;
-use std::path::PathBuf;
 
 pub struct Handle<'a> {
     pub(crate) env: Env<'a>,

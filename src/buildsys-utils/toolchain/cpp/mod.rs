@@ -1,10 +1,12 @@
 pub mod cpp_clang;
 pub mod cpp_gcc;
 
-use crate::toolchain::{CPPCompiler, CPPToolchain, CPPToolchainLinker, GetToolchainError};
+use crate::buildsys_utils::toolchain::{
+    CPPCompiler, CPPToolchain, CPPToolchainLinker, GetToolchainError,
+};
 use cpp_clang::CPPClangToolchain;
 
-use crate::toolchain::cpp::cpp_clang::CPPClang;
+use crate::buildsys_utils::toolchain::cpp::cpp_clang::CPPClang;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

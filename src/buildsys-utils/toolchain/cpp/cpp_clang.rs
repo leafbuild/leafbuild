@@ -1,5 +1,5 @@
-use crate::toolchain::flags::cpp::{CXXCompilationFlag, CXXLinkFlag};
-use crate::toolchain::{CPPCompiler, CPPToolchain, CPPToolchainLinker, Toolchain};
+use crate::buildsys_utils::toolchain::flags::cpp::{CXXCompilationFlag, CXXLinkFlag};
+use crate::buildsys_utils::toolchain::{CPPCompiler, CPPToolchain, CPPToolchainLinker, Toolchain};
 use std::path::{Path, PathBuf};
 
 pub struct CPPClangToolchain {
@@ -51,7 +51,7 @@ pub struct CPPClang {
 }
 
 impl CPPCompiler for CPPClang {
-    fn get_flag(&self, flag: CXXCompilationFlag) -> String {
+    fn get_flag(&self, _flag: CXXCompilationFlag) -> String {
         unimplemented!()
     }
 
@@ -61,7 +61,7 @@ impl CPPCompiler for CPPClang {
 }
 
 impl CPPToolchainLinker for CPPClang {
-    fn get_flag(&self, flag: CXXLinkFlag) -> String {
+    fn get_flag(&self, _flag: CXXLinkFlag) -> String {
         unimplemented!()
     }
 
