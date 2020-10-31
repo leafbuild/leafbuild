@@ -1,4 +1,4 @@
-use crate::buildsys_utils::toolchain::flags::cpp::{CXXCompilationFlag, CXXLinkFlag};
+use crate::buildsys_utils::toolchain::flags::cpp::{CXXCompilationFlag, CXXFlag, CXXLinkFlag};
 use crate::buildsys_utils::toolchain::{CPPCompiler, CPPToolchain, CPPToolchainLinker, Toolchain};
 use std::path::{Path, PathBuf};
 
@@ -18,18 +18,18 @@ impl CPPClangToolchain {
 
 impl Toolchain for CPPClangToolchain {
     fn can_consume(filename: &str) -> bool {
-        filename.ends_with(".c")
-            || filename.ends_with(".cpp")
-            || filename.ends_with(".c++")
-            || filename.ends_with(".cxx")
-    }
-
-    fn can_compile(filename: &str) -> bool {
-        Self::can_consume(filename)
+        Self::can_compile(filename)
             || filename.ends_with(".h")
             || filename.ends_with(".hpp")
             || filename.ends_with(".hxx")
             || filename.ends_with(".h++")
+    }
+
+    fn can_compile(filename: &str) -> bool {
+        filename.ends_with(".c")
+            || filename.ends_with(".cpp")
+            || filename.ends_with(".c++")
+            || filename.ends_with(".cxx")
     }
 }
 
@@ -51,8 +51,16 @@ pub struct CPPClang {
 }
 
 impl CPPCompiler for CPPClang {
-    fn get_flag(&self, _flag: CXXCompilationFlag) -> String {
-        unimplemented!()
+    fn get_flag(&self, flag: CXXCompilationFlag) -> String {
+        match flag {
+            CXXCompilationFlag::FromString { s } => s,
+            CXXCompilationFlag::CPPSTD { std } => format!("--std={}", std.to_string()),
+            CXXCompilationFlag::IncludeDir { include_dir } => format!("-I{}", include_dir),
+            CXXCompilationFlag::Flag { flag } => match flag {
+                CXXFlag::PositionIndependentCode => "-fPIC".into(),
+            },
+            CXXCompilationFlag::None => "".into(),
+        }
     }
 
     fn get_location(&self) -> &Path {

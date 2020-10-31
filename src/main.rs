@@ -82,7 +82,7 @@ struct Cli {
 
 fn main() {
     pretty_env_logger::formatted_timed_builder()
-        .filter_level(LevelFilter::Trace)
+        .filter_level(LevelFilter::Warn)
         .init();
     let cli: Cli = Cli::parse();
 
@@ -97,7 +97,9 @@ fn main() {
                 .with_signal_build_failure(ci_enabled || build_command.build_failure_signals);
 
             let mut handle = Handle::new(config);
-            interpreter::start_on(&mut handle, proj_path.to_path_buf());
+            interpreter::start_on(&mut handle, proj_path.to_path_buf()).unwrap_or_else(|error| {
+                error!("An error occurred: {}", error);
+            });
         }
         Subcommand::Internal {
             internal_subcommand,

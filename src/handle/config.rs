@@ -1,3 +1,4 @@
+use crate::diagnostics::DiagnosticsConfig;
 use std::path::PathBuf;
 
 #[derive(Clone)]
@@ -5,6 +6,7 @@ pub struct EnvConfig {
     error_cascade: bool,
     output_directory: PathBuf,
     signal_build_failure: bool,
+    pub(crate) diagnostics_config: DiagnosticsConfig,
 }
 
 impl EnvConfig {
@@ -34,6 +36,7 @@ impl Default for EnvConfig {
             error_cascade: true,
             output_directory: PathBuf::from("leafbuild-dir"),
             signal_build_failure: false,
+            diagnostics_config: DiagnosticsConfig::default(),
         }
     }
 }

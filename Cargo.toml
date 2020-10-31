@@ -39,3 +39,6 @@ lalrpop = "0.19"
 
 [workspace]
 members = ["git"]
+
+[profile.dev.package."*"]
+opt-level = 3

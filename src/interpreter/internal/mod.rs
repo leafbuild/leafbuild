@@ -1,8 +1,8 @@
-use crate::grammar::ast::AstStatement;
+use crate::grammar::ast::{AstLoc, AstStatement};
 use crate::interpreter::env::EnvFrame;
 
 pub(crate) fn run_statement(_frame: &mut EnvFrame, statement: &AstStatement) {
-    debug!("Executing statement {:#?}", statement);
+    trace!("Executing statement at {:#?}", statement.get_rng());
     match statement {
         AstStatement::FuncCall(call) => println!("Func call {}", call.get_name()),
         AstStatement::MethodCall(_) => {}

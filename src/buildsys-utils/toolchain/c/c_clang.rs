@@ -47,7 +47,7 @@ impl CCompiler for CClang {
     fn get_flag(&self, flag: CCompilationFlag) -> String {
         match flag {
             CCompilationFlag::FromString { s } => s,
-            CCompilationFlag::CSTD { std } => format!("--std={}", std.as_str()),
+            CCompilationFlag::CSTD { std } => format!("--std={}", std.to_string()),
             CCompilationFlag::IncludeDir { include_dir } => format!("-I{}", include_dir),
             CCompilationFlag::Flag { flag } => match flag {
                 CFlag::PositionIndependentCode => "-fPIC".into(),

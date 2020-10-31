@@ -8,6 +8,7 @@ extern crate term;
 
 #[path = "buildsys-utils/mod.rs"]
 pub mod buildsys_utils;
+pub(crate) mod diagnostics;
 pub mod grammar;
 pub mod handle;
 pub mod interpreter;

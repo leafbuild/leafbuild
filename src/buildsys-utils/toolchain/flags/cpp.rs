@@ -15,6 +15,20 @@ pub enum CPPSTD {
     CPP2a,
 }
 
+impl ToString for CPPSTD {
+    fn to_string(&self) -> String {
+        match self {
+            CPPSTD::CPP98 => "c++98",
+            CPPSTD::CPP03 => "c++03",
+            CPPSTD::CPP1x => "c++1x",
+            CPPSTD::CPP1y => "c++1y",
+            CPPSTD::CPP1z => "c++1z",
+            CPPSTD::CPP2a => "c++2a",
+        }
+        .into()
+    }
+}
+
 pub enum CXXFlag {
     PositionIndependentCode,
 }

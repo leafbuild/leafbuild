@@ -266,7 +266,7 @@ ControlStatement: AstControlStatement = {
 
 extern {
     type Location = usize;
-    type Error = lexer::LexicalError<'input>;
+    type Error = lexer::LexicalError;
 
     enum lexer::Token<'input> {
         "+=" => Token {token: Tk::PlusEq, data: <&'input str>},

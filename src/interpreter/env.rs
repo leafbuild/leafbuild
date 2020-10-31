@@ -1,23 +1,38 @@
+use crate::diagnostics::{DiagnosticsCtx, FileId, LeafDiagnosticTrait};
 use crate::handle::config::EnvConfig;
-use crate::interpreter::diagnostics::{FileId, LeafbuildFiles};
 use std::marker::PhantomData;
 
 #[derive(Default)]
 pub(crate) struct Env<'env> {
-    files: LeafbuildFiles,
+    diagnostics_context: DiagnosticsCtx,
     __phantom: ::std::marker::PhantomData<&'env ()>,
 }
 
 impl<'env> Env<'env> {
-    pub(crate) fn new(_config: EnvConfig) -> Self {
+    pub(crate) fn new(config: EnvConfig) -> Self {
         Self {
-            files: LeafbuildFiles::default(),
+            diagnostics_context: DiagnosticsCtx::new(config.diagnostics_config),
             __phantom: PhantomData,
         }
     }
 
     pub(crate) fn register_new_file(&mut self, name: String, source: String) -> FileId {
-        self.files.add(name, source)
+        self.diagnostics_context.add_file(name, source)
+    }
+
+    pub(crate) fn report_diagnostic(&self, diagnostic: impl LeafDiagnosticTrait) {
+        self.diagnostics_context.report_diagnostic(diagnostic);
+    }
+
+    pub(crate) fn register_file_and_report<F, T>(&mut self, name: &str, source: &str, f: F)
+    where
+        F: FnOnce(FileId) -> T,
+        T: LeafDiagnosticTrait,
+    {
+        self.diagnostics_context
+            .with_temp_file(name, source, |ctx, file_id| {
+                ctx.report_diagnostic(f(file_id))
+            });
     }
 }
 

@@ -155,21 +155,20 @@ impl<'a> Lexer<'a> {
     }
 }
 
-pub struct LexicalError<'data> {
+#[derive(Clone)]
+pub struct LexicalError {
     pub(crate) token: Tk,
-    pub(crate) data: &'data str,
     pub(crate) span: Span,
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Spanned<Token<'a>, usize, LexicalError<'a>>;
+    type Item = Spanned<Token<'a>, usize, LexicalError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.lexer.next();
         token.map(|token| match token {
             Tk::Error => Err(LexicalError {
                 token,
-                data: self.lexer.slice(),
                 span: Span::from(self.lexer.span()),
             }),
             token => {

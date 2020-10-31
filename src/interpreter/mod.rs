@@ -1,9 +1,7 @@
-mod diagnostics;
 pub(crate) mod env;
 mod internal;
 
-use crate::{grammar, handle::Handle};
-use lalrpop_util::ParseError;
+use crate::{diagnostics::errors::LeafParseError, grammar, handle::Handle};
 use std::{error::Error, path::PathBuf};
 
 pub(crate) const DOCS_ROOT: &str = "https://leafbuild.github.io/";
@@ -16,8 +14,9 @@ pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: PathBuf) -> Result<()
         error!("`build.leaf' in {:?}: {}", root_path, err);
         err
     })?;
+    let result = grammar::parse(&content);
 
-    match grammar::parse(&content) {
+    match result {
         Ok(build_definition) => {
             let fid = handle
                 .get_env_mut()
@@ -30,24 +29,13 @@ pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: PathBuf) -> Result<()
                     internal::run_statement(&mut frame, statement);
                 });
         }
-        Err(error) => match error {
-            ParseError::InvalidToken { location } => {
-                println!("Invalid token at {}", location);
-            }
-            ParseError::UnrecognizedEOF { location, expected } => {
-                println!("Unrecognized EOF at {}, expected {:?}", location, expected);
-            }
-            ParseError::UnrecognizedToken { token, expected } => {
-                println!(
-                    "Unrecognized token at {:?}, expected {:?}, found {:?}",
-                    token.0..token.2,
-                    expected,
-                    token.1,
-                );
-            }
-            ParseError::ExtraToken { .. } => {}
-            ParseError::User { .. } => {}
-        },
+        Err(error) => {
+            handle.get_env_mut().register_file_and_report(
+                &root_path.to_string_lossy().to_string(),
+                &content,
+                |fid| LeafParseError::from((fid, error)),
+            );
+        }
     }
 
     Ok(())

@@ -10,8 +10,8 @@ pub enum CSTD {
     // TODO: add more here as they come
 }
 
-impl CSTD {
-    pub(crate) fn as_str(&self) -> &'static str {
+impl ToString for CSTD {
+    fn to_string(&self) -> String {
         match self {
             CSTD::ANSI => "ansi",
             CSTD::C99 => "c99",
@@ -19,6 +19,7 @@ impl CSTD {
             CSTD::C11 => "c11",
             CSTD::GNU11 => "gnu11",
         }
+        .into()
     }
 }
 
@@ -53,7 +54,7 @@ pub enum CLinkFlag {
 
 impl CLinkFlag {
     /// creates a flag from a string
-    fn from_string(s: impl Into<String>) -> Self {
+    pub fn from_string(s: impl Into<String>) -> Self {
         Self::FromString { s: s.into() }
     }
 }
@@ -63,11 +64,9 @@ pub struct CCompilationFlags {
 }
 
 impl CCompilationFlags {
-    #[inline]
     pub fn empty() -> Self {
         Self::new(vec![])
     }
-    #[inline]
     pub fn new(flags: Vec<CCompilationFlag>) -> Self {
         Self { flags }
     }
