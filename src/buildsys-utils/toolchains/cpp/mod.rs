@@ -1,39 +1,45 @@
-pub mod cpp_clang;
-pub mod cpp_gcc;
+pub mod clang;
+pub mod gcc;
 
-use crate::buildsys_utils::toolchain::{
+use crate::buildsys_utils::toolchains::{
     CPPCompiler, CPPToolchain, CPPToolchainLinker, GetToolchainError,
 };
-use cpp_clang::CPPClangToolchain;
+use clang::CPPClangToolchain;
 
-use crate::buildsys_utils::toolchain::cpp::cpp_clang::CPPClang;
+use crate::buildsys_utils::toolchains::cpp::clang::Clang;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-pub enum CPPTc {
+pub enum Tc {
     CPPGcc,
     CPPClang(CPPClangToolchain),
 }
 
-impl CPPTc {
+impl Tc {
+    #[must_use]
     pub fn get_compiler_location(&self) -> &Path {
         match self {
-            CPPTc::CPPGcc => unimplemented!(),
-            CPPTc::CPPClang(clang) => <CPPClang as CPPCompiler>::get_location(clang.get_compiler()),
+            Self::CPPGcc => unimplemented!(),
+            Self::CPPClang(clang) => <Clang as CPPCompiler>::get_location(clang.get_compiler()),
         }
     }
 
+    #[must_use]
     pub fn get_linker_location(&self) -> &Path {
         match self {
-            CPPTc::CPPGcc => unimplemented!(),
-            CPPTc::CPPClang(clang) => {
-                <CPPClang as CPPToolchainLinker>::get_location(clang.get_linker())
+            Self::CPPGcc => unimplemented!(),
+            Self::CPPClang(clang) => {
+                <Clang as CPPToolchainLinker>::get_location(clang.get_linker())
             }
         }
     }
 }
 
-pub fn get_cpp_toolchain() -> Result<CPPTc, GetToolchainError> {
+/// Gets the C++ toolchain which is selected with the `CXX` environment variable
+/// # Errors
+/// Environment variable not present / couldn't be parsed.
+/// Output of "$CXX" --version in an unexpected format
+pub fn get_cpp_toolchain() -> Result<Tc, GetToolchainError> {
     let compiler_location = match std::env::var("CXX") {
         Ok(p) => Ok(PathBuf::from(p)),
         Err(err) => {
@@ -56,7 +62,7 @@ pub fn get_cpp_toolchain() -> Result<CPPTc, GetToolchainError> {
 
     match first_line {
         // family if family.contains("(GCC)") => Ok(CTc::CGcc(location)),
-        family if family.contains("clang") => Ok(CPPTc::CPPClang(CPPClangToolchain::new(
+        family if family.contains("clang") => Ok(Tc::CPPClang(CPPClangToolchain::new(
             location.into_boxed_path(),
         ))),
         family => Err(GetToolchainError::UnrecognizedCompilerFamily(

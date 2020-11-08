@@ -1,6 +1,4 @@
-use crate::diagnostics::{
-    DiagnosticsConfig, FileId, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel,
-};
+use crate::diagnostics::{DiagConfig, FileId, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel};
 use crate::grammar::lexer::{LexicalError, Token};
 use lalrpop_util::ParseError;
 macro_rules! error_codes {

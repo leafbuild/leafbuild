@@ -1,4 +1,4 @@
-pub enum CPPSTD {
+pub enum STD {
     CPP98,
     CPP03,
 
@@ -15,15 +15,16 @@ pub enum CPPSTD {
     CPP2a,
 }
 
-impl ToString for CPPSTD {
+impl ToString for STD {
+    #[must_use]
     fn to_string(&self) -> String {
         match self {
-            CPPSTD::CPP98 => "c++98",
-            CPPSTD::CPP03 => "c++03",
-            CPPSTD::CPP1x => "c++1x",
-            CPPSTD::CPP1y => "c++1y",
-            CPPSTD::CPP1z => "c++1z",
-            CPPSTD::CPP2a => "c++2a",
+            Self::CPP98 => "c++98",
+            Self::CPP03 => "c++03",
+            Self::CPP1x => "c++1x",
+            Self::CPP1y => "c++1y",
+            Self::CPP1z => "c++1z",
+            Self::CPP2a => "c++2a",
         }
         .into()
     }
@@ -35,7 +36,7 @@ pub enum CXXFlag {
 
 pub enum CXXCompilationFlag {
     FromString { s: String },
-    CPPSTD { std: CPPSTD },
+    CPPSTD { std: STD },
     IncludeDir { include_dir: String },
 
     Flag { flag: CXXFlag },
@@ -45,6 +46,7 @@ pub enum CXXCompilationFlag {
 
 impl CXXCompilationFlag {
     /// creates a flag from a string
+    #[must_use]
     pub fn from_string(s: impl Into<String>) -> Self {
         Self::FromString { s: s.into() }
     }
@@ -60,6 +62,7 @@ pub enum CXXLinkFlag {
 
 impl CXXLinkFlag {
     /// creates a flag from a string
+    #[must_use]
     pub fn from_string(s: impl Into<String>) -> Self {
         Self::FromString { s: s.into() }
     }
@@ -70,11 +73,13 @@ pub struct CXXCompilationFlags {
 }
 
 impl CXXCompilationFlags {
-    pub fn empty() -> Self {
+    #[must_use]
+    pub const fn empty() -> Self {
         Self::new(vec![])
     }
 
-    pub fn new(flags: Vec<CXXCompilationFlag>) -> Self {
+    #[must_use]
+    pub const fn new(flags: Vec<CXXCompilationFlag>) -> Self {
         Self { flags }
     }
 
@@ -88,11 +93,13 @@ pub struct CXXLinkFlags {
 }
 
 impl CXXLinkFlags {
-    pub fn empty() -> Self {
+    #[must_use]
+    pub const fn empty() -> Self {
         Self::new(vec![])
     }
 
-    pub fn new(flags: Vec<CXXLinkFlag>) -> Self {
+    #[must_use]
+    pub const fn new(flags: Vec<CXXLinkFlag>) -> Self {
         Self { flags }
     }
 

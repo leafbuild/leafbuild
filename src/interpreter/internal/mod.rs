@@ -1,15 +1,15 @@
-use crate::grammar::ast::{AstLoc, AstStatement};
-use crate::interpreter::env::EnvFrame;
+use crate::grammar::ast::{AstLoc, Statement};
+use crate::interpreter::env::FileFrame;
 
-pub(crate) fn run_statement(_frame: &mut EnvFrame, statement: &AstStatement) {
+pub(super) fn run_statement(_frame: &mut FileFrame, statement: &Statement) {
     trace!("Executing statement at {:#?}", statement.get_rng());
     match statement {
-        AstStatement::FuncCall(call) => println!("Func call {}", call.get_name()),
-        AstStatement::MethodCall(_) => {}
-        AstStatement::Declaration(_) => {}
-        AstStatement::Assignment(_) => {}
-        AstStatement::Conditional(_) => {}
-        AstStatement::ControlStatement(_) => {}
-        AstStatement::Repetitive(_) => {}
+        Statement::FuncCall(call) => println!("Func call {}", call.get_name()),
+        Statement::MethodCall(_)
+        | Statement::Declaration(_)
+        | Statement::Assignment(_)
+        | Statement::Conditional(_)
+        | Statement::Control(_)
+        | Statement::Repetitive(_) => {}
     }
 }

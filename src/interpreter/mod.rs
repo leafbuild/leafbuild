@@ -4,9 +4,10 @@ mod internal;
 use crate::{diagnostics::errors::LeafParseError, grammar, handle::Handle};
 use std::{error::Error, path::PathBuf};
 
-pub(crate) const DOCS_ROOT: &str = "https://leafbuild.github.io/";
-
-pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: PathBuf) -> Result<(), Box<dyn Error>> {
+/// Starts the interpreter on the given path, with the given handle and modifies the handle at the end.
+/// # Errors
+/// Anything
+pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: &PathBuf) -> Result<(), Box<dyn Error>> {
     info!("Entering folder {:?}", root_path);
 
     let build_decl_file = root_path.join("build.leaf");
@@ -21,7 +22,7 @@ pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: PathBuf) -> Result<()
             let fid = handle
                 .get_env_mut()
                 .register_new_file(root_path.to_string_lossy().to_string(), content);
-            let mut frame = env::EnvFrame::new(fid);
+            let mut frame = env::FileFrame::new(fid);
             build_definition
                 .get_statements()
                 .iter()

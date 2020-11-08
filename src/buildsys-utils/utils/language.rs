@@ -5,16 +5,18 @@ pub enum Language {
 }
 
 impl Language {
-    pub fn get_compilation_flags_varname(&self) -> &'static str {
+    #[must_use]
+    pub const fn get_compilation_flags_varname(self) -> &'static str {
         match self {
-            Language::C => "CC_FLAGS",
-            Language::CPP => "CXX_FLAGS",
+            Self::C => "CC_FLAGS",
+            Self::CPP => "CXX_FLAGS",
         }
     }
-    pub fn get_link_flags_varname(&self) -> &'static str {
+    #[must_use]
+    pub const fn get_link_flags_varname(self) -> &'static str {
         match self {
-            Language::C => "CCLD_FLAGS",
-            Language::CPP => "CXXLD_FLAGS",
+            Self::C => "CCLD_FLAGS",
+            Self::CPP => "CXXLD_FLAGS",
         }
     }
 }
@@ -28,7 +30,8 @@ impl NotALanguageError {
         Self { msg: s.into() }
     }
 
-    pub fn get_msg(&self) -> &String {
+    #[must_use]
+    pub const fn get_msg(&self) -> &String {
         &self.msg
     }
 }
@@ -38,8 +41,8 @@ impl FromStr for Language {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "c" | "C" => Ok(Language::C),
-            "c++" | "C++" | "cpp" | "CPP" => Ok(Language::CPP),
+            "c" | "C" => Ok(Self::C),
+            "c++" | "C++" | "cpp" | "CPP" => Ok(Self::CPP),
             other => Err(NotALanguageError::new(format!(
                 "Cannot parse language from '{}'",
                 other

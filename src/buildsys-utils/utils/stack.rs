@@ -6,6 +6,7 @@ where
 }
 
 impl<Element> Stack<Element> {
+    #[must_use]
     pub fn new() -> Self {
         Self::default()
     }
@@ -15,9 +16,11 @@ impl<Element> Stack<Element> {
     pub fn pop(&mut self) -> Option<Element> {
         self.elements.pop()
     }
+    #[must_use]
     pub fn peek(&self) -> Option<&Element> {
         self.elements.last()
     }
+    #[must_use]
     pub fn empty(&self) -> bool {
         self.elements.is_empty()
     }

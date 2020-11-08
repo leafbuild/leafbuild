@@ -1,4 +1,4 @@
-pub(crate) enum LeafParseError<'error> {
+pub enum LeafParseError<'error> {
     InvalidToken {
         location: usize,
         file_id: FileId,
@@ -29,9 +29,7 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
             LeafParseError::InvalidToken { location, file_id } => LeafDiagnostic::error()
                 .with_code(PARSE_ERROR)
                 .with_message(format!("Invalid token at location {}", location))
-                .with_label(
-                    LeafLabel::primary(file_id, location..location + 1).with_message("here"),
-                ),
+                .with_label(LeafLabel::primary(file_id, location..=location).with_message("here")),
             LeafParseError::UnrecognizedEOF {
                 location,
                 expected,
@@ -39,9 +37,7 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
             } => LeafDiagnostic::error()
                 .with_code(PARSE_ERROR)
                 .with_message("Unrecognized EOF")
-                .with_label(
-                    LeafLabel::primary(file_id, location..location + 1).with_message("here"),
-                )
+                .with_label(LeafLabel::primary(file_id, location..=location).with_message("here"))
                 .with_note(format!("Expected one of {:?}", expected)),
             LeafParseError::UnrecognizedToken {
                 token,
@@ -63,7 +59,7 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
         }
     }
 
-    fn should_report(&self, _config: &DiagnosticsConfig) -> bool {
+    fn should_report(&self, _config: &DiagConfig) -> bool {
         true
     }
 }

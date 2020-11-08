@@ -8,19 +8,23 @@ pub struct Span {
 }
 
 impl Span {
-    pub(crate) fn new(start: usize, end: usize) -> Span {
-        Span { start, end }
+    #[must_use]
+    pub(crate) const fn new(start: usize, end: usize) -> Self {
+        Self { start, end }
     }
 
-    pub(crate) fn as_rng(&self) -> Range<usize> {
+    #[must_use]
+    pub(crate) const fn as_rng(&self) -> Range<usize> {
         self.start..self.end
     }
 
-    pub(crate) fn get_start(&self) -> usize {
+    #[must_use]
+    pub(crate) const fn get_start(&self) -> usize {
         self.start
     }
 
-    pub(crate) fn get_end(&self) -> usize {
+    #[must_use]
+    pub(crate) const fn get_end(&self) -> usize {
         self.end
     }
 }
@@ -144,7 +148,7 @@ pub struct Token<'data> {
 }
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
-pub(crate) struct Lexer<'a> {
+pub struct Lexer<'a> {
     lexer: logos::Lexer<'a, Tk>,
 }
 

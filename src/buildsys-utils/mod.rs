@@ -1,5 +1,5 @@
 pub mod utils;
 
-pub mod toolchain;
+pub mod toolchains;
 
 pub mod generators;

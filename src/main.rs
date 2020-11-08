@@ -6,7 +6,7 @@ use std::process::exit;
 
 use clap::AppSettings;
 use clap::Clap;
-use leafbuild::handle::{config::EnvConfig, Handle};
+use leafbuild::handle::{config::Config, Handle};
 use leafbuild::interpreter;
 use log::LevelFilter;
 
@@ -91,13 +91,14 @@ fn main() {
             let _wd = std::env::current_dir().unwrap();
             let proj_path = Path::new(&build_command.directory);
             let ci_enabled = build_command.ci_enabled;
-            let config = EnvConfig::new()
-                .with_error_cascade(!build_command.disable_error_cascade)
-                .with_output_directory(build_command.output_directory)
-                .with_signal_build_failure(ci_enabled || build_command.build_failure_signals);
+            let config = Config::new(
+                !build_command.disable_error_cascade,
+                build_command.output_directory,
+                ci_enabled || build_command.build_failure_signals,
+            );
 
             let mut handle = Handle::new(config);
-            interpreter::start_on(&mut handle, proj_path.to_path_buf()).unwrap_or_else(|error| {
+            interpreter::start_on(&mut handle, &proj_path.to_path_buf()).unwrap_or_else(|error| {
                 error!("An error occurred: {}", error);
             });
         }

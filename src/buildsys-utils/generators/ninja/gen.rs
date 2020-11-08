@@ -6,25 +6,25 @@ use std::fs::File;
 use std::io::{Result as IoResult, Write};
 use std::path::PathBuf;
 
-pub struct NinjaCommand {
+pub struct NjCommand {
     command: String,
 }
 
-impl NinjaCommand {
-    pub fn new(command: impl Into<String>) -> NinjaCommand {
-        NinjaCommand {
+impl NjCommand {
+    pub fn new(command: impl Into<String>) -> Self {
+        Self {
             command: command.into(),
         }
     }
 }
 
-pub struct NinjaRule {
+pub struct NjRule {
     name: String,
-    command: NinjaCommand,
-    variables: Vec<NinjaVariable>,
+    command: NjCommand,
+    variables: Vec<NjVariable>,
 }
 
-impl ToBuildSystemSyntax for NinjaRule {
+impl ToBuildSystemSyntax for NjRule {
     fn for_build_system(&self) -> String {
         format!(
             "rule {}\n{}",
@@ -42,35 +42,35 @@ impl ToBuildSystemSyntax for NinjaRule {
     }
 }
 
-impl Rule for NinjaRule {
-    type ArgType = NinjaRuleArg;
-    type VarType = NinjaVariable;
-    type RefType = NinjaRuleRef;
+impl Rule for NjRule {
+    type ArgType = NjRuleArg;
+    type VarType = NjVariable;
+    type RefType = NjRuleRef;
 
     fn get_name(&self) -> &String {
         &self.name
     }
 }
 
-pub struct NinjaRuleRef {
+pub struct NjRuleRef {
     name: String,
 }
 
-impl RuleRef for NinjaRuleRef {}
+impl RuleRef for NjRuleRef {}
 
-pub struct NinjaRuleArg {
+pub struct NjRuleArg {
     value: String,
 }
 
-impl ToBuildSystemSyntax for NinjaRuleArg {
+impl ToBuildSystemSyntax for NjRuleArg {
     fn for_build_system(&self) -> String {
         String::clone(&self.value)
     }
 }
 
-impl RuleArg for NinjaRuleArg {
-    fn new(value: impl Into<String>) -> NinjaRuleArg {
-        NinjaRuleArg {
+impl RuleArg for NjRuleArg {
+    fn new(value: impl Into<String>) -> Self {
+        Self {
             value: value.into(),
         }
     }
@@ -79,18 +79,18 @@ impl RuleArg for NinjaRuleArg {
     }
 }
 
-pub struct NinjaVariable {
+pub struct NjVariable {
     name: String,
     value: String,
 }
 
-impl ToBuildSystemSyntax for NinjaVariable {
+impl ToBuildSystemSyntax for NjVariable {
     fn for_build_system(&self) -> String {
         format!("  {} = {}", self.name, self.value)
     }
 }
 
-impl RuleOpt for NinjaVariable {
+impl RuleOpt for NjVariable {
     fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -107,15 +107,15 @@ impl RuleOpt for NinjaVariable {
     }
 }
 
-pub struct NinjaTarget<'buildsys> {
+pub struct NjTarget<'buildsys> {
     name: String,
-    rule: &'buildsys NinjaRuleRef,
-    rule_args: Vec<NinjaRuleArg>,
-    implicit_args: Vec<NinjaRuleArg>,
-    rule_opts: Vec<NinjaVariable>,
+    rule: &'buildsys NjRuleRef,
+    rule_args: Vec<NjRuleArg>,
+    implicit_args: Vec<NjRuleArg>,
+    rule_opts: Vec<NjVariable>,
 }
 
-impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
+impl<'buildsys> ToBuildSystemSyntax for NjTarget<'buildsys> {
     fn for_build_system(&self) -> String {
         format!(
             "build {}: {} {}{}\n{}",
@@ -125,13 +125,13 @@ impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
                 .iter()
                 .map(|arg| { arg.for_build_system() })
                 .join(" "),
-            if !self.implicit_args.is_empty() {
+            if self.implicit_args.is_empty() {
+                "".to_string()
+            } else {
                 format!(
                     " | {}",
                     self.implicit_args.iter().map(|arg| &arg.value).join(" ")
                 )
-            } else {
-                "".to_string()
             },
             self.rule_opts
                 .iter()
@@ -141,15 +141,15 @@ impl<'buildsys> ToBuildSystemSyntax for NinjaTarget<'buildsys> {
     }
 }
 
-impl<'buildsys> Target<'buildsys> for NinjaTarget<'buildsys> {
-    type TargetRule = NinjaRule;
+impl<'buildsys> Target<'buildsys> for NjTarget<'buildsys> {
+    type TargetRule = NjRule;
 
     fn new_from(
         name: impl Into<String>,
-        rule: &'buildsys NinjaRuleRef,
-        rule_args: Vec<NinjaRuleArg>,
-        implicit_args: Vec<NinjaRuleArg>,
-        rule_opts: Vec<NinjaVariable>,
+        rule: &'buildsys NjRuleRef,
+        rule_args: Vec<NjRuleArg>,
+        implicit_args: Vec<NjRuleArg>,
+        rule_opts: Vec<NjVariable>,
     ) -> Self {
         Self {
             name: name.into(),
@@ -164,19 +164,19 @@ impl<'buildsys> Target<'buildsys> for NinjaTarget<'buildsys> {
         &self.name
     }
 
-    fn get_rule(&self) -> &NinjaRuleRef {
-        &self.rule
+    fn get_rule(&self) -> &NjRuleRef {
+        self.rule
     }
 
-    fn get_args(&self) -> &Vec<NinjaRuleArg> {
+    fn get_args(&self) -> &Vec<NjRuleArg> {
         &self.rule_args
     }
 
-    fn get_implicit_args(&self) -> &Vec<<NinjaRule as Rule>::ArgType> {
+    fn get_implicit_args(&self) -> &Vec<<NjRule as Rule>::ArgType> {
         &self.implicit_args
     }
 
-    fn get_opts(&self) -> &Vec<NinjaVariable> {
+    fn get_opts(&self) -> &Vec<NjVariable> {
         &self.rule_opts
     }
 }
@@ -187,7 +187,7 @@ struct NinjaGlobalValue {
 }
 
 impl NinjaGlobalValue {
-    fn new(name: impl Into<String>, value: impl Into<String>) -> NinjaGlobalValue {
+    fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             name: name.into(),
             value: value.into(),
@@ -201,19 +201,19 @@ impl ToBuildSystemSyntax for NinjaGlobalValue {
     }
 }
 
-pub struct NinjaGen<'buildsys> {
-    rules: Vec<NinjaRule>,
-    targets: Vec<NinjaTarget<'buildsys>>,
+pub struct NjGen<'buildsys> {
+    rules: Vec<NjRule>,
+    targets: Vec<NjTarget<'buildsys>>,
     global_values: Vec<NinjaGlobalValue>,
 }
 
-impl<'buildsys> Generator<'buildsys> for NinjaGen<'buildsys> {
-    type RuleType = NinjaRule;
-    type TargetType = NinjaTarget<'buildsys>;
-    type CommandType = NinjaCommand;
-    fn new() -> NinjaGen<'buildsys> {
+impl<'buildsys> Generator<'buildsys> for NjGen<'buildsys> {
+    type RuleType = NjRule;
+    type TargetType = NjTarget<'buildsys>;
+    type CommandType = NjCommand;
+    fn new() -> NjGen<'buildsys> {
         // we start out with an empty build system
-        NinjaGen {
+        NjGen {
             rules: vec![],
             targets: vec![],
             global_values: vec![],
@@ -228,16 +228,16 @@ impl<'buildsys> Generator<'buildsys> for NinjaGen<'buildsys> {
     fn new_rule(
         &mut self,
         unique_name: impl Into<String>,
-        command: NinjaCommand,
-        variables: Vec<NinjaVariable>,
-    ) -> NinjaRuleRef {
-        let rule = NinjaRule {
+        command: NjCommand,
+        variables: Vec<NjVariable>,
+    ) -> NjRuleRef {
+        let rule = NjRule {
             name: unique_name.into(),
             command,
             variables,
         };
         self.rules.push(rule);
-        NinjaRuleRef {
+        NjRuleRef {
             name: self.rules.last().unwrap().name.clone(),
         }
     }
@@ -245,12 +245,12 @@ impl<'buildsys> Generator<'buildsys> for NinjaGen<'buildsys> {
     fn new_target(
         &mut self,
         name: impl Into<String>,
-        rule: &'buildsys <NinjaRule as Rule>::RefType,
-        args: Vec<<NinjaRule as Rule>::ArgType>,
-        implicit_args: Vec<<NinjaRule as Rule>::ArgType>,
-        opts: Vec<<NinjaRule as Rule>::VarType>,
-    ) -> &NinjaTarget<'buildsys> {
-        let target = NinjaTarget::new_from(name, rule, args, implicit_args, opts);
+        rule: &'buildsys <NjRule as Rule>::RefType,
+        args: Vec<<NjRule as Rule>::ArgType>,
+        implicit_args: Vec<<NjRule as Rule>::ArgType>,
+        opts: Vec<<NjRule as Rule>::VarType>,
+    ) -> &NjTarget<'buildsys> {
+        let target = NjTarget::new_from(name, rule, args, implicit_args, opts);
         self.targets.push(target);
         self.targets.last().unwrap()
     }
@@ -271,7 +271,7 @@ impl<'buildsys> Generator<'buildsys> for NinjaGen<'buildsys> {
     }
 }
 
-impl<'buildsys> ToBuildSystemSyntax for NinjaGen<'buildsys> {
+impl<'buildsys> ToBuildSystemSyntax for NjGen<'buildsys> {
     fn for_build_system(&self) -> String {
         format!(
             "{}\n\n{}\n\n{}\n\n\n\n\n{}\n",

@@ -8,6 +8,8 @@ license = "BSD-3-Clause"
 repository = "https://github.com/leafbuild/leafbuild"
 documentation = "https://leafbuild.github.io/docs"
 readme = "README.md"
+categories = ["command-line-utilities"]
+keywords = ["cli", "interpreter", "command-line", ]
 
 build = "build.rs" # LALRPOP preprocessing
 
@@ -36,9 +38,3 @@ which = "4.0"
 
 [build-dependencies]
 lalrpop = "0.19"
-
-[workspace]
-members = ["git"]
-
-[profile.dev.package."*"]
-opt-level = 3

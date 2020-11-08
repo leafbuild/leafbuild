@@ -1,9 +1,9 @@
 //! # Stuff related to the toolchains
 
-use crate::buildsys_utils::toolchain::flags::c::{
-    CCompilationFlag, CCompilationFlags, CLinkFlag, CLinkFlags,
+use crate::buildsys_utils::toolchains::flags::c::{
+    CompilationFlag, CompilationFlags, LinkFlag, LinkFlags,
 };
-use crate::buildsys_utils::toolchain::flags::cpp::{
+use crate::buildsys_utils::toolchains::flags::cpp::{
     CXXCompilationFlag, CXXCompilationFlags, CXXLinkFlag, CXXLinkFlags,
 };
 use itertools::Itertools as _;
@@ -28,21 +28,21 @@ pub enum GetToolchainError {
 impl From<VarError> for GetToolchainError {
     #[inline]
     fn from(v: VarError) -> Self {
-        GetToolchainError::VarError(v)
+        Self::VarError(v)
     }
 }
 
 impl From<io::Error> for GetToolchainError {
     #[inline]
     fn from(v: io::Error) -> Self {
-        GetToolchainError::ProcessError(v)
+        Self::ProcessError(v)
     }
 }
 
 impl From<FromUtf8Error> for GetToolchainError {
     #[inline]
     fn from(v: FromUtf8Error) -> Self {
-        GetToolchainError::InvalidUtf8(v)
+        Self::InvalidUtf8(v)
     }
 }
 
@@ -60,8 +60,8 @@ pub trait CToolchain: Toolchain {
 }
 
 pub trait CCompiler {
-    fn get_flag(&self, flag: CCompilationFlag) -> String;
-    fn get_flags(&self, flags: CCompilationFlags) -> String {
+    fn get_flag(&self, flag: CompilationFlag) -> String;
+    fn get_flags(&self, flags: CompilationFlags) -> String {
         flags
             .into_flags_iter()
             .map(|flag| self.get_flag(flag))
@@ -72,8 +72,8 @@ pub trait CCompiler {
 }
 
 pub trait CToolchainLinker {
-    fn get_linker_flag(&self, flag: CLinkFlag) -> String;
-    fn get_linker_flags(&self, flags: CLinkFlags) -> String {
+    fn get_linker_flag(&self, flag: LinkFlag) -> String;
+    fn get_linker_flags(&self, flags: LinkFlags) -> String {
         flags
             .into_flags_iter()
             .map(|flag| self.get_linker_flag(flag))

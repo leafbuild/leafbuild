@@ -1,15 +1,15 @@
-use crate::buildsys_utils::toolchain::flags::cpp::{CXXCompilationFlag, CXXFlag, CXXLinkFlag};
-use crate::buildsys_utils::toolchain::{CPPCompiler, CPPToolchain, CPPToolchainLinker, Toolchain};
+use crate::buildsys_utils::toolchains::flags::cpp::{CXXCompilationFlag, CXXFlag, CXXLinkFlag};
+use crate::buildsys_utils::toolchains::{CPPCompiler, CPPToolchain, CPPToolchainLinker, Toolchain};
 use std::path::{Path, PathBuf};
 
 pub struct CPPClangToolchain {
-    clang: CPPClang,
+    clang: Clang,
 }
 
 impl CPPClangToolchain {
     pub(crate) fn new(clang_location: Box<Path>) -> Self {
         Self {
-            clang: CPPClang {
+            clang: Clang {
                 location: clang_location.into_path_buf(),
             },
         }
@@ -34,8 +34,8 @@ impl Toolchain for CPPClangToolchain {
 }
 
 impl CPPToolchain for CPPClangToolchain {
-    type Compiler = CPPClang;
-    type Linker = CPPClang;
+    type Compiler = Clang;
+    type Linker = Clang;
 
     fn get_compiler(&self) -> &Self::Compiler {
         &self.clang
@@ -46,11 +46,11 @@ impl CPPToolchain for CPPClangToolchain {
     }
 }
 
-pub struct CPPClang {
+pub struct Clang {
     location: PathBuf,
 }
 
-impl CPPCompiler for CPPClang {
+impl CPPCompiler for Clang {
     fn get_flag(&self, flag: CXXCompilationFlag) -> String {
         match flag {
             CXXCompilationFlag::FromString { s } => s,
@@ -68,7 +68,7 @@ impl CPPCompiler for CPPClang {
     }
 }
 
-impl CPPToolchainLinker for CPPClang {
+impl CPPToolchainLinker for Clang {
     fn get_flag(&self, _flag: CXXLinkFlag) -> String {
         unimplemented!()
     }

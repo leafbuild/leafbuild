@@ -1,11 +1,12 @@
-pub(crate) mod errors;
-pub(crate) mod warnings;
+pub mod errors;
+pub mod warnings;
 
 use codespan_reporting::diagnostic::{Diagnostic, Label, LabelStyle, Severity};
 use codespan_reporting::files::{Files, Location, SimpleFile};
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
+use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::ops::Range;
+use std::ops::{Deref, Range, RangeInclusive};
 
 #[derive(Copy, Clone)]
 pub struct FileId {
@@ -13,7 +14,8 @@ pub struct FileId {
 }
 
 impl FileId {
-    pub fn new(id: usize) -> Self {
+    #[must_use]
+    pub const fn new(id: usize) -> Self {
         Self { id }
     }
 }
@@ -139,7 +141,7 @@ impl<'file> Files<'file> for LeafBuildTempFileContainer<'file> {
 }
 
 /// the diagnostic type
-pub(crate) struct LeafDiagnostic {
+pub struct LeafDiagnostic {
     message: String,
     diagnostic_type: LeafDiagnosticType,
     diagnostic_code: usize,
@@ -149,8 +151,9 @@ pub(crate) struct LeafDiagnostic {
 
 /// A diagnostic - basically a thin wrapper over the `codespan_reporting` `Diagnostic<usize>`
 impl LeafDiagnostic {
-    pub(crate) fn new(diagnostic_type: LeafDiagnosticType) -> LeafDiagnostic {
-        LeafDiagnostic {
+    #[must_use]
+    pub(crate) fn new(diagnostic_type: LeafDiagnosticType) -> Self {
+        Self {
             diagnostic_type,
             message: String::default(),
             diagnostic_code: usize::default(),
@@ -159,40 +162,48 @@ impl LeafDiagnostic {
         }
     }
 
-    pub(crate) fn error() -> LeafDiagnostic {
+    #[must_use]
+    pub(crate) fn error() -> Self {
         Self::new(LeafDiagnosticType::Error)
     }
 
-    pub(crate) fn warn() -> LeafDiagnostic {
+    #[must_use]
+    pub(crate) fn warn() -> Self {
         Self::new(LeafDiagnosticType::Warn)
     }
 
+    #[must_use]
     pub(crate) fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = message.into();
         self
     }
 
+    #[must_use]
     pub(crate) fn with_label(mut self, label: impl Into<LeafLabel>) -> Self {
         self.labels.push(label.into());
         self
     }
 
+    #[must_use]
     pub(crate) fn with_labels(mut self, labels: Vec<LeafLabel>) -> Self {
         self.labels = labels;
         self
     }
 
+    #[must_use]
     pub(crate) fn with_note(mut self, note: impl Into<String>) -> Self {
         self.notes.push(note.into());
         self
     }
 
+    #[must_use]
     pub(crate) fn with_notes(mut self, notes: Vec<String>) -> Self {
         self.notes = notes;
         self
     }
 
-    pub(crate) fn with_code(mut self, code: usize) -> Self {
+    #[must_use]
+    pub(crate) const fn with_code(mut self, code: usize) -> Self {
         self.diagnostic_code = code;
         self
     }
@@ -218,40 +229,69 @@ impl Into<Diagnostic<FileId>> for LeafDiagnostic {
     }
 }
 
-pub(crate) enum LeafDiagnosticType {
+pub enum LeafDiagnosticType {
     Warn,
     Error,
 }
 
-type LeafLabelLocation = Range<usize>;
+pub trait LeafLabelLocation {
+    fn get_start(&self) -> usize;
+    fn get_end(&self) -> usize;
+    fn get_range(&self) -> Range<usize> {
+        self.get_start()..self.get_end()
+    }
+}
 
-pub(crate) enum LeafLabelType {
+impl LeafLabelLocation for Range<usize> {
+    fn get_start(&self) -> usize {
+        self.start
+    }
+
+    fn get_end(&self) -> usize {
+        self.end
+    }
+}
+
+impl LeafLabelLocation for RangeInclusive<usize> {
+    fn get_start(&self) -> usize {
+        *self.start()
+    }
+
+    fn get_end(&self) -> usize {
+        *self.end() + 1
+    }
+}
+
+pub enum LeafLabelType {
     Primary,
     Secondary,
 }
 
-pub(crate) struct LeafLabel {
+pub struct LeafLabel {
     file_id: FileId,
     label_type: LeafLabelType,
-    location: LeafLabelLocation,
+    location: Range<usize>,
     message: String,
 }
 
 impl LeafLabel {
-    pub(crate) fn primary(file_id: FileId, location: LeafLabelLocation) -> Self {
+    pub(crate) fn primary<T: LeafLabelLocation>(file_id: FileId, location: impl Borrow<T>) -> Self {
         Self {
             file_id,
             label_type: LeafLabelType::Primary,
-            location,
+            location: location.borrow().get_range(),
             message: String::default(),
         }
     }
 
-    pub(crate) fn secondary(file_id: FileId, location: LeafLabelLocation) -> Self {
+    pub(crate) fn secondary<T: LeafLabelLocation>(
+        file_id: FileId,
+        location: impl Borrow<T>,
+    ) -> Self {
         Self {
             file_id,
             label_type: LeafLabelType::Secondary,
-            location,
+            location: location.borrow().get_range(),
             message: String::default(),
         }
     }
@@ -277,18 +317,18 @@ impl Into<Label<FileId>> for LeafLabel {
 }
 
 #[derive(Default, Clone)]
-pub(crate) struct DiagnosticsConfig {
+pub struct DiagConfig {
     error_eval_cascade: bool,
 }
 
 #[derive(Default)]
-pub(crate) struct DiagnosticsCtx {
-    global_diagnostics_config: DiagnosticsConfig,
+pub struct DiagCtx {
+    global_diagnostics_config: DiagConfig,
     files: LeafbuildFiles,
 }
 
-impl DiagnosticsCtx {
-    pub(crate) fn new(global_diagnostics_config: DiagnosticsConfig) -> DiagnosticsCtx {
+impl DiagCtx {
+    pub(crate) fn new(global_diagnostics_config: DiagConfig) -> Self {
         Self {
             global_diagnostics_config,
             files: LeafbuildFiles::default(),
@@ -331,14 +371,14 @@ impl DiagnosticsCtx {
     }
 }
 
-pub(crate) struct TempDiagnosticsCtx<'a> {
-    config: &'a DiagnosticsConfig,
+pub struct TempDiagnosticsCtx<'a> {
+    config: &'a DiagConfig,
     temp_file: LeafBuildTempFileContainer<'a>,
 }
 
 impl<'a> TempDiagnosticsCtx<'a> {
     pub(crate) fn report_diagnostic(&self, diagnostic: impl LeafDiagnosticTrait) {
-        if !diagnostic.should_report(&self.config) {
+        if !diagnostic.should_report(self.config) {
             return;
         }
         let writer = StandardStream::stderr(ColorChoice::Auto);
@@ -355,10 +395,10 @@ impl<'a> TempDiagnosticsCtx<'a> {
 }
 
 /// Basically a thing that can be converted into the `LeafDiagnostic` type above
-pub(crate) trait LeafDiagnosticTrait {
+pub trait LeafDiagnosticTrait {
     /// Converts `self` to `LeafDiagnostic`
     fn get_diagnostic(self) -> LeafDiagnostic;
 
     /// Specifies whether this diagnostic should be printed, given a diagnostics context `ctx`
-    fn should_report(&self, ctx: &DiagnosticsConfig) -> bool;
+    fn should_report(&self, ctx: &DiagConfig) -> bool;
 }

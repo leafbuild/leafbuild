@@ -68,6 +68,9 @@ pub trait Generator<'buildsys>: ToBuildSystemSyntax {
     ) -> &Self::TargetType;
 
     fn filename(&self) -> String;
+    /// Writes everything to the file, in a format the underlying build system will accept.
+    /// # Errors
+    /// Any io errors resulting from writing to the file
     fn write_to(&self, file: File) -> std::io::Result<()>;
 
     fn find_backend() -> Option<PathBuf>;

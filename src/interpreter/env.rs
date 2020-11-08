@@ -1,17 +1,20 @@
-use crate::diagnostics::{DiagnosticsCtx, FileId, LeafDiagnosticTrait};
-use crate::handle::config::EnvConfig;
+use crate::diagnostics::{DiagCtx, FileId, LeafDiagnosticTrait};
+use crate::handle::config::Config;
 use std::marker::PhantomData;
+use std::path::PathBuf;
 
 #[derive(Default)]
-pub(crate) struct Env<'env> {
-    diagnostics_context: DiagnosticsCtx,
+pub struct Env<'env> {
+    diagnostics_context: DiagCtx,
+    output_directory: PathBuf,
     __phantom: ::std::marker::PhantomData<&'env ()>,
 }
 
 impl<'env> Env<'env> {
-    pub(crate) fn new(config: EnvConfig) -> Self {
+    pub(crate) fn new(config: Config) -> Self {
         Self {
-            diagnostics_context: DiagnosticsCtx::new(config.diagnostics_config),
+            diagnostics_context: DiagCtx::new(config.diagnostics_config),
+            output_directory: config.output_directory,
             __phantom: PhantomData,
         }
     }
@@ -34,15 +37,19 @@ impl<'env> Env<'env> {
                 ctx.report_diagnostic(f(file_id))
             });
     }
+
+    pub(crate) fn write_results(&self) -> std::io::Result<()> {
+        std::fs::write(self.output_directory.join("build.ninja"), "")
+    }
 }
 
-pub(crate) struct EnvFrame<'frame> {
+pub struct FileFrame<'frame> {
     file_id: FileId,
     __phantom: ::std::marker::PhantomData<&'frame ()>,
 }
 
-impl<'frame> EnvFrame<'frame> {
-    pub(crate) fn new(file_id: FileId) -> Self {
+impl<'frame> FileFrame<'frame> {
+    pub(crate) const fn new(file_id: FileId) -> Self {
         Self {
             file_id,
             __phantom: PhantomData,

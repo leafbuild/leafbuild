@@ -18,12 +18,10 @@ dependencies = ["build"]
 
 [tasks.lint]
 install_crate = "clippy"
-workspace = false
 command = "cargo"
 args = ["clippy"]
 
 [tasks.check]
-workspace = false
 dependencies = [
     "format",
     "lint",
@@ -31,76 +29,76 @@ dependencies = [
 ]
 
 [tasks.doc-build]
-workspace = false
 install_crate = "mdbook"
 cwd = "doc"
 command = "mdbook"
 args = ["build"]
 
 [tasks.doc-serve]
-workspace = false
 install_crate = "mdbook"
 cwd = "doc"
 command = "mdbook"
 args = ["serve"]
 
 [tasks.doc-nuke]
-workspace = false
 cwd = "doc"
 command = "rm"
 args = ["-rf", "book"]
 
 [tasks.doc-push]
-workspace = false
 cwd = "doc/book"
 script = [
-'''
-git init
-git remote add origin git@github.com:leafbuild/leafbuild.github.io.git
-git add -A
-git commit -S -a -m "Update docs"
-git push -f origin master
-'''
+    '''
+    git init
+    git remote add origin git@github.com:leafbuild/leafbuild.github.io.git
+    git add -A
+    git commit -S -a -m "Update docs"
+    git push -f origin master
+    '''
 ]
 dependencies = [
     "doc-build"
 ]
 
 [tasks.doc-build-highlighter]
-workspace = false
 cwd = "doc"
 script = [
-'''
-cp ./leafbuild_highlight.js hl_clone/highlight.js/src/languages/leafbuild.js
-pushd hl_clone || exit $?
-cd highlight.js || exit $?
-node tools/build.js -n leafbuild rust bash || exit $?
-popd || exit $?
-cp hl_clone/highlight.js/build/highlight.js theme/highlight.js || exit $?
-'''
+    '''
+    cp ./leafbuild_highlight.js hl_clone/highlight.js/src/languages/leafbuild.js
+    pushd hl_clone || exit $?
+    cd highlight.js || exit $?
+    node tools/build.js -n leafbuild rust bash || exit $?
+    popd || exit $?
+    cp hl_clone/highlight.js/build/highlight.js theme/highlight.js || exit $?
+    '''
 ]
 
 [tasks.setup-dev-env]
-workspace = false
 script = [
-'''
-git config core.hooksPath git/hooks
-mkdir -p doc/hl_clone
-git clone https://github.com/highlightjs/highlight.js doc/hl_clone/highlight.js
-cd doc/hl_clone/highlight.js
-npm install
-'''
+    '''
+    git config core.hooksPath git/hooks
+    mkdir -p doc/hl_clone
+    git clone https://github.com/highlightjs/highlight.js doc/hl_clone/highlight.js
+    cd doc/hl_clone/highlight.js
+    npm install
+    '''
 ]
 
 [tasks.clean-dev-env]
-workspace = false
 script = [
-'''
-rm -rf doc/hl_clone
-'''
+    '''
+    rm -rf doc/hl_clone
+    '''
 ]
 
 [tasks.verify-commit-message]
-workspace = false
+cwd = "git"
 command = "cargo"
-args = ["run", "--package", "leafbuild-git-utils", "--bin", "verify_commit_message", "--", "${@}"]
+args = [
+    "run",
+    "--package", "leafbuild-git-utils",
+    "--bin", "verify_commit_message",
+    "--",
+    # Check for files in the root directory
+    "../${@}"
+]

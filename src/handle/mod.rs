@@ -9,15 +9,16 @@ pub struct Handle<'a> {
 }
 
 impl<'a> Handle<'a> {
-    pub fn new(cfg: config::EnvConfig) -> Self {
+    #[must_use]
+    pub fn new(cfg: config::Config) -> Self {
         Self { env: Env::new(cfg) }
     }
 
-    pub(crate) fn write_results(&mut self) {
-        // self.env.write_results().expect("Cannot write results");
+    pub(crate) fn write_results(&self) {
+        self.env.write_results().expect("Cannot write results");
     }
 
-    pub(crate) fn get_env(&self) -> &Env {
+    pub(crate) const fn get_env(&self) -> &Env {
         &self.env
     }
 

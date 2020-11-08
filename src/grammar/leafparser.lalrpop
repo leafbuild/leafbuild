@@ -23,17 +23,13 @@ Comma<Rule>: Vec<Rule> =
     };
 
 #[inline]
-CommaNoTrailing<Rule>: Vec<Rule> =
-    <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
+CommaNoTrailing<Rule>: Vec<Rule> = <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
 
-IdExpressionUnspanned: String =
-    <id: r"[a-zA-Z_][a-zA-Z0-9_]*"> => String::from(id);
+IdExpressionUnspanned: String = <id: r"[a-zA-Z_][a-zA-Z0-9_]*"> => String::from(id);
 
 IdExpression = Spanned<IdExpressionUnspanned>;
 
-NumTok: NumVal = {
-    <num: r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> => NumVal::from(num)
-}
+NumTok: NumVal = <num: r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> => NumVal::from(num);
 
 Num = Spanned<NumTok>;
 
@@ -51,42 +47,38 @@ StrTok: String = {
 
 Str = Spanned<StrTok>;
 
-UnaryNot: UnaryOpcode = { <l: SpannedLocation<"not">> => UnaryOpcode::Not(l) }
+UnaryNot: UnaryOpcode = <l: SpannedLocation<"not">> => UnaryOpcode::Not(l);
 
 pub Program = <Statement*>;
-Statement: AstStatement = {
+Statement: Statement = {
 //    <call: MethodCall> ";" => AstStatement::MethodCall(call),
-	<call: FuncCall> ";" => AstStatement::FuncCall(call),
-	<assignment: Assignment> ";" => AstStatement::Assignment(assignment),
-	<declaration: Declaration> ";" => AstStatement::Declaration(declaration),
-	<statement: ConditionalStatement> => AstStatement::Conditional(statement),
-	//<statement ControlStatement> => AstStatement::ControlStatement(statement),
-	<statement: RepetitiveStatement> => AstStatement::Repetitive(statement),
+	<call: FuncCall> ";" => Statement::FuncCall(call),
+	<assignment: Assignment> ";" => Statement::Assignment(assignment),
+	<declaration: Declaration> ";" => Statement::Declaration(declaration),
+	<statement: ConditionalStatement> => Statement::Conditional(statement),
+	//<statement ControlStatement> => AstStatement::Control(statement),
+	<statement: RepetitiveStatement> => Statement::Repetitive(statement),
 }
 
 // function calls
-FuncCall: AstFuncCall = {
-	<name:IdExpression> "(" <args:FuncArgs> ")" <end: @R> => AstFuncCall::new(name, args, end)
-}
+FuncCall: FuncCall = <name:IdExpression> <left_paren: SpannedLocation<"(">> <args:FuncArgs> <right_paren: SpannedLocation<")">> => FuncCall::new(name, left_paren, args, right_paren);
 
-FuncArgs: AstFuncCallArgs = {
-	<pos_args:PositionalFuncArgs> SingleComma <named_args:NamedFuncArgs> SingleComma? => AstFuncCallArgs::new(pos_args,named_args),
-	<pos_args:PositionalFuncArgs> SingleComma? => AstFuncCallArgs::new_only_positional(pos_args),
-	<named_args:NamedFuncArgs> SingleComma? => AstFuncCallArgs::new_only_named(named_args),
-	() => AstFuncCallArgs::empty(),
+FuncArgs: FuncCallArgs = {
+	<pos_args:PositionalFuncArgs> SingleComma <named_args:NamedFuncArgs> SingleComma? => FuncCallArgs::new(pos_args,named_args),
+	<pos_args:PositionalFuncArgs> SingleComma? => FuncCallArgs::new_only_positional(pos_args),
+	<named_args:NamedFuncArgs> SingleComma? => FuncCallArgs::new_only_named(named_args),
+	() => FuncCallArgs::empty(),
 }
 
 #[inline]
 PositionalFuncArgs = CommaNoTrailing<PositionalFuncArg>;
 
-PositionalFuncArg: AstPositionalArg = <expr: Expr> => AstPositionalArg::from(expr);
+PositionalFuncArg: PositionalArg = <expr: Expr> => PositionalArg::from(expr);
 
 #[inline]
 NamedFuncArgs = CommaNoTrailing<NamedExpr>;
 
-NamedExpr: AstNamedExpr = {
-	<name:IdExpression> "=" <value:Expr> => AstNamedExpr::from((name, value))
-}
+NamedExpr: NamedExpr = <name:IdExpression> <equals_sign: SpannedLocation<"=">> <value:Expr> => NamedExpr::from((name, equals_sign, value));
 
 UnaryPlusMinusOpcode: UnaryOpcode = {
 	<l: SpannedLocation<"-">> => UnaryOpcode::Minus(l),
@@ -174,18 +166,14 @@ AndConditionalExpr: Box<Expr> = {
 	RelExpr2,
 }
 
-AndOp: Opcode = {
-	<l: SpannedLocation<"and">> => Opcode::And(l),
-}
+AndOp: Opcode = <l: SpannedLocation<"and">> => Opcode::And(l);
 
 OrConditionalExpr: Box<Expr> = {
 	<left: OrConditionalExpr> <op: OrOp> <right: AndConditionalExpr> => Box::new(Expr::Op(left, op, right)),
 	AndConditionalExpr,
 }
 
-OrOp: Opcode = {
-    <l: SpannedLocation<"or">> => Opcode::Or(l),
-}
+OrOp: Opcode = <l: SpannedLocation<"or">> => Opcode::Or(l);
 
 TernaryExpr: Box<Expr> = {
     <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">> <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
@@ -203,66 +191,60 @@ Expr = TernaryExpr;
 //	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
 //}
 
-Declaration: AstDeclaration = {
-	<let_tok: SpannedLocation<"let">> <name: IdExpression> <eq: SpannedLocation<"=">> <value: Expr> => AstDeclaration::new(let_tok, name, eq, value)
+Declaration: Declaration =
+	<let_tok: SpannedLocation<"let">> <name: IdExpression> <eq: SpannedLocation<"=">> <value: Expr> =>
+        Declaration::new(let_tok, name, eq, value);
+
+Assignment: Assignment =
+	<bind_name: Expr> <op: AtrOp> <val: Expr> =>
+        Assignment::new(bind_name, op, val);
+
+AtrOp: AtrOp = {
+	<l: SpannedLocation<"=">> => AtrOp::Atr(l),
+	<l: SpannedLocation<"+=">> => AtrOp::AddAtr(l),
+	<l: SpannedLocation<"-=">> => AtrOp::SubAtr(l),
+	<l: SpannedLocation<"*=">> => AtrOp::MulAtr(l),
+	<l: SpannedLocation<"/=">> => AtrOp::DivAtr(l),
+	<l: SpannedLocation<"%=">> => AtrOp::ModAtr(l),
 }
 
-Assignment: AstAssignment = {
-	<bind_name: Expr> <op: AtrOp> <val: Expr> => AstAssignment::new(bind_name, op, val),
-}
+ArrayLit: Box<Expr> =
+	<left_brace: SpannedLocation<"{">> <args: Comma<Expr>> <right_brace: SpannedLocation<"}">> =>
+        Box::new(Expr::Atom(Atom::ArrayLit((args.into_iter().map(|x| *x).collect(), left_brace, right_brace))));
 
-AtrOp: AstAtrOp = {
-	<l: SpannedLocation<"=">> => AstAtrOp::Atr(l),
-	<l: SpannedLocation<"+=">> => AstAtrOp::AddAtr(l),
-	<l: SpannedLocation<"-=">> => AstAtrOp::SubAtr(l),
-	<l: SpannedLocation<"*=">> => AstAtrOp::MulAtr(l),
-	<l: SpannedLocation<"/=">> => AstAtrOp::DivAtr(l),
-	<l: SpannedLocation<"%=">> => AstAtrOp::ModAtr(l),
-}
+MapLit: Box<Expr> =
+	<left_brace: SpannedLocation<"{">> <args: Comma<NamedExpr>> <right_brace: SpannedLocation<"}">> =>
+        Box::new(Expr::Atom(Atom::MapLit((args, left_brace, right_brace))));
 
-ArrayLit: Box<Expr> = {
-	<lbrace: SpannedLocation<"{">> <args: Comma<Expr>> <rbrace: SpannedLocation<"}">> =>
-            Box::new(Expr::Atom(Atom::ArrayLit((args, lbrace, rbrace))))
-}
-
-MapLit: Box<Expr> = {
-	<lbrace: SpannedLocation<"{">> <args: Comma<NamedExpr>> <rbrace: SpannedLocation<"}">> =>
-                Box::new(Expr::Atom(Atom::MapLit((args, lbrace, rbrace))))
-}
 
 #[inline]
-ConditionalStatement: AstConditionalStatement = {
-	<initial: If> <others: ElseIf*> <else_statement: Else?> => AstConditionalStatement::new(initial, others, else_statement),
-}
+ConditionalStatement: ConditionalStatement =
+	<initial: If> <others: ElseIf*> <else_statement: Else?> =>
+        ConditionalStatement::new(initial, others, else_statement);
 
-If: AstIf = {
-	<if_tok: SpannedLocation<"if">> <cond: Expr> <lbrace: SpannedLocation<"{">> <statements: Statement*> <rbrace: SpannedLocation<"}">> =>
-        AstIf::new(if_tok, cond, lbrace, statements, rbrace),
-}
+If: If =
+	<if_tok: SpannedLocation<"if">> <cond: Expr> <left_brace: SpannedLocation<"{">> <statements: Statement*> <right_brace: SpannedLocation<"}">> =>
+        If::new(if_tok, cond, left_brace, statements, right_brace);
 
-ElseIf: AstElseIf = {
-	<else_tok: SpannedLocation<"else">> <if_: If> => AstElseIf::new(else_tok, if_),
-}
+ElseIf: ElseIf =
+	<else_tok: SpannedLocation<"else">> <if_: If> =>
+        ElseIf::new(else_tok, if_);
 
-Else: AstElse = {
-	<else_tok: SpannedLocation<"else">> <lbrace: SpannedLocation<"{">> <statements: Statement+> <rbrace: SpannedLocation<"}">> =>
-        AstElse::new(else_tok, lbrace, statements, rbrace),
-}
+Else: Else =
+	<else_tok: SpannedLocation<"else">> <left_brace: SpannedLocation<"{">> <statements: Statement+> <right_brace: SpannedLocation<"}">> =>
+        Else::new(else_tok, left_brace, statements, right_brace);
 
-RepetitiveStatement: AstRepetitiveStatement = {
-    <foreach_tok: SpannedLocation<"foreach">> <for_in_expr: ForInExpr> <lbrace: SpannedLocation<"{">> <statements:Statement*> <rbrace: SpannedLocation<"}">> =>
-        AstRepetitiveStatement::new(foreach_tok, for_in_expr, lbrace, statements, rbrace),
-}
+RepetitiveStatement: RepetitiveStatement =
+    <foreach_tok: SpannedLocation<"foreach">> <for_in_expr: ForInExpr> <left_brace: SpannedLocation<"{">> <statements:Statement*> <right_brace: SpannedLocation<"}">> =>
+        RepetitiveStatement::new(foreach_tok, for_in_expr, left_brace, statements, right_brace);
 
-ForInExpr: AstForInExpr = {
-    <id: IdExpression> <in_tok: SpannedLocation<"in">> <expr: Expr> => AstForInExpr::new(id, in_tok, expr),
-}
+ForInExpr: ForInExpr =
+    <id: IdExpression> <in_tok: SpannedLocation<"in">> <expr: Expr> => ForInExpr::new(id, in_tok, expr);
 
-ControlStatement: AstControlStatement = {
-	<break_tok: SpannedLocation<"break">> => AstControlStatement::Break(break_tok),
-	<continue_tok: SpannedLocation<"continue">> => AstControlStatement::Continue(continue_tok),
+ControlStatement: ControlStatement = {
+	<break_tok: SpannedLocation<"break">> => ControlStatement::Break(break_tok),
+	<continue_tok: SpannedLocation<"continue">> => ControlStatement::Continue(continue_tok),
 }
-
 
 extern {
     type Location = usize;
