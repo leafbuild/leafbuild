@@ -38,6 +38,3 @@ thiserror = "1.0"
 
 [build-dependencies]
 lalrpop = "0.19"
-
-[dev-dependencies]
-rusty-hook = { git = "https://github.com/swellaby/rusty-hook", branch = "master" }
