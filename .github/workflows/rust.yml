@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust: [stable, beta, nightly]
+        rust: [stable, nightly]
         os: [ubuntu-latest, windows-latest, macOS-latest]
     steps:
       - name: Checkout
@@ -22,8 +22,8 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
-          profile: minimal
           override: true
+          components: rustfmt, clippy
       - name: Install cargo-make
         uses: actions-rs/cargo@v1
         with:
