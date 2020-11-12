@@ -6,6 +6,12 @@ orbs:
 workflows:
   build-deploy:
     jobs:
+#      - build:
+#          filters:
+#            branches:
+#              only:
+#                - staging
+#                - trying
       - test:
           # run full test cycle for 'merge' or 'try'
           filters:
@@ -13,16 +19,16 @@ workflows:
               only:
                 - staging
                 - trying
-      - publish:
-          requires:
-            - test
-          # only publish site changes on 'merge'
-          filters:
-            branches:
-              only: staging
+#      - publish:
+#          requires:
+#            - test
+#          # only publish site changes on 'merge'
+#          filters:
+#            branches:
+#              only: staging
 
 jobs:
-  build:
+  test:
     docker:
       - image: 'rust:1'
     steps:
@@ -36,3 +42,17 @@ jobs:
       - run:
           name: CI Flow
           command: cargo make ci-flow
+#  build:
+#    docker:
+#      - image: 'rust:1'
+#    steps:
+#      - run:
+#          name: Install cargo-make
+#          command: cargo install --debug cargo-make
+#      - checkout
+#      - run:
+#          name: Install toolchain components
+#          command: rustup component add rustfmt clippy
+#      - run:
+#          name: CI Flow
+#          command: cargo make ci-flow
