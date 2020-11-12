@@ -12,38 +12,23 @@ use std::io;
 use std::path::Path;
 use std::string::FromUtf8Error;
 
+use thiserror::Error;
+
 pub mod c;
 pub mod cpp;
 
 pub mod flags;
 
-#[derive(Debug)]
+#[derive(Error, Debug)]
 pub enum GetToolchainError {
-    VarError(VarError),
-    ProcessError(io::Error),
-    InvalidUtf8(FromUtf8Error),
+    #[error("cannot get variable from environment")]
+    VarError(#[from] VarError),
+    #[error("cannot read from $compiler --version")]
+    ProcessError(#[from] io::Error),
+    #[error("invalid utf8 in $compiler --version output")]
+    InvalidUtf8(#[from] FromUtf8Error),
+    #[error("unrecognized compiler family `{0}`")]
     UnrecognizedCompilerFamily(String),
-}
-
-impl From<VarError> for GetToolchainError {
-    #[inline]
-    fn from(v: VarError) -> Self {
-        Self::VarError(v)
-    }
-}
-
-impl From<io::Error> for GetToolchainError {
-    #[inline]
-    fn from(v: io::Error) -> Self {
-        Self::ProcessError(v)
-    }
-}
-
-impl From<FromUtf8Error> for GetToolchainError {
-    #[inline]
-    fn from(v: FromUtf8Error) -> Self {
-        Self::InvalidUtf8(v)
-    }
 }
 
 pub trait Toolchain {

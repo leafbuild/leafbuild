@@ -44,7 +44,7 @@ pub fn get_cpp_toolchain() -> Result<Tc, GetToolchainError> {
         Ok(p) => Ok(PathBuf::from(p)),
         Err(err) => {
             if cfg!(target_os = "linux") {
-                Ok(PathBuf::from("/usr/bin/cc"))
+                Ok(PathBuf::from("/usr/bin/c++"))
             } else {
                 Err(err)
             }
@@ -58,8 +58,11 @@ pub fn get_cpp_toolchain() -> Result<Tc, GetToolchainError> {
     let first_line = output
         .lines()
         .next() // get first line
-        .expect("Cannot detect compiler family from `CC --version'");
-
+        .ok_or_else(|| {
+            GetToolchainError::UnrecognizedCompilerFamily(
+                "no lines in output of `$CXX --version`".into(),
+            )
+        })?;
     match first_line {
         // family if family.contains("(GCC)") => Ok(CTc::CGcc(location)),
         family if family.contains("clang") => Ok(Tc::CPPClang(CPPClangToolchain::new(

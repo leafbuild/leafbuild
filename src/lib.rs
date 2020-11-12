@@ -11,6 +11,7 @@ extern crate lalrpop_util;
 extern crate log;
 extern crate paste;
 extern crate term;
+extern crate thiserror;
 
 #[path = "buildsys-utils/mod.rs"]
 pub mod buildsys_utils;

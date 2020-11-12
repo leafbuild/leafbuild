@@ -2,19 +2,27 @@ pub(crate) mod env;
 mod internal;
 
 use crate::{diagnostics::errors::LeafParseError, grammar, handle::Handle};
-use std::{error::Error, path::PathBuf};
+use std::io;
+use std::path::PathBuf;
+use thiserror::Error;
 
+#[derive(Error, Debug)]
+pub enum InterpretFailure {
+    #[error("cannot read file {0:?}")]
+    CannotReadFile(PathBuf, #[source] io::Error),
+}
 /// Starts the interpreter on the given path, with the given handle and modifies the handle at the end.
 /// # Errors
 /// Anything
-pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: &PathBuf) -> Result<(), Box<dyn Error>> {
+pub fn start_on<'a>(
+    handle: &'a mut Handle<'a>,
+    root_path: &PathBuf,
+) -> Result<(), InterpretFailure> {
     info!("Entering folder {:?}", root_path);
 
     let build_decl_file = root_path.join("build.leaf");
-    let content = std::fs::read_to_string(build_decl_file).map_err(|err| {
-        error!("`build.leaf' in {:?}: {}", root_path, err);
-        err
-    })?;
+    let content = std::fs::read_to_string(build_decl_file)
+        .map_err(|err| InterpretFailure::CannotReadFile(root_path.join("build.leaf"), err))?;
     let result = grammar::parse(&content);
 
     match result {
@@ -38,6 +46,7 @@ pub fn start_on<'a>(handle: &'a mut Handle<'a>, root_path: &PathBuf) -> Result<(
             );
         }
     }
+    info!("Leaving folder {:?}", root_path);
 
     Ok(())
 }

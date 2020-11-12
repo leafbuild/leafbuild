@@ -3,6 +3,11 @@ install_crate = "rustfmt"
 command = "cargo"
 args = ["fmt", "--", "--emit=files"]
 
+[tasks.fmtcheck]
+install_crate = "rustfmt"
+command = "cargo"
+args = ["fmt", "--", "--check"]
+
 [tasks.clean]
 command = "cargo"
 args = ["clean"]
@@ -23,9 +28,9 @@ args = ["clippy"]
 
 [tasks.check]
 dependencies = [
-    "format",
-    "lint",
-    "test"
+    "fmtcheck",
+    "test",
+    "lint"
 ]
 
 [tasks.doc-build]
@@ -74,9 +79,14 @@ script = [
 ]
 
 [tasks.setup-dev-env]
+install_crate = "rusty-hook"
+install_crate_args = ["--git",  "https://github.com/swellaby/rusty-hook", "--branch", "master"]
+command = "rusty-hook"
+args = ["init"]
+
+[tasks.setup-docs-env]
 script = [
     '''
-    git config core.hooksPath git/hooks
     mkdir -p doc/hl_clone
     git clone https://github.com/highlightjs/highlight.js doc/hl_clone/highlight.js
     cd doc/hl_clone/highlight.js
@@ -84,7 +94,7 @@ script = [
     '''
 ]
 
-[tasks.clean-dev-env]
+[tasks.clean-docs-env]
 script = [
     '''
     rm -rf doc/hl_clone
@@ -101,4 +111,9 @@ args = [
     "--",
     # Check for files in the root directory
     "../${@}"
+]
+
+[tasks.ci-flow]
+dependencies = [
+    "check"
 ]

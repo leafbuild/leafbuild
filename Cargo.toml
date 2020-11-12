@@ -9,7 +9,7 @@ repository = "https://github.com/leafbuild/leafbuild"
 documentation = "https://leafbuild.github.io/docs"
 readme = "README.md"
 categories = ["command-line-utilities"]
-keywords = ["cli", "interpreter", "command-line", ]
+keywords = ["cli", "interpreter", "command-line"]
 
 build = "build.rs" # LALRPOP preprocessing
 
@@ -35,6 +35,10 @@ clap = "3.0.0-beta.2"
 pretty_env_logger = "0.4"
 logos = "0.11"
 which = "4.0"
+thiserror = "1.0"
 
 [build-dependencies]
 lalrpop = "0.19"
+
+[dev-dependencies]
+rusty-hook = { git = "https://github.com/swellaby/rusty-hook", branch = "master" }

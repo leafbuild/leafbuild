@@ -1,3 +1,6 @@
+pub(super) mod properties;
+pub(super) mod values;
+
 use crate::grammar::ast::{AstLoc, Statement};
 use crate::interpreter::env::FileFrame;
 

@@ -1,0 +1,8 @@
+[hooks]
+pre-commit = [
+    "cargo make check"
+]
+commit-msg = "cargo make verify-commit-message -- %rh!"
+
+[logging]
+verbose = true

@@ -57,7 +57,11 @@ pub fn get_c_toolchain() -> Result<Tc, GetToolchainError> {
     let first_line = output
         .lines()
         .next() // get first line
-        .expect("Cannot detect compiler family from `CC --version'");
+        .ok_or_else(|| {
+            GetToolchainError::UnrecognizedCompilerFamily(
+                "no lines in output of `$CC --version`".into(),
+            )
+        })?;
 
     match first_line {
         // family if family.contains("(GCC)") => Ok(CTc::CGcc(location)),
