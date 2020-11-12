@@ -3,6 +3,24 @@ version: 2.1
 # Use a package of configuration called an orb.
 orbs:
 # Orchestrate or schedule a set of jobs
+workflows:
+  build-deploy:
+    jobs:
+      - test:
+          # run full test cycle for 'merge' or 'try'
+          filters:
+            branches:
+              only:
+                - staging
+                - trying
+      - publish:
+          requires:
+            - test
+          # only publish site changes on 'merge'
+          filters:
+            branches:
+              only: staging
+
 jobs:
   build:
     docker:
