@@ -10,6 +10,9 @@ makers <recipe_name>
 ## `format`
 Formats all the source files.
 
+## `fmtcheck`
+Checks formatting of all the source files and exits with non-zero if they're not formatted properly.
+
 ## `clean`
 Calls cargo clean, removing all built artifacts.
 
@@ -37,4 +40,4 @@ Pushes the built doc to [the docs repo](https://github.com/leafbuild/docs).
 
 ## `doc-build-highlighter`
 Builds the syntax highlighter from the highlight.js repo with `doc/leafbuild_highlight.js`.
-More about the highlighter [here]().
+More about the highlighter [here](highlighter.md).
