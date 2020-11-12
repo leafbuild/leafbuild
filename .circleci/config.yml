@@ -1,0 +1,16 @@
+# Use the latest 2.1 version of CircleCI pipeline process engine. See: https://circleci.com/docs/2.0/configuration-reference
+version: 2.1
+# Use a package of configuration called an orb.
+orbs:
+# Orchestrate or schedule a set of jobs
+jobs:
+  build:
+    docker:
+      - image: 'rust:1'
+    steps:
+      - run:
+          name: Install cargo-make
+          command: cargo install --debug cargo-make
+      - run:
+          name: CI Flow
+          command: cargo make ci-flow
