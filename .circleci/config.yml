@@ -13,5 +13,9 @@ jobs:
           command: cargo install --debug cargo-make
       - checkout
       - run:
+        name: Install toolchain components
+        command: |
+          rustup component add rustfmt clippy
+      - run:
           name: CI Flow
           command: cargo make ci-flow
