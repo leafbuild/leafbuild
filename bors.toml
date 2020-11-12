@@ -1,3 +1,8 @@
 status = [
-    "rust-ci"
+    "rust-ci (stable, ubuntu-latest)",
+    "rust-ci (stable, windows-latest)",
+    "rust-ci (stable, macOS-latest)",
+    "rust-ci (nightly, ubuntu-latest)",
+    "rust-ci (nightly, windows-latest)",
+    "rust-ci (nightly, macOS-latest)"
 ]
