@@ -1,28 +1,51 @@
+//! A handle.
+//! Explained in simple terms, this is a wrapper over all the structures the buildsystem uses internally.
+
 // use crate::interpreter::{Env, EnvConfig};
 
 pub mod config;
 
-use crate::interpreter::env::Env;
+use crate::interpreter::env::{ConfigurationError, LfBuildsys, WriteResultsError};
 
+/// The wrapper
 pub struct Handle<'a> {
-    pub(crate) env: Env<'a>,
+    pub(crate) buildsys: LfBuildsys<'a>,
+
+    validated: bool,
 }
 
 impl<'a> Handle<'a> {
+    /// Constructor from the configuration
     #[must_use]
     pub fn new(cfg: config::Config) -> Self {
-        Self { env: Env::new(cfg) }
+        Self {
+            validated: false,
+            buildsys: LfBuildsys::new(cfg),
+        }
     }
 
-    pub(crate) fn write_results(&self) {
-        self.env.write_results().expect("Cannot write results");
+    /// Validates the handle.
+    /// # Errors
+    /// See errors section of [`LfBuildsys::validate`]
+    pub fn validate(&mut self) -> Result<&mut Self, ConfigurationError> {
+        self.buildsys.validate()?;
+
+        self.validated = true;
+
+        Ok(self)
     }
 
-    pub(crate) const fn get_env(&self) -> &Env {
-        &self.env
-    }
+    /// Writes the results stored in the environment
+    ///
+    /// **Important**: Should only be used after [`validation`][handle_validate].
+    ///
+    /// # Errors
+    /// Any kind of error that can happen while writing, or if the buildsystem was not [`validate`][handle_validate]d yet.
+    ///
+    /// [handle_validate]: Handle::validate
+    pub fn write_results(&self) -> Result<&Self, WriteResultsError> {
+        self.buildsys.write_results()?;
 
-    pub(crate) fn get_env_mut(&'a mut self) -> &'a mut Env {
-        &mut self.env
+        Ok(self)
     }
 }

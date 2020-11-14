@@ -98,9 +98,13 @@ fn main() {
             );
 
             let mut handle = Handle::new(config);
-            interpreter::start_on(&mut handle, &proj_path.to_path_buf()).unwrap_or_else(|error| {
-                error!("An error occurred: {}", error);
-            });
+            interpreter::execute_on(&mut handle, &proj_path.to_path_buf())
+                .and_then(|h| Ok(h.validate()?))
+                .and_then(|h| Ok(h.write_results()?))
+                .map(|_| ())
+                .unwrap_or_else(|error| {
+                    error!("An error occurred: {}", error);
+                });
         }
         Subcommand::Internal {
             internal_subcommand,

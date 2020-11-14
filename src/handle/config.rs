@@ -1,6 +1,8 @@
+//! This configures the build system
 use crate::diagnostics::DiagConfig;
 use std::path::PathBuf;
 
+/// The configuration structure
 #[derive(Clone)]
 pub struct Config {
     error_cascade: bool,
@@ -10,6 +12,7 @@ pub struct Config {
 }
 
 impl Config {
+    /// Constructor for the configuration structure
     #[must_use]
     pub fn new(error_cascade: bool, output_directory: PathBuf, signal_build_failure: bool) -> Self {
         Self {

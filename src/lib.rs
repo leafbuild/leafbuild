@@ -1,9 +1,18 @@
+#![doc(
+    html_favicon_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg",
+    html_logo_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg"
+)]
+#![deny(missing_docs)]
+#![deny(missing_crate_level_docs)]
+#![deny(missing_doc_code_examples)]
+#![deny(unsafe_code)]
 #![deny(clippy::correctness)]
 #![deny(clippy::style)]
 #![deny(clippy::complexity)]
 #![deny(clippy::cargo)]
 #![deny(clippy::pedantic)]
 #![deny(clippy::nursery)]
+//! A C/C++ buildsystem.
 extern crate codespan_reporting;
 #[macro_use]
 extern crate lalrpop_util;

@@ -1,6 +1,7 @@
 use logos::Logos;
 use std::ops::Range;
 
+/// A span in the source code
 #[derive(Copy, Clone, Debug)]
 pub struct Span {
     start: usize,

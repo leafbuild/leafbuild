@@ -1,13 +1,18 @@
-use crate::buildsys_utils::toolchains::flags::c::{CompilationFlag, Flag, LinkFlag};
+//! # The Clang C toolchain.
+//!
+use crate::buildsys_utils::toolchains::options::c::{CompilationOption, Flag, LinkOption};
 use crate::buildsys_utils::toolchains::{CCompiler, CToolchain, CToolchainLinker, Toolchain};
 use std::path::{Path, PathBuf};
 
+/// The struct. See the module-level docs for more.
 pub struct CClangToolchain {
     clang: Clang,
 }
 
 impl CClangToolchain {
-    pub(crate) fn new(clang_location: Box<Path>) -> Self {
+    /// Creates a new instance from the location of the clang executable.
+    #[must_use]
+    pub fn new(clang_location: Box<Path>) -> Self {
         Self {
             clang: Clang {
                 path: clang_location.into_path_buf(),
@@ -39,20 +44,21 @@ impl CToolchain for CClangToolchain {
     }
 }
 
+/// The clang compiler and linker
 pub struct Clang {
     path: PathBuf,
 }
 
 impl CCompiler for Clang {
-    fn get_flag(&self, flag: CompilationFlag) -> String {
+    fn get_option(&self, flag: CompilationOption) -> String {
         match flag {
-            CompilationFlag::FromString { s } => s,
-            CompilationFlag::CSTD { std } => format!("--std={}", std.to_string()),
-            CompilationFlag::IncludeDir { include_dir } => format!("-I{}", include_dir),
-            CompilationFlag::Flag { flag } => match flag {
+            CompilationOption::FromString(s) => s,
+            CompilationOption::CSTD(std) => format!("--std={}", std.to_string()),
+            CompilationOption::IncludeDir(include_dir) => format!("-I{}", include_dir),
+            CompilationOption::Flag(flag) => match flag {
                 Flag::PositionIndependentCode => "-fPIC".into(),
             },
-            CompilationFlag::None => "".into(),
+            CompilationOption::None => "".into(),
         }
     }
 
@@ -62,13 +68,13 @@ impl CCompiler for Clang {
 }
 
 impl CToolchainLinker for Clang {
-    fn get_linker_flag(&self, flag: LinkFlag) -> String {
+    fn get_linker_option(&self, flag: LinkOption) -> String {
         match flag {
-            LinkFlag::FromString { s } => s,
-            LinkFlag::LibLocation { s } => format!("-L{}", s),
-            LinkFlag::Lib { name } => format!("-l{}", name),
-            LinkFlag::LibShared => "--shared".into(),
-            LinkFlag::None => "".into(),
+            LinkOption::FromString(s) => s,
+            LinkOption::LibLocation(s) => format!("-L{}", s),
+            LinkOption::Lib { name } => format!("-l{}", name),
+            LinkOption::LibShared => "--shared".into(),
+            LinkOption::None => "".into(),
         }
     }
 
