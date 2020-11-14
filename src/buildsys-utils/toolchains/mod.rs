@@ -21,8 +21,8 @@ pub mod options;
 
 /// An error returned when [`get_c_toolchain`][get_c_toolchain] and [`get_cpp_toolchain`][get_cpp_toolchain] couldn't figure out the toolchain used.
 ///
-/// [get_c_toolchain]: buildsys_utils::toolchains::c::get_c_toolchain
-/// [get_cpp_toolchain]: buildsys_utils::toolchains::cpp::get_cpp_toolchain
+/// [get_c_toolchain]: c::get_c_toolchain
+/// [get_cpp_toolchain]: cpp::get_cpp_toolchain
 #[derive(Error, Debug)]
 pub enum GetToolchainError {
     /// Cannot get the CC/CXX environment variable
@@ -35,7 +35,7 @@ pub enum GetToolchainError {
     #[error("invalid utf8 in $compiler --version output")]
     InvalidUtf8(#[from] FromUtf8Error),
     /// Cannot recognize the compiler family. The recognized ones are defined at
-    /// https://leafbuild.github.io/supported_languages.html#supported-languages
+    /// <https://leafbuild.github.io/supported_languages.html#supported-languages>
     #[error("unrecognized compiler family `{0}`")]
     UnrecognizedCompilerFamily(String),
 }
