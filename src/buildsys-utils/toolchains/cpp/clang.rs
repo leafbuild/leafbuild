@@ -1,7 +1,11 @@
-use crate::buildsys_utils::toolchains::flags::cpp::{CXXCompilationFlag, CXXFlag, CXXLinkFlag};
+//! The C++ Clang toolchain
+use crate::buildsys_utils::toolchains::options::cpp::{
+    CXXCompilationOption, CXXFlag, CXXLinkOption,
+};
 use crate::buildsys_utils::toolchains::{CPPCompiler, CPPToolchain, CPPToolchainLinker, Toolchain};
 use std::path::{Path, PathBuf};
 
+/// The C++ Clang toolchain structure
 pub struct CPPClangToolchain {
     clang: Clang,
 }
@@ -46,20 +50,21 @@ impl CPPToolchain for CPPClangToolchain {
     }
 }
 
+/// The clang compiler and linker
 pub struct Clang {
     location: PathBuf,
 }
 
 impl CPPCompiler for Clang {
-    fn get_flag(&self, flag: CXXCompilationFlag) -> String {
+    fn get_option(&self, flag: CXXCompilationOption) -> String {
         match flag {
-            CXXCompilationFlag::FromString { s } => s,
-            CXXCompilationFlag::CPPSTD { std } => format!("--std={}", std.to_string()),
-            CXXCompilationFlag::IncludeDir { include_dir } => format!("-I{}", include_dir),
-            CXXCompilationFlag::Flag { flag } => match flag {
+            CXXCompilationOption::FromString(s) => s,
+            CXXCompilationOption::CPPSTD(std) => format!("--std={}", std.to_string()),
+            CXXCompilationOption::IncludeDir(include_dir) => format!("-I{}", include_dir),
+            CXXCompilationOption::Flag(flag) => match flag {
                 CXXFlag::PositionIndependentCode => "-fPIC".into(),
             },
-            CXXCompilationFlag::None => "".into(),
+            CXXCompilationOption::None => "".into(),
         }
     }
 
@@ -69,7 +74,7 @@ impl CPPCompiler for Clang {
 }
 
 impl CPPToolchainLinker for Clang {
-    fn get_flag(&self, _flag: CXXLinkFlag) -> String {
+    fn get_option(&self, _flag: CXXLinkOption) -> String {
         unimplemented!()
     }
 

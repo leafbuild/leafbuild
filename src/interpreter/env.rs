@@ -1,22 +1,55 @@
+//! The environment of the interpreter.
 use crate::diagnostics::{DiagCtx, FileId, LeafDiagnosticTrait};
 use crate::handle::config::Config;
 use std::marker::PhantomData;
 use std::path::PathBuf;
+use thiserror::Error;
 
+/// The state of the buildsystem.
 #[derive(Default)]
-pub struct Env<'env> {
+pub struct LfBuildsys<'buildsys> {
     diagnostics_context: DiagCtx,
     output_directory: PathBuf,
-    __phantom: ::std::marker::PhantomData<&'env ()>,
+    __phantom: ::std::marker::PhantomData<&'buildsys ()>,
 }
 
-impl<'env> Env<'env> {
+/// Error while writing results (makefiles/`build.ninja` files ...).
+#[derive(Debug, Error)]
+pub enum WriteResultsError {
+    /// An IO error occurred.
+    #[error("an io error occurred")]
+    IoError(#[from] std::io::Error),
+}
+
+/// Error in build system configuration.
+#[derive(Debug, Error)]
+pub enum ConfigurationError {
+    /// Referenced a file that doesn't exist (maybe was deleted?)
+    #[error("referenced file doesn't exit: {file}")]
+    ReferencedFileDoesntExist {
+        /// The file that was referenced.
+        file: String,
+    },
+}
+
+impl<'buildsys> LfBuildsys<'buildsys> {
     pub(crate) fn new(config: Config) -> Self {
         Self {
             diagnostics_context: DiagCtx::new(config.diagnostics_config),
             output_directory: config.output_directory,
             __phantom: PhantomData,
         }
+    }
+
+    /// Validates the build system. This is done at the end, and is a prerequisite
+    /// to writing the results.
+    ///
+    /// # Errors
+    ///
+    /// Any configuration errors.
+    #[allow(clippy::unused_self)] // TODO: work out validation
+    pub const fn validate(&self) -> Result<(), ConfigurationError> {
+        Ok(())
     }
 
     pub(crate) fn register_new_file(&mut self, name: String, source: String) -> FileId {
@@ -38,11 +71,15 @@ impl<'env> Env<'env> {
             });
     }
 
-    pub(crate) fn write_results(&self) -> std::io::Result<()> {
-        std::fs::write(self.output_directory.join("build.ninja"), "")
+    pub(crate) fn write_results(&self) -> Result<(), WriteResultsError> {
+        std::fs::write(self.output_directory.join("build.ninja"), "")?;
+
+        Ok(())
     }
 }
 
+/// A file frame, used to hold all the context information of a single file during execution,
+/// For example names and values of variables and constants, declared types, functions, ....
 pub struct FileFrame<'frame> {
     file_id: FileId,
     __phantom: ::std::marker::PhantomData<&'frame ()>,

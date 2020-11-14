@@ -1,6 +1,6 @@
-/// Returns the path buf to the `ar` binary, or an error if it cannot be found
+/// Returns the path to the `ar` binary
 /// # Errors
 /// If it cannot be found
-pub fn get_ar() -> Result<PathBuf, Error> {
+pub fn get_ar() -> Result<PathBuf, WhichError> {
     which::which("ar")
 }

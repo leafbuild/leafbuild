@@ -149,7 +149,6 @@ pub struct LeafDiagnostic {
     notes: Vec<String>,
 }
 
-/// A diagnostic - basically a thin wrapper over the `codespan_reporting` `Diagnostic<usize>`
 impl LeafDiagnostic {
     #[must_use]
     pub(crate) fn new(diagnostic_type: LeafDiagnosticType) -> Self {

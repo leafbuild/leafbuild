@@ -1,3 +1,4 @@
+//! Related to the C++ toolchains
 pub mod clang;
 pub mod gcc;
 
@@ -10,12 +11,16 @@ use crate::buildsys_utils::toolchains::cpp::clang::Clang;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// A C++ Toolchain, because they are not object-safe
 pub enum Tc {
+    /// C++ GCC toolchain
     CPPGcc,
+    /// C++ clang toolchain
     CPPClang(CPPClangToolchain),
 }
 
 impl Tc {
+    /// Return the path to the compiler executable
     #[must_use]
     pub fn get_compiler_location(&self) -> &Path {
         match self {
@@ -24,6 +29,7 @@ impl Tc {
         }
     }
 
+    /// Return the path to the linker executable
     #[must_use]
     pub fn get_linker_location(&self) -> &Path {
         match self {

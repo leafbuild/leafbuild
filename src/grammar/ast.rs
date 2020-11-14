@@ -1,3 +1,4 @@
+//! AST structures
 use crate::grammar::lexer::Span;
 use std::any::Any;
 use std::convert::TryInto;
@@ -5,21 +6,30 @@ use std::ops::{Deref, Range};
 
 type Location = Range<usize>;
 
-pub(crate) trait AstLoc {
+/// Can get the location of something in a source file.
+pub trait Loc {
+    /// Returns the start index of this in the source file.
     fn get_start(&self) -> usize;
 
+    /// Returns the end index of this in the source file.
     fn get_end(&self) -> usize;
 
+    /// Returns the location of this(Range<usize>) in the source file.
     fn get_rng(&self) -> Location {
         self.get_start()..self.get_end()
     }
 }
 
+/// A number value
 #[derive(Copy, Clone, Debug)]
 pub enum NumVal {
+    /// i32 number
     I32(i32),
+    /// i64 number
     I64(i64),
+    /// u32 number
     U32(u32),
+    /// u64 number
     U64(u64),
 }
 
@@ -130,17 +140,24 @@ impl From<&str> for NumVal {
     }
 }
 
+/// A small building block for expressions
 #[derive(Debug, Clone)]
 pub enum Atom {
+    /// A number
     Number((NumVal, Span)),
+    /// A bool
     Bool((bool, Span)),
+    /// A string
     Str((String, Span)),
+    /// An identifier
     Id((String, Span)),
+    /// A literal array
     ArrayLit((Vec<Expr>, Span, Span)),
+    /// A literal map
     MapLit((Vec<NamedExpr>, Span, Span)),
 }
 
-impl AstLoc for Atom {
+impl Loc for Atom {
     fn get_start(&self) -> usize {
         match self {
             Self::Bool((_, loc))
@@ -175,30 +192,52 @@ impl AstLoc for Atom {
     }
 }
 
+/// An expression
 #[derive(Debug, Clone)]
 pub enum Expr {
+    /// A single atom
     Atom(Atom),
+    /// A binary operation
     Op(Box<Expr>, Opcode, Box<Expr>),
+    /// A unary operation
     UnaryOp(UnaryOpcode, Box<Expr>),
+    /// A function call
     FuncCall(FuncCall),
+    /// A method call
     MethodCall(MethodCall),
+    /// A property access operation
     PropertyAccess(PropertyAccess),
+    /// A `( Expr )` expression
     Paren {
+        /// Span of left, opening parenthesis
         lparen: Span,
+        /// Expression
         expr: Box<Expr>,
+        /// Span of right, closing parenthesis
         rparen: Span,
     },
+    /// An array/map indexing expression (`base [ index ]`)
     Indexed {
+        /// The base expression
         base: Box<Expr>,
+        /// The span of the left, opening bracket
         open_bracket: Span,
+        /// The index expression
         index: Box<Expr>,
+        /// The span of the right, closing bracket
         close_bracket: Span,
     },
+    /// A ternary conditional expression
     Ternary {
+        /// The condition expression
         condition: Box<Expr>,
+        /// The span of the `?`
         qmark: Span,
+        /// The expression tp evaluate if the condition is true
         if_true: Box<Expr>,
+        /// The span of the `:`
         colon: Span,
+        /// The expression to evaluate if the condition is false
         if_false: Box<Expr>,
     },
 }
@@ -210,7 +249,7 @@ pub(crate) struct Spanned<T> {
 
 impl Expr {}
 
-impl AstLoc for Expr {
+impl Loc for Expr {
     fn get_start(&self) -> usize {
         match self {
             Self::Atom(atm) => atm.get_start(),
@@ -262,6 +301,7 @@ impl AstLoc for Expr {
     }
 }
 
+/// A property access expression
 #[derive(Debug, Clone)]
 pub struct PropertyAccess {
     base: Box<Expr>,
@@ -269,6 +309,7 @@ pub struct PropertyAccess {
 }
 
 impl PropertyAccess {
+    /// Constructs a new property access from the base expression and property name and span.
     #[must_use]
     pub fn new(base: Box<Expr>, property_name: (String, Span)) -> Self {
         Self {
@@ -293,7 +334,7 @@ impl PropertyAccess {
     }
 }
 
-impl AstLoc for PropertyAccess {
+impl Loc for PropertyAccess {
     fn get_start(&self) -> usize {
         self.base.get_start()
     }
@@ -303,30 +344,48 @@ impl AstLoc for PropertyAccess {
     }
 }
 
+/// A binary operation
 #[derive(Copy, Clone, Debug)]
 pub enum Opcode {
+    /// `*`
     Mul(Span),
+    /// `/`
     Div(Span),
+    /// `+`
     Add(Span),
+    /// `-`
     Sub(Span),
+    /// `%`
     Mod(Span),
+    /// `and`
     And(Span),
+    /// `or`
     Or(Span),
+    /// `in`
     In(Span),
+    /// `not in`
     NotIn(Span),
+    /// `==`
     Equal(Span),
+    /// `>`
     G(Span),
+    /// `<`
     L(Span),
+    /// `>=`
     GE(Span),
+    /// `<=`
     LE(Span),
+    /// `!=`
     NE(Span),
+    /// `<<`
     LBitshift(Span),
+    /// `>>`
     RBitshift(Span),
 }
 
 impl Opcode {}
 
-impl AstLoc for Opcode {
+impl Loc for Opcode {
     fn get_start(&self) -> usize {
         match self {
             Self::Mul(loc)
@@ -372,17 +431,22 @@ impl AstLoc for Opcode {
     }
 }
 
+/// An unary operation
 #[derive(Debug, Clone)]
 pub enum UnaryOpcode {
+    /// `+`
     Plus(Span),
+    /// `-`
     Minus(Span),
+    /// `not`
     Not(Span),
+    /// `~`
     BitwiseNot(Span),
 }
 
 impl UnaryOpcode {}
 
-impl AstLoc for UnaryOpcode {
+impl Loc for UnaryOpcode {
     fn get_start(&self) -> usize {
         match self {
             Self::BitwiseNot(loc) | Self::Not(loc) | Self::Plus(loc) | Self::Minus(loc) => {
@@ -408,6 +472,7 @@ impl AstLoc for UnaryOpcode {
     }
 }
 
+/// A function call
 #[derive(Debug, Clone)]
 pub struct FuncCall {
     func_name: (String, Span),
@@ -417,6 +482,7 @@ pub struct FuncCall {
 }
 
 impl FuncCall {
+    /// Returns a new function call from the function name, spans of the parentheses and the arguments.
     #[must_use]
     pub const fn new(
         name: (String, Span),
@@ -432,23 +498,26 @@ impl FuncCall {
         }
     }
 
+    /// Returns a reference to the name of the function this calls.
     #[must_use]
     pub const fn get_name(&self) -> &String {
         &self.func_name.0
     }
 
+    /// Returns a reference to the span of the function name in the file
     #[must_use]
     pub const fn get_name_loc(&self) -> &Span {
         &self.func_name.1
     }
 
+    /// Returns the function arguments
     #[must_use]
     pub const fn get_args(&self) -> &FuncCallArgs {
         &self.func_args
     }
 }
 
-impl AstLoc for FuncCall {
+impl Loc for FuncCall {
     fn get_start(&self) -> usize {
         self.func_name.1.get_start()
     }
@@ -458,6 +527,7 @@ impl AstLoc for FuncCall {
     }
 }
 
+/// The arguments passed to a function / method in a function / method call
 #[derive(Debug, Clone)]
 pub struct FuncCallArgs {
     positional_args: Vec<PositionalArg>,
@@ -465,6 +535,7 @@ pub struct FuncCallArgs {
 }
 
 impl FuncCallArgs {
+    /// Constructor
     #[must_use]
     pub const fn new(positional_args: Vec<PositionalArg>, named_args: Vec<NamedExpr>) -> Self {
         Self {
@@ -473,32 +544,38 @@ impl FuncCallArgs {
         }
     }
 
+    /// Creates a new instance only with positional arguments
     #[must_use]
     pub const fn new_only_positional(positional_args: Vec<PositionalArg>) -> Self {
         Self::new(positional_args, vec![])
     }
 
+    /// Creates a new instance only with named arguments
     #[must_use]
     pub const fn new_only_named(named_args: Vec<NamedExpr>) -> Self {
         Self::new(vec![], named_args)
     }
 
+    /// Creates a new instance with no arguments(used where the function was called without any arguments)
     #[must_use]
     pub const fn empty() -> Self {
         Self::new(vec![], vec![])
     }
 
+    /// Returns a reference to the vector of positional arguments
     #[must_use]
     pub const fn get_positional_args(&self) -> &Vec<PositionalArg> {
         &self.positional_args
     }
 
+    /// Returns a reference to the vector of named arguments
     #[must_use]
     pub const fn get_named_args(&self) -> &Vec<NamedExpr> {
         &self.named_args
     }
 }
 
+/// A positional argument
 #[derive(Debug, Clone)]
 pub struct PositionalArg {
     value: Expr,
@@ -510,7 +587,7 @@ impl PositionalArg {
     }
 }
 
-impl AstLoc for PositionalArg {
+impl Loc for PositionalArg {
     fn get_start(&self) -> usize {
         self.value.get_start()
     }
@@ -530,6 +607,7 @@ impl From<Box<Expr>> for PositionalArg {
     }
 }
 
+/// A named expression. Is created from `name = value`.
 #[derive(Debug, Clone)]
 pub struct NamedExpr {
     name: (String, Span),
@@ -538,17 +616,20 @@ pub struct NamedExpr {
 }
 
 impl NamedExpr {
+    /// Returns a reference to the name.
     #[must_use]
     pub const fn get_name(&self) -> &String {
         &self.name.0
     }
+
+    /// Returns a reference to the value expression.
     #[must_use]
     pub const fn get_value(&self) -> &Expr {
         &self.value
     }
 }
 
-impl AstLoc for NamedExpr {
+impl Loc for NamedExpr {
     fn get_start(&self) -> usize {
         self.name.1.get_start()
     }
@@ -568,6 +649,8 @@ impl From<((String, Span), Span, Box<Expr>)> for NamedExpr {
     }
 }
 
+/// A method call.
+// TODO: refactor this
 #[derive(Debug, Clone)]
 pub struct MethodCall {
     method_property: PropertyAccess,
@@ -576,6 +659,8 @@ pub struct MethodCall {
 }
 
 impl MethodCall {
+    /// Creates a method call from the method property, args and end position
+    // TODO: refactor this
     #[must_use]
     pub const fn new(method_property: PropertyAccess, args: FuncCallArgs, end_pos: usize) -> Self {
         Self {
@@ -606,7 +691,7 @@ impl MethodCall {
     }
 }
 
-impl AstLoc for MethodCall {
+impl Loc for MethodCall {
     fn get_start(&self) -> usize {
         self.method_property.get_start()
     }
@@ -616,6 +701,7 @@ impl AstLoc for MethodCall {
     }
 }
 
+/// An assignment
 #[derive(Debug, Clone)]
 pub struct Assignment {
     bound_name: Box<Expr>,
@@ -624,6 +710,7 @@ pub struct Assignment {
 }
 
 impl Assignment {
+    /// Returns an assignment from the name, operation and value.
     #[must_use]
     pub const fn new(bound_name: Box<Expr>, op: AtrOp, value: Box<Expr>) -> Self {
         Self {
@@ -633,23 +720,26 @@ impl Assignment {
         }
     }
 
+    /// Returns the bound name expression
     #[must_use]
     pub const fn get_bound(&self) -> &Expr {
         &self.bound_name
     }
 
+    /// Returns the operation
     #[must_use]
     pub const fn get_op(&self) -> &AtrOp {
         &self.op
     }
 
+    /// Returns the value expression
     #[must_use]
     pub const fn get_value(&self) -> &Expr {
         &self.value
     }
 }
 
-impl AstLoc for Assignment {
+impl Loc for Assignment {
     fn get_start(&self) -> usize {
         self.bound_name.get_start()
     }
@@ -659,6 +749,7 @@ impl AstLoc for Assignment {
     }
 }
 
+/// A declaration
 #[derive(Debug, Clone)]
 pub struct Declaration {
     let_tok: Span,
@@ -668,6 +759,7 @@ pub struct Declaration {
 }
 
 impl Declaration {
+    /// Constructor
     #[must_use]
     pub const fn new(let_tok: Span, name: (String, Span), eq: Span, value: Box<Expr>) -> Self {
         Self {
@@ -678,23 +770,26 @@ impl Declaration {
         }
     }
 
+    /// Returns a reference to the name
     #[must_use]
     pub const fn get_name(&self) -> &String {
         &self.name.0
     }
 
+    /// Returns a reference to the name span
     #[must_use]
     pub const fn get_name_loc(&self) -> &Span {
         &self.name.1
     }
 
+    /// Returns a reference to the value expression
     #[must_use]
     pub const fn get_value(&self) -> &Expr {
         &self.value
     }
 }
 
-impl AstLoc for Declaration {
+impl Loc for Declaration {
     #[must_use]
     fn get_start(&self) -> usize {
         self.let_tok.get_start()
@@ -706,16 +801,24 @@ impl AstLoc for Declaration {
     }
 }
 
+/// An assignment operation
 #[derive(Debug, Clone)]
 pub enum AtrOp {
+    /// `=`
     Atr(Span),
+    /// `+=`
     AddAtr(Span),
+    /// `-=`
     SubAtr(Span),
+    /// `*=`
     MulAtr(Span),
+    /// `/=`
     DivAtr(Span),
+    /// `%=`
     ModAtr(Span),
 }
 
+/// An `if expr { statements }` structure
 #[derive(Debug, Clone)]
 pub struct If {
     if_tok: Span,
@@ -753,7 +856,7 @@ impl If {
     }
 }
 
-impl AstLoc for If {
+impl Loc for If {
     fn get_start(&self) -> usize {
         self.if_tok.get_start()
     }
@@ -763,13 +866,14 @@ impl AstLoc for If {
     }
 }
 
+/// An `else <if>` structure
 #[derive(Debug, Clone)]
 pub struct ElseIf {
     else_tok: Span,
     if_: If,
 }
 
-impl AstLoc for ElseIf {
+impl Loc for ElseIf {
     fn get_start(&self) -> usize {
         self.else_tok.get_start()
     }
@@ -791,6 +895,7 @@ impl ElseIf {
     }
 }
 
+/// An `else { statements }` structure
 #[derive(Debug, Clone)]
 pub struct Else {
     else_tok: Span,
@@ -799,7 +904,7 @@ pub struct Else {
     right_brace: Span,
 }
 
-impl AstLoc for Else {
+impl Loc for Else {
     fn get_start(&self) -> usize {
         self.else_tok.get_start()
     }
@@ -830,19 +935,20 @@ impl Else {
     }
 }
 
+/// A conditional statement
 #[derive(Debug, Clone)]
 pub struct ConditionalStatement {
-    initial_if: Box<If>,
+    initial_if: If,
     else_ifs: Vec<ElseIf>,
-    else_: Box<Option<Else>>,
+    else_: Option<Else>,
 }
 
 impl ConditionalStatement {
     pub(crate) fn new(initial_if: If, else_ifs: Vec<ElseIf>, else_: Option<Else>) -> Self {
         Self {
-            initial_if: Box::new(initial_if),
+            initial_if,
             else_ifs,
-            else_: Box::new(else_),
+            else_,
         }
     }
 
@@ -862,13 +968,13 @@ impl ConditionalStatement {
     }
 }
 
-impl AstLoc for ConditionalStatement {
+impl Loc for ConditionalStatement {
     fn get_start(&self) -> usize {
         self.initial_if.get_start()
     }
 
     fn get_end(&self) -> usize {
-        match &*self.else_ {
+        match &self.else_ {
             Some(els) => els.get_end(),
             None => match self.else_ifs.last() {
                 Some(else_if) => else_if.get_end(),
@@ -878,6 +984,7 @@ impl AstLoc for ConditionalStatement {
     }
 }
 
+/// A repetitive statement (`foreach`)
 #[derive(Debug, Clone)]
 pub struct RepetitiveStatement {
     foreach_tok: Span,
@@ -888,6 +995,7 @@ pub struct RepetitiveStatement {
 }
 
 impl RepetitiveStatement {
+    /// Constructor
     #[must_use]
     pub const fn new(
         foreach_tok: Span,
@@ -915,7 +1023,7 @@ impl RepetitiveStatement {
     }
 }
 
-impl AstLoc for RepetitiveStatement {
+impl Loc for RepetitiveStatement {
     fn get_start(&self) -> usize {
         self.for_in_expr.get_start()
     }
@@ -925,6 +1033,7 @@ impl AstLoc for RepetitiveStatement {
     }
 }
 
+/// The `name in expression` expression found in the foreach.
 #[derive(Debug, Clone)]
 pub struct ForInExpr {
     name: (String, Span),
@@ -933,6 +1042,7 @@ pub struct ForInExpr {
 }
 
 impl ForInExpr {
+    /// Constructor
     #[must_use]
     pub const fn new(name: (String, Span), in_tok: Span, expr: Box<Expr>) -> Self {
         Self { name, in_tok, expr }
@@ -949,7 +1059,7 @@ impl ForInExpr {
     }
 }
 
-impl AstLoc for ForInExpr {
+impl Loc for ForInExpr {
     fn get_start(&self) -> usize {
         self.name.1.get_start()
     }
@@ -959,13 +1069,16 @@ impl AstLoc for ForInExpr {
     }
 }
 
+/// A control statement.
 #[derive(Debug, Clone)]
 pub enum ControlStatement {
+    /// `continue`
     Continue(Span),
+    /// `break`
     Break(Span),
 }
 
-impl AstLoc for ControlStatement {
+impl Loc for ControlStatement {
     fn get_start(&self) -> usize {
         match self {
             Self::Continue(loc) | Self::Break(loc) => loc.get_start(),
@@ -985,18 +1098,26 @@ impl AstLoc for ControlStatement {
     }
 }
 
+/// A statement.
 #[derive(Debug, Clone)]
 pub enum Statement {
+    /// Calls a function
     FuncCall(FuncCall),
+    /// Calls a method
     MethodCall(MethodCall),
+    /// Declares a variable
     Declaration(Declaration),
+    /// Assigns to a variable.
     Assignment(Assignment),
+    /// A conditional statement
     Conditional(ConditionalStatement),
+    /// A control statement
     Control(ControlStatement),
+    /// A repetitive statement
     Repetitive(RepetitiveStatement),
 }
 
-impl AstLoc for Statement {
+impl Loc for Statement {
     fn get_start(&self) -> usize {
         match self {
             Self::FuncCall(call) => call.get_start(),
@@ -1022,9 +1143,9 @@ impl AstLoc for Statement {
     }
 }
 
-impl<T> AstLoc for Vec<T>
+impl<T> Loc for Vec<T>
 where
-    T: AstLoc,
+    T: Loc,
 {
     fn get_start(&self) -> usize {
         match self.first() {
@@ -1041,9 +1162,9 @@ where
     }
 }
 
-impl<T> AstLoc for &[T]
+impl<T> Loc for &[T]
 where
-    T: AstLoc,
+    T: Loc,
 {
     fn get_start(&self) -> usize {
         match self.first() {
@@ -1060,17 +1181,20 @@ where
     }
 }
 
+/// The whole build definition
 #[derive(Debug, Clone)]
 pub struct BuildDefinition {
     statements: Vec<Statement>,
 }
 
 impl BuildDefinition {
+    /// Constructor
     #[must_use]
     pub const fn new(statements: Vec<Statement>) -> Self {
         Self { statements }
     }
 
+    /// Returns a reference to the statements
     #[must_use]
     pub const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements

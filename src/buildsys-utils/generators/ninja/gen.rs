@@ -1,3 +1,4 @@
+//! The ninja generator
 use crate::buildsys_utils::generators::{
     Generator, Rule, RuleArg, RuleOpt, RuleRef, Target, ToBuildSystemSyntax,
 };
@@ -6,11 +7,13 @@ use std::fs::File;
 use std::io::{Result as IoResult, Write};
 use std::path::PathBuf;
 
+/// A ninja command(just a string)
 pub struct NjCommand {
     command: String,
 }
 
 impl NjCommand {
+    /// Creates a ninja command from a string.
     pub fn new(command: impl Into<String>) -> Self {
         Self {
             command: command.into(),
@@ -18,6 +21,7 @@ impl NjCommand {
     }
 }
 
+/// A ninja rule
 pub struct NjRule {
     name: String,
     command: NjCommand,
@@ -44,7 +48,7 @@ impl ToBuildSystemSyntax for NjRule {
 
 impl Rule for NjRule {
     type ArgType = NjRuleArg;
-    type VarType = NjVariable;
+    type OptType = NjVariable;
     type RefType = NjRuleRef;
 
     fn get_name(&self) -> &String {
@@ -52,12 +56,14 @@ impl Rule for NjRule {
     }
 }
 
+/// A ninja rule reference
 pub struct NjRuleRef {
     name: String,
 }
 
 impl RuleRef for NjRuleRef {}
 
+/// A ninja rule argument
 pub struct NjRuleArg {
     value: String,
 }
@@ -79,6 +85,7 @@ impl RuleArg for NjRuleArg {
     }
 }
 
+/// A ninja variable (corresponds to [`RuleOpt`])
 pub struct NjVariable {
     name: String,
     value: String,
@@ -98,15 +105,16 @@ impl RuleOpt for NjVariable {
         }
     }
 
-    fn get_arg_name(&self) -> &String {
+    fn get_opt_name(&self) -> &String {
         &self.name
     }
 
-    fn get_arg_value(&self) -> &String {
+    fn get_opt_value(&self) -> &String {
         &self.value
     }
 }
 
+/// A ninja build target
 pub struct NjTarget<'buildsys> {
     name: String,
     rule: &'buildsys NjRuleRef,
@@ -201,6 +209,7 @@ impl ToBuildSystemSyntax for NinjaGlobalValue {
     }
 }
 
+/// The ninja generator
 pub struct NjGen<'buildsys> {
     rules: Vec<NjRule>,
     targets: Vec<NjTarget<'buildsys>>,
@@ -248,7 +257,7 @@ impl<'buildsys> Generator<'buildsys> for NjGen<'buildsys> {
         rule: &'buildsys <NjRule as Rule>::RefType,
         args: Vec<<NjRule as Rule>::ArgType>,
         implicit_args: Vec<<NjRule as Rule>::ArgType>,
-        opts: Vec<<NjRule as Rule>::VarType>,
+        opts: Vec<<NjRule as Rule>::OptType>,
     ) -> &NjTarget<'buildsys> {
         let target = NjTarget::new_from(name, rule, args, implicit_args, opts);
         self.targets.push(target);

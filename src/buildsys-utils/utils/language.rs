@@ -1,10 +1,15 @@
+/// A language
 #[derive(Copy, Clone, Debug)]
 pub enum Language {
+    /// C
     C,
+    /// C++
     CPP,
 }
 
 impl Language {
+    /// The compilation flags varname.
+    /// **Specific** to leafbuild
     #[must_use]
     pub const fn get_compilation_flags_varname(self) -> &'static str {
         match self {
@@ -12,6 +17,9 @@ impl Language {
             Self::CPP => "CXX_FLAGS",
         }
     }
+
+    /// The linking flags varname
+    /// **Specific** to leafbuild
     #[must_use]
     pub const fn get_link_flags_varname(self) -> &'static str {
         match self {
@@ -21,18 +29,16 @@ impl Language {
     }
 }
 
+/// Returned by [`Language::from_str`] when the string isn't a recognized language
+#[derive(Error, Debug)]
+#[error("not a language `{lang}`")]
 pub struct NotALanguageError {
-    msg: String,
+    lang: String,
 }
 
 impl NotALanguageError {
     pub(crate) fn new(s: impl Into<String>) -> Self {
-        Self { msg: s.into() }
-    }
-
-    #[must_use]
-    pub const fn get_msg(&self) -> &String {
-        &self.msg
+        Self { lang: s.into() }
     }
 }
 

@@ -49,7 +49,7 @@ Str = Spanned<StrTok>;
 
 UnaryNot: UnaryOpcode = <l: SpannedLocation<"not">> => UnaryOpcode::Not(l);
 
-pub Program = <Statement*>;
+pub BuildDefinition = <Statement*>;
 Statement: Statement = {
 //    <call: MethodCall> ";" => AstStatement::MethodCall(call),
 	<call: FuncCall> ";" => Statement::FuncCall(call),
