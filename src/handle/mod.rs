@@ -8,6 +8,7 @@ pub mod config;
 use crate::interpreter::env::{ConfigurationError, LfBuildsys, WriteResultsError};
 
 /// The wrapper
+#[derive(Debug)]
 pub struct Handle<'a> {
     pub(crate) buildsys: LfBuildsys<'a>,
 

@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// A C++ Toolchain, because they are not object-safe
+#[derive(Debug)]
 pub enum Tc {
     /// C++ GCC toolchain
     CPPGcc,

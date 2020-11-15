@@ -7,7 +7,10 @@ use crate::interpreter::env::FileFrame;
 pub(super) fn run_statement(_frame: &mut FileFrame, statement: &Statement) {
     trace!("Executing statement at {:#?}", statement.get_rng());
     match statement {
-        Statement::FuncCall(call) => println!("Func call {}", call.get_name()),
+        Statement::FuncCall(call) => {
+            // _frame.with_context(|context| call.get_rng())
+            // println!("Func call {}", call.get_name())
+        }
         Statement::MethodCall(_)
         | Statement::Declaration(_)
         | Statement::Assignment(_)

@@ -160,7 +160,7 @@ impl<'a> Lexer<'a> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct LexicalError {
     pub(crate) token: Tk,
     pub(crate) span: Span,

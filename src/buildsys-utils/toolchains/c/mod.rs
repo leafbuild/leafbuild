@@ -12,6 +12,7 @@ use crate::buildsys_utils::toolchains::c::clang::Clang;
 use std::path::{Path, PathBuf};
 
 /// Stands for Toolchain; an enum to store all possible values because the [`CToolchain`] trait is not object-safe.
+#[derive(Debug)]
 pub enum Tc {
     /// The Gcc C toolchain (gcc + ld)
     Gcc,

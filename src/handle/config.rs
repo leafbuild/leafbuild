@@ -3,7 +3,7 @@ use crate::diagnostics::DiagConfig;
 use std::path::PathBuf;
 
 /// The configuration structure
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Config {
     error_cascade: bool,
     pub(crate) output_directory: PathBuf,

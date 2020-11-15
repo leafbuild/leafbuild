@@ -8,12 +8,15 @@ use crate::{diagnostics::errors::LeafParseError, grammar, handle::Handle};
 use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
+use tracing::{span, Level};
+
+include!("mod_name.rs");
 
 /// Couldn't interpret something or validate something
 #[derive(Error, Debug)]
 pub enum InterpretFailure {
     /// Cannot read the source file
-    #[error("cannot read file {0:?}")]
+    #[error("cannot read file {0:?}: {1}")]
     CannotReadFile(PathBuf, #[source] io::Error),
 
     /// Cannot validate the configuration at the end.
@@ -21,7 +24,7 @@ pub enum InterpretFailure {
     Validate(#[from] ConfigurationError),
 
     /// Cannot write the results
-    #[error("cannot write results")]
+    #[error(transparent)]
     CannotWriteResults(#[from] WriteResultsError),
 }
 /// Starts the interpreter on the given path, with the given handle and modifies the handle at the end.
@@ -32,8 +35,11 @@ pub enum InterpretFailure {
 pub fn execute_on<'a>(
     handle: &'a mut Handle<'a>,
     root_path: &PathBuf,
+    mod_path: LfModName,
 ) -> Result<&'a mut Handle<'a>, InterpretFailure> {
-    info!("Entering folder {:?}", root_path);
+    let span = span!(Level::TRACE, "execute_on", path = %mod_path.0.as_str());
+    let _span_guard = span.enter();
+    info!("Entered {}", mod_path.0.as_str());
 
     let build_decl_file = root_path.join("build.leaf");
     let content = std::fs::read_to_string(build_decl_file)
@@ -45,7 +51,7 @@ pub fn execute_on<'a>(
             let fid = handle
                 .buildsys
                 .register_new_file(root_path.to_string_lossy().to_string(), content);
-            let mut frame = env::FileFrame::new(fid);
+            let mut frame = env::FileFrame::new(fid, mod_path);
             build_definition
                 .get_statements()
                 .iter()
@@ -61,6 +67,7 @@ pub fn execute_on<'a>(
             );
         }
     }
+
     info!("Leaving folder {:?}", root_path);
 
     Ok(&mut *handle)

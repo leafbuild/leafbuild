@@ -3,6 +3,7 @@
 use std::str::FromStr;
 
 /// C++ standard
+#[derive(Copy, Clone, Debug)]
 pub enum STD {
     /// C++98
     CPP98,
@@ -38,12 +39,14 @@ impl ToString for STD {
 }
 
 /// Compilation flag
+#[derive(Debug, Clone, Copy)]
 pub enum CXXFlag {
     /// Compile with position independent code (-fPIC in gcc/clang)
     PositionIndependentCode,
 }
 
 /// C++ Compilation flag
+#[derive(Debug, Clone)]
 pub enum CXXCompilationOption {
     /// From string
     FromString(String),
@@ -67,6 +70,7 @@ impl FromStr for CXXCompilationOption {
 }
 
 /// A C++ toolchain linker option
+#[derive(Debug, Clone)]
 pub enum CXXLinkOption {
     /// From string
     FromString(String),
@@ -89,6 +93,7 @@ impl FromStr for CXXLinkOption {
 }
 
 /// Multiple compilation options passed to the C++ compiler
+#[derive(Debug)]
 pub struct CXXCompilationOptions {
     options: Vec<CXXCompilationOption>,
 }
@@ -112,6 +117,7 @@ impl CXXCompilationOptions {
 }
 
 /// Multiple link options passed to the linker in a C++ toolchain
+#[derive(Debug)]
 pub struct CXXLinkOptions {
     options: Vec<CXXLinkOption>,
 }
