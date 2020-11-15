@@ -1,15 +1,19 @@
 //! The environment of the interpreter.
 use crate::diagnostics::{DiagCtx, FileId, LeafDiagnosticTrait};
 use crate::handle::config::Config;
+use crate::interpreter::LfModName;
+use derivative::Derivative;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 use thiserror::Error;
 
 /// The state of the buildsystem.
-#[derive(Default)]
+#[derive(Default, Derivative)]
+#[derivative(Debug)]
 pub struct LfBuildsys<'buildsys> {
     diagnostics_context: DiagCtx,
     output_directory: PathBuf,
+    #[derivative(Debug = "ignore")]
     __phantom: ::std::marker::PhantomData<&'buildsys ()>,
 }
 
@@ -17,7 +21,7 @@ pub struct LfBuildsys<'buildsys> {
 #[derive(Debug, Error)]
 pub enum WriteResultsError {
     /// An IO error occurred.
-    #[error("an io error occurred")]
+    #[error("IO: {0}")]
     IoError(#[from] std::io::Error),
 }
 
@@ -80,15 +84,18 @@ impl<'buildsys> LfBuildsys<'buildsys> {
 
 /// A file frame, used to hold all the context information of a single file during execution,
 /// For example names and values of variables and constants, declared types, functions, ....
+#[derive(Debug)]
 pub struct FileFrame<'frame> {
     file_id: FileId,
+    mod_name: LfModName,
     __phantom: ::std::marker::PhantomData<&'frame ()>,
 }
 
 impl<'frame> FileFrame<'frame> {
-    pub(crate) const fn new(file_id: FileId) -> Self {
+    pub(crate) const fn new(file_id: FileId, mod_name: LfModName) -> Self {
         Self {
             file_id,
+            mod_name,
             __phantom: PhantomData,
         }
     }

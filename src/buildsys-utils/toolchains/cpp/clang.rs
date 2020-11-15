@@ -6,6 +6,7 @@ use crate::buildsys_utils::toolchains::{CPPCompiler, CPPToolchain, CPPToolchainL
 use std::path::{Path, PathBuf};
 
 /// The C++ Clang toolchain structure
+#[derive(Debug)]
 pub struct CPPClangToolchain {
     clang: Clang,
 }
@@ -51,6 +52,7 @@ impl CPPToolchain for CPPClangToolchain {
 }
 
 /// The clang compiler and linker
+#[derive(Debug)]
 pub struct Clang {
     location: PathBuf,
 }

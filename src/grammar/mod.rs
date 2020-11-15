@@ -2,7 +2,19 @@
 pub mod ast;
 lalrpop_mod!(
 /// the parser
-#[allow(missing_docs, missing_crate_level_docs, clippy::all, clippy::correctness, clippy::style, clippy::complexity, clippy::cargo, clippy::pedantic, clippy::nursery)]
+#[allow(
+    missing_docs,
+    missing_crate_level_docs,
+    missing_debug_implementations,
+    missing_copy_implementations,
+    clippy::all,
+    clippy::correctness, 
+    clippy::style,
+    clippy::complexity,
+    clippy::cargo,
+    clippy::pedantic,
+    clippy::nursery
+)]
 pub leafparser, "/grammar/leafparser.rs");
 pub(crate) mod lexer;
 

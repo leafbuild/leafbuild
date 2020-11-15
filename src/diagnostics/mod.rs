@@ -6,9 +6,9 @@ use codespan_reporting::files::{Files, Location, SimpleFile};
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::ops::{Deref, Range, RangeInclusive};
+use std::ops::{Range, RangeInclusive};
 
-#[derive(Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct FileId {
     id: usize,
 }
@@ -50,6 +50,7 @@ impl PartialOrd for FileId {
 
 pub type LeafbuildFile = SimpleFile<String, String>;
 
+#[derive(Debug)]
 pub struct LeafbuildFiles {
     files: Vec<LeafbuildFile>,
 }
@@ -315,12 +316,12 @@ impl Into<Label<FileId>> for LeafLabel {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct DiagConfig {
     error_eval_cascade: bool,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct DiagCtx {
     global_diagnostics_config: DiagConfig,
     files: LeafbuildFiles,

@@ -8,6 +8,7 @@ use std::io::{Result as IoResult, Write};
 use std::path::PathBuf;
 
 /// A ninja command(just a string)
+#[derive(Debug, Clone)]
 pub struct NjCommand {
     command: String,
 }
@@ -22,6 +23,7 @@ impl NjCommand {
 }
 
 /// A ninja rule
+#[derive(Debug, Clone)]
 pub struct NjRule {
     name: String,
     command: NjCommand,
@@ -57,6 +59,7 @@ impl Rule for NjRule {
 }
 
 /// A ninja rule reference
+#[derive(Debug, Clone)]
 pub struct NjRuleRef {
     name: String,
 }
@@ -64,6 +67,7 @@ pub struct NjRuleRef {
 impl RuleRef for NjRuleRef {}
 
 /// A ninja rule argument
+#[derive(Debug, Clone)]
 pub struct NjRuleArg {
     value: String,
 }
@@ -86,6 +90,7 @@ impl RuleArg for NjRuleArg {
 }
 
 /// A ninja variable (corresponds to [`RuleOpt`])
+#[derive(Debug, Clone)]
 pub struct NjVariable {
     name: String,
     value: String,
@@ -115,6 +120,7 @@ impl RuleOpt for NjVariable {
 }
 
 /// A ninja build target
+#[derive(Debug, Clone)]
 pub struct NjTarget<'buildsys> {
     name: String,
     rule: &'buildsys NjRuleRef,
@@ -189,12 +195,14 @@ impl<'buildsys> Target<'buildsys> for NjTarget<'buildsys> {
     }
 }
 
-struct NinjaGlobalValue {
+/// Ninja global value
+#[derive(Debug, Clone)]
+pub struct NjGlobalValue {
     name: String,
     value: String,
 }
 
-impl NinjaGlobalValue {
+impl NjGlobalValue {
     fn new(name: impl Into<String>, value: impl Into<String>) -> Self {
         Self {
             name: name.into(),
@@ -203,17 +211,18 @@ impl NinjaGlobalValue {
     }
 }
 
-impl ToBuildSystemSyntax for NinjaGlobalValue {
+impl ToBuildSystemSyntax for NjGlobalValue {
     fn for_build_system(&self) -> String {
         format!("{} = {}", self.name, self.value)
     }
 }
 
 /// The ninja generator
+#[derive(Debug, Clone)]
 pub struct NjGen<'buildsys> {
     rules: Vec<NjRule>,
     targets: Vec<NjTarget<'buildsys>>,
-    global_values: Vec<NinjaGlobalValue>,
+    global_values: Vec<NjGlobalValue>,
 }
 
 impl<'buildsys> Generator<'buildsys> for NjGen<'buildsys> {
@@ -231,7 +240,7 @@ impl<'buildsys> Generator<'buildsys> for NjGen<'buildsys> {
 
     fn new_global_value(&mut self, unique_name: impl Into<String>, value: impl Into<String>) {
         self.global_values
-            .push(NinjaGlobalValue::new(unique_name, value));
+            .push(NjGlobalValue::new(unique_name, value));
     }
 
     fn new_rule(

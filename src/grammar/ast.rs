@@ -2,7 +2,7 @@
 use crate::grammar::lexer::Span;
 use std::any::Any;
 use std::convert::TryInto;
-use std::ops::{Deref, Range};
+use std::ops::Range;
 
 type Location = Range<usize>;
 
@@ -432,7 +432,7 @@ impl Loc for Opcode {
 }
 
 /// An unary operation
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum UnaryOpcode {
     /// `+`
     Plus(Span),
@@ -802,7 +802,7 @@ impl Loc for Declaration {
 }
 
 /// An assignment operation
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum AtrOp {
     /// `=`
     Atr(Span),
@@ -1070,7 +1070,7 @@ impl Loc for ForInExpr {
 }
 
 /// A control statement.
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub enum ControlStatement {
     /// `continue`
     Continue(Span),

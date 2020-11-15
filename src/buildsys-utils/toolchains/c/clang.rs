@@ -5,6 +5,7 @@ use crate::buildsys_utils::toolchains::{CCompiler, CToolchain, CToolchainLinker,
 use std::path::{Path, PathBuf};
 
 /// The struct. See the module-level docs for more.
+#[derive(Debug)]
 pub struct CClangToolchain {
     clang: Clang,
 }
@@ -45,6 +46,7 @@ impl CToolchain for CClangToolchain {
 }
 
 /// The clang compiler and linker
+#[derive(Debug)]
 pub struct Clang {
     path: PathBuf,
 }
