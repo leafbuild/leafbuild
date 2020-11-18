@@ -152,9 +152,9 @@ pub enum Atom {
     /// An identifier
     Id((String, Span)),
     /// A literal array
-    ArrayLit((Vec<Expr>, Span, Span)),
+    ArrayLit((Span, Vec<Expr>, Span)),
     /// A literal map
-    MapLit((Vec<NamedExpr>, Span, Span)),
+    MapLit((Span, Vec<NamedExpr>, Span)),
 }
 
 impl Loc for Atom {
@@ -164,7 +164,7 @@ impl Loc for Atom {
             | Self::Number((_, loc))
             | Self::Id((_, loc))
             | Self::Str((_, loc)) => loc.get_start(),
-            Self::ArrayLit((_, lbrace, _)) | Self::MapLit((_, lbrace, _)) => lbrace.get_start(),
+            Self::ArrayLit((lbrace, _, _)) | Self::MapLit((lbrace, _, _)) => lbrace.get_start(),
         }
     }
 
@@ -184,8 +184,8 @@ impl Loc for Atom {
             | Self::Number((_, loc))
             | Self::Id((_, loc))
             | Self::Str((_, loc)) => loc.as_rng(),
-            Self::ArrayLit((_, left_brace, right_brace))
-            | Self::MapLit((_, left_brace, right_brace)) => {
+            Self::ArrayLit((left_brace, _, right_brace))
+            | Self::MapLit((left_brace, _, right_brace)) => {
                 left_brace.get_start()..right_brace.get_end()
             }
         }
