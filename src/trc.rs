@@ -4,14 +4,14 @@ use ansi_term::{Color, Style};
 use itertools::Itertools;
 use std::error::Error;
 use std::fmt::Debug;
-use std::io::Write as _;
+use std::io::{BufWriter, Write};
 use std::{fmt, io};
 use tracing::field::{Field, Visit};
 use tracing::span::Attributes;
-use tracing::{Event, Id, Subscriber};
+use tracing::{Event, Id, Level, Subscriber};
 use tracing_subscriber::fmt::MakeWriter;
 use tracing_subscriber::layer::Context;
-use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::registry::{LookupSpan, SpanRef};
 use tracing_subscriber::Layer;
 
 #[derive(Debug)]
@@ -33,47 +33,56 @@ impl Visit for Data {
     }
 }
 
-struct LeafbuildSpanExtension(LfModName);
-
-struct LeafbuildFmtVisitor<'a, W>
-where
-    W: io::Write,
-{
-    writer: &'a mut W,
-    comma: bool,
+struct LeafbuildSpanExtension {
+    modname: LfModName,
 }
 
-impl<'a, W> Visit for LeafbuildFmtVisitor<'a, W>
+struct LeafbuildFmtVisitor<'a, Collector>
 where
-    W: io::Write,
+    Collector: FnMut(String) -> Result<(), io::Error>,
+{
+    collector: &'a mut Collector,
+    comma: bool,
+    err: Result<(), io::Error>,
+}
+
+impl<'a, Collector> Visit for LeafbuildFmtVisitor<'a, Collector>
+where
+    Collector: FnMut(String) -> Result<(), io::Error>,
 {
     fn record_i64(&mut self, field: &Field, value: i64) {
-        write!(self.writer, "{}={} ", field.name(), value).unwrap();
+        self.err = (self.collector)(format!("{}={} ", field.name(), value));
     }
 
     fn record_u64(&mut self, field: &Field, value: u64) {
-        write!(self.writer, "{}={} ", field.name(), value).unwrap();
+        self.err = (self.collector)(format!("{}={} ", field.name(), value));
     }
 
     fn record_bool(&mut self, field: &Field, value: bool) {
-        write!(self.writer, "{}={} ", field.name(), value).unwrap();
+        self.err = (self.collector)(format!("{}={} ", field.name(), value));
     }
 
     fn record_str(&mut self, field: &Field, value: &str) {
-        write!(self.writer, "{}={} ", field.name(), value).unwrap();
+        self.err = (self.collector)(format!("{}={} ", field.name(), value));
     }
 
     fn record_error(&mut self, field: &Field, value: &dyn Error) {
-        write!(self.writer, "{}={} ", field.name(), value).unwrap();
+        self.err = (self.collector)(format!("{}={} ", field.name(), value));
     }
 
     fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
         let name = field.name();
         if name == "message" {
-            write!(self.writer, "{:?} ", value).unwrap();
+            self.err =
+                (self.collector)(format!("{}{:?} ", if self.comma { "," } else { "" }, value));
             self.comma = true;
         } else {
-            write!(self.writer, "{}={:?} ", name, value).unwrap();
+            self.err = (self.collector)(format!(
+                "{}{}={:?} ",
+                if self.comma { "," } else { "" },
+                name,
+                value
+            ));
             self.comma = true;
         }
     }
@@ -131,6 +140,158 @@ where
     cfg: Config,
 }
 
+impl<W> LeafbuildTrcLayer<W>
+where
+    W: MakeWriter + 'static,
+{
+    fn should_ignore_event(&self, event: &Event<'_>) -> bool {
+        // this comparison should be inverted
+        // ----
+        // the more verbose levels are supposed to compare greater than the less verbose ones
+        // error is supposed to be the lowest
+        //
+        // <https://github.com/tokio-rs/tracing/blob/6b272c6c4ed02bef9c8409b8fbe0db6bc87abc12/tracing-core/src/metadata.rs#L623-L650>
+        &self.cfg.level < event.metadata().level()
+    }
+
+    fn format_level<Collector>(
+        &self,
+        level: Level,
+        mut collector: Collector,
+    ) -> Result<(), io::Error>
+    where
+        Collector: FnMut(String) -> Result<(), io::Error>,
+    {
+        let s = level.format_with_style(self.cfg.ansi, |s| match level {
+            tracing::Level::TRACE => s.fg(Color::Cyan),
+            tracing::Level::DEBUG => s.fg(Color::Green),
+            tracing::Level::INFO => s.fg(Color::White),
+            tracing::Level::WARN => s.fg(Color::Yellow),
+            tracing::Level::ERROR => s.fg(Color::Red),
+        });
+        collector(s)
+    }
+
+    fn format_leafbuild_mod_path<'scope, S, Collector>(
+        &self,
+        scopes: impl Iterator<Item = SpanRef<'scope, S>>,
+        mut collector: Collector,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+        Collector: FnMut(String) -> Result<(), io::Error>,
+    {
+        let s = scopes
+            .filter_map(|span| {
+                Some(
+                    span.extensions()
+                        .get::<LeafbuildSpanExtension>()?
+                        .modname
+                        .0
+                        .format_with_style(self.cfg.ansi, |s| s.fg(Color::Blue).bold()),
+                )
+            })
+            .join(&" > ".format_with_style(self.cfg.ansi, |s| s.fg(Color::Green).bold()));
+
+        collector(s)
+    }
+
+    fn format_event_fields<Collector>(
+        event: &Event,
+        mut collector: Collector,
+    ) -> Result<(), io::Error>
+    where
+        Collector: FnMut(String) -> Result<(), io::Error>,
+    {
+        let mut visitor = LeafbuildFmtVisitor {
+            collector: &mut collector,
+            comma: false,
+            err: Ok(()),
+        };
+        event.record(&mut visitor);
+
+        visitor.err
+    }
+
+    fn format_debug_if_in_debug_mode<'scope, S, Collector>(
+        &self,
+        scopes: impl Iterator<Item = SpanRef<'scope, S>>,
+        event: &Event<'_>,
+        collector: Collector,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+        Collector: FnMut(String) -> Result<(), io::Error>,
+    {
+        if self.cfg.debug_mode {
+            self.format_debug(scopes, event, collector)?;
+        }
+
+        Ok(())
+    }
+
+    fn format_debug<'scope, S, Collector>(
+        &self,
+        scopes: impl Iterator<Item = SpanRef<'scope, S>>,
+        event: &Event<'_>,
+        collector: Collector,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+        Collector: FnMut(String) -> Result<(), io::Error>,
+    {
+        self.format_debug_scope(scopes)
+            .into_iter()
+            .chain(std::iter::once(self.format_debug_event(event)))
+            .try_for_each(collector)
+    }
+
+    fn format_debug_scope<'scope, S>(
+        &self,
+        scope: impl Iterator<Item = SpanRef<'scope, S>>,
+    ) -> Vec<String>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+    {
+        scope.map(|span| self.format_scope(&span)).collect()
+    }
+
+    fn format_scope<'scope, S>(&self, scope: &SpanRef<'scope, S>) -> String
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+    {
+        let md = scope.metadata();
+        let file = md.file().unwrap_or_default();
+        let line = md.line().unwrap_or_default();
+        let rs_mod_path = md.module_path().unwrap_or_default();
+        let name = md.name();
+
+        format!(
+            "  {} {}::{}, location={}:{}\n",
+            "in".format_with_style(self.cfg.ansi, |s| s.fg(Color::Cyan)),
+            rs_mod_path.format_with_style(self.cfg.ansi, |s| s.fg(Color::Green)),
+            name.format_with_style(self.cfg.ansi, |s| s.fg(Color::Purple)),
+            file.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            line.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+        )
+    }
+
+    fn format_debug_event(&self, event: &Event<'_>) -> String {
+        let md = event.metadata();
+        let file = md.file().unwrap_or_default();
+        let line = md.line().unwrap_or_default();
+        let rs_mod_path = md.module_path().unwrap_or_default();
+
+        format!(
+            "  {}: location={}:{}, rust module path={}\n",
+            "at".format_with_style(self.cfg.ansi, |s| s.fg(Color::Cyan)),
+            file.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            line.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            rs_mod_path.format_with_style(self.cfg.ansi, |s| s.fg(Color::Green))
+        )
+    }
+}
+
 impl LeafbuildTrcLayer<fn() -> io::Stdout> {
     /// Creates a new leafbuild tracing layer from the configuration.
     #[must_use]
@@ -164,83 +325,11 @@ where
     }
 
     fn on_event(&self, event: &Event<'_>, ctx: Context<'_, S>) {
-        let level = event.metadata().level();
-        // this comparison should be inverted
-        // ----
-        // the more verbose levels are supposed to compare greater than the less verbose ones
-        // error is supposed to be the lowest
-        //
-        // <https://github.com/tokio-rs/tracing/blob/6b272c6c4ed02bef9c8409b8fbe0db6bc87abc12/tracing-core/src/metadata.rs#L623-L650>
-        if &self.cfg.level < level {
+        if self.should_ignore_event(event) {
             return;
         }
 
-        let level_str = level.format_with_style(self.cfg.ansi, |s| match *level {
-            tracing::Level::TRACE => s.fg(Color::Cyan),
-            tracing::Level::DEBUG => s.fg(Color::Green),
-            tracing::Level::INFO => s.fg(Color::White),
-            tracing::Level::WARN => s.fg(Color::Yellow),
-            tracing::Level::ERROR => s.fg(Color::Red),
-        });
-
-        let path_sep = " > ".format_with_style(self.cfg.ansi, |s| s.bold().fg(Color::Green));
-        let mod_path = ctx
-            .scope()
-            .filter_map(|span| {
-                span.extensions()
-                    .get::<LeafbuildSpanExtension>()
-                    .map(|extension| {
-                        extension
-                            .0
-                             .0
-                            .format_with_style(self.cfg.ansi, |s| s.fg(Color::Blue).bold())
-                    })
-            })
-            .join(&path_sep);
-        let mut w = self.make_writer.make_writer();
-
-        write!(w, "{} {}: ", mod_path, level_str).unwrap();
-
-        event.record(&mut LeafbuildFmtVisitor {
-            writer: &mut w,
-            comma: false,
-        });
-
-        writeln!(w).unwrap();
-        if self.cfg.debug_mode {
-            ctx.scope().for_each(|span_ref| {
-                let md = span_ref.metadata();
-                let file = md.file().unwrap_or_default();
-                let line = md.line().unwrap_or_default();
-                let rs_mod_path = md.module_path().unwrap_or_default();
-                let name = md.name();
-
-                writeln!(
-                    w,
-                    "  {} {}::{}, location={}:{}",
-                    "in".format_with_style(self.cfg.ansi, |s| s.fg(Color::Cyan)),
-                    rs_mod_path.format_with_style(self.cfg.ansi, |s| s.fg(Color::Green)),
-                    name.format_with_style(self.cfg.ansi, |s| s.fg(Color::Purple)),
-                    file.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-                    line.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-                )
-                .unwrap();
-            });
-
-            let file = event.metadata().file().unwrap_or_default();
-            let line = event.metadata().line().unwrap_or_default();
-            let rs_mod_path = event.metadata().module_path().unwrap_or_default();
-
-            writeln!(
-                w,
-                "  {}: location={}:{}, rust module path={}",
-                "at".format_with_style(self.cfg.ansi, |s| s.fg(Color::Cyan)),
-                file.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-                line.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-                rs_mod_path.format_with_style(self.cfg.ansi, |s| s.fg(Color::Green))
-            )
-            .unwrap();
-        }
+        self.format_event_and_write(event, ctx).unwrap();
     }
 
     fn on_enter(&self, id: &tracing::Id, ctx: Context<S>) {
@@ -255,7 +344,9 @@ where
             }
         });
         if let Some(path) = path {
-            ext.insert(LeafbuildSpanExtension(LfModName::new(path)));
+            ext.insert(LeafbuildSpanExtension {
+                modname: LfModName::new(path),
+            });
         }
     }
 }
@@ -290,5 +381,67 @@ where
         F: FnOnce(Style) -> Style,
     {
         self.do_with_ansi(ansi, |s| f(Style::new()).paint(s.to_string()).to_string())
+    }
+}
+
+trait Formatter<T = ()> {
+    fn get_handle(&self) -> T;
+
+    fn format_event_and_write<S>(
+        &self,
+        event: &Event<'_>,
+        ctx: Context<'_, S>,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug;
+}
+
+struct LeafbuildTrcLayerCollector<W>(BufWriter<W>)
+where
+    W: Write;
+
+impl<W> LeafbuildTrcLayerCollector<W>
+where
+    W: Write,
+{
+    fn collect(&mut self, s: &str) -> Result<(), io::Error> {
+        self.0.write_all(s.as_bytes())
+    }
+
+    fn flush(&mut self) -> Result<(), io::Error> {
+        self.0.flush()
+    }
+}
+
+impl<W> Formatter<LeafbuildTrcLayerCollector<W::Writer>> for LeafbuildTrcLayer<W>
+where
+    W: MakeWriter + 'static,
+{
+    fn get_handle(&self) -> LeafbuildTrcLayerCollector<W::Writer> {
+        LeafbuildTrcLayerCollector(BufWriter::with_capacity(
+            4096,
+            self.make_writer.make_writer(),
+        ))
+    }
+
+    fn format_event_and_write<S>(
+        &self,
+        event: &Event<'_>,
+        ctx: Context<'_, S>,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+    {
+        let mut collector = self.get_handle();
+        self.format_leafbuild_mod_path(ctx.scope(), |s| collector.collect(&s))
+            .and_then(|_| collector.collect(" "))
+            .and_then(|_| self.format_level(*event.metadata().level(), |s| collector.collect(&s)))
+            .and_then(|_| collector.collect(": "))
+            .and_then(|_| Self::format_event_fields(event, |s| collector.collect(&s)))
+            .and_then(|_| collector.collect("\n"))
+            .and_then(|_| {
+                self.format_debug_if_in_debug_mode(ctx.scope(), event, |s| collector.collect(&s))
+            })
+            .and_then(|_| collector.flush())
     }
 }
