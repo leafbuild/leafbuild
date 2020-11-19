@@ -75,6 +75,22 @@ impl<'buildsys> LfBuildsys<'buildsys> {
             });
     }
 
+    pub(crate) fn register_file_and_report_chain<F, It, T>(
+        &mut self,
+        name: &str,
+        source: &str,
+        diagnostics: F,
+    ) where
+        F: FnOnce(FileId) -> It,
+        It: Iterator<Item = T>,
+        T: LeafDiagnosticTrait,
+    {
+        self.diagnostics_context
+            .with_temp_file(name, source, |ctx, file_id| {
+                diagnostics(file_id).for_each(|diagnostic| ctx.report_diagnostic(diagnostic));
+            });
+    }
+
     pub(crate) fn write_results(&self) -> Result<(), WriteResultsError> {
         std::fs::write(self.output_directory.join("build.ninja"), "")?;
 

@@ -1,8 +1,9 @@
 //! AST structures
 use crate::grammar::lexer::Span;
 use std::any::Any;
-use std::convert::TryInto;
+use std::num::ParseIntError;
 use std::ops::Range;
+use std::str::FromStr;
 
 type Location = Range<usize>;
 
@@ -31,113 +32,6 @@ pub enum NumVal {
     U32(u32),
     /// u64 number
     U64(u64),
-}
-
-macro_rules! add_digit_decl {
-    ($name:ident, $coef:literal) => {
-        const fn $name(self, digit: u8) -> Self {
-            match self {
-                Self::I32(v) => Self::I32(v * $coef + (digit as i32)),
-                Self::I64(v) => Self::I64(v * $coef + (digit as i64)),
-                Self::U32(v) => Self::U32(v * $coef + (digit as u32)),
-                Self::U64(v) => Self::U64(v * $coef + (digit as u64)),
-            }
-        }
-    };
-}
-
-impl NumVal {
-    fn to_boxed_value(self) -> Box<dyn Any> {
-        match self {
-            Self::I32(v) => Box::new(v),
-            Self::I64(v) => Box::new(v),
-            Self::U32(v) => Box::new(v),
-            Self::U64(v) => Box::new(v),
-        }
-    }
-
-    add_digit_decl! {add_hex_digit, 16}
-    add_digit_decl! {add_oct_digit, 8}
-    add_digit_decl! {add_bin_digit, 2}
-    add_digit_decl! {add_dec_digit, 10}
-}
-
-impl From<&str> for NumVal {
-    /// parse a number from a number literal string
-    fn from(s: &str) -> Self {
-        #[derive(Copy, Clone)]
-        enum Tp {
-            I32,
-            I64,
-            U32,
-            U64,
-        }
-        impl Tp {
-            const fn into_unsigned(self) -> Self {
-                match self {
-                    Self::I32 => Self::U32,
-                    Self::I64 => Self::U64,
-                    x => x,
-                }
-            }
-            const fn into_long(self) -> Self {
-                match self {
-                    Self::I32 => Self::I64,
-                    Self::U32 => Self::U64,
-                    x => x,
-                }
-            }
-            const fn into_default_num_val(self) -> NumVal {
-                match self {
-                    Self::I32 => NumVal::I32(0),
-                    Self::I64 => NumVal::I64(0),
-                    Self::U32 => NumVal::U32(0),
-                    Self::U64 => NumVal::U64(0),
-                }
-            }
-        }
-        let mut tp = Tp::I32;
-        s.chars()
-            .rev()
-            .take_while(|chr| matches!(chr, 'u' | 'U' | 'l' | 'L'))
-            .for_each(|chr| match chr {
-                'u' | 'U' => {
-                    tp = tp.into_unsigned();
-                }
-                'l' | 'L' => {
-                    tp = tp.into_long();
-                }
-                _ => {}
-            });
-        if s.starts_with("0x") {
-            s.chars()
-                .skip(2)
-                .take_while(|chr| chr.is_digit(16))
-                .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_hex_digit(chr.to_digit(16).unwrap().try_into().unwrap())
-                })
-        } else if s.starts_with("0b") {
-            s.chars()
-                .skip(2)
-                .take_while(|chr| chr.is_digit(2))
-                .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_bin_digit(chr.to_digit(2).unwrap().try_into().unwrap())
-                })
-        } else if s.starts_with('0') {
-            s.chars()
-                .skip(1)
-                .take_while(|chr| chr.is_digit(8))
-                .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_oct_digit(chr.to_digit(8).unwrap().try_into().unwrap())
-                })
-        } else {
-            s.chars()
-                .take_while(|chr| chr.is_digit(10))
-                .fold(tp.into_default_num_val(), |nmv, chr| {
-                    nmv.add_dec_digit(chr.to_digit(10).unwrap().try_into().unwrap())
-                })
-        }
-    }
 }
 
 /// A small building block for expressions
@@ -1198,5 +1092,114 @@ impl BuildDefinition {
     #[must_use]
     pub const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements
+    }
+}
+
+#[derive(Copy, Clone)]
+enum Tp {
+    I32,
+    I64,
+    U32,
+    U64,
+}
+impl Tp {
+    const fn into_unsigned(self) -> Self {
+        match self {
+            Self::I32 => Self::U32,
+            Self::I64 => Self::U64,
+            x => x,
+        }
+    }
+
+    const fn into_long(self) -> Self {
+        match self {
+            Self::I32 => Self::I64,
+            Self::U32 => Self::U64,
+            x => x,
+        }
+    }
+
+    fn create_from_str(self, s: &str, radix: u32) -> Result<NumVal, ParseIntError> {
+        match self {
+            Self::I32 => i32::from_str_radix(s, radix).map(NumVal::I32),
+            Self::U32 => u32::from_str_radix(s, radix).map(NumVal::U32),
+            Self::I64 => i64::from_str_radix(s, radix).map(NumVal::I64),
+            Self::U64 => u64::from_str_radix(s, radix).map(NumVal::U64),
+        }
+    }
+}
+
+impl NumVal {
+    fn to_boxed_value(self) -> Box<dyn Any> {
+        match self {
+            Self::I32(v) => Box::new(v),
+            Self::I64(v) => Box::new(v),
+            Self::U32(v) => Box::new(v),
+            Self::U64(v) => Box::new(v),
+        }
+    }
+}
+
+impl FromStr for NumVal {
+    type Err = ParseIntError;
+    /// parse a number from a number literal string
+    fn from_str(s: &str) -> Result<Self, ParseIntError> {
+        let mut tp = Tp::I32;
+        s.chars()
+            .rev()
+            .take_while(|chr| matches!(chr, 'u' | 'U' | 'l' | 'L'))
+            .for_each(|chr| match chr {
+                'u' | 'U' => {
+                    tp = tp.into_unsigned();
+                }
+                'l' | 'L' => {
+                    tp = tp.into_long();
+                }
+                _ => {}
+            });
+        if s.starts_with("0x") {
+            Self::parse_hex(s, tp)
+        } else if s.starts_with("0b") {
+            Self::parse_bin(s, tp)
+        } else if s.starts_with('0') {
+            Self::parse_oct(s, tp)
+        } else {
+            Self::parse_dec(s, tp)
+        }
+    }
+}
+
+impl NumVal {
+    fn parse_hex(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
+        // s = "0x.."
+        tp.create_from_str(
+            s.trim_start_matches("0x").trim_end_matches(Self::is_suffix),
+            16,
+        )
+    }
+
+    fn parse_bin(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
+        // s = "0b..."
+        tp.create_from_str(
+            s.trim_start_matches("0b").trim_end_matches(Self::is_suffix),
+            2,
+        )
+    }
+
+    fn parse_oct(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
+        // s = "0..."
+        tp.create_from_str(
+            s.trim_start_matches('0').trim_end_matches(Self::is_suffix),
+            8,
+        )
+    }
+
+    fn parse_dec(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
+        // s = "..."
+        tp.create_from_str(s.trim_end_matches(Self::is_suffix), 10)
+    }
+
+    const fn is_suffix(chr: char) -> bool {
+        matches!(chr, 'u' | 'U' | 'l' | 'L')
     }
 }
