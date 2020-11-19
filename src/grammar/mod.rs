@@ -19,16 +19,17 @@ pub leafparser, "/grammar/leafparser.rs");
 pub(crate) mod lexer;
 
 use crate::grammar::lexer::LexicalError;
-use lalrpop_util::ParseError;
+use lalrpop_util::{ErrorRecovery, ParseError};
 pub use lexer::Span;
 
 /// Parses the source and returns the definition.
 /// # Errors
 /// The parse error that prevents the proper AST from being built.
-pub fn parse(
-    source: &str,
-) -> Result<ast::BuildDefinition, ParseError<usize, lexer::Token, LexicalError>> {
+pub fn parse<'input>(
+    source: &'input str,
+    errors: &mut Vec<ErrorRecovery<usize, lexer::Token<'input>, LexicalError>>,
+) -> Result<ast::BuildDefinition, ParseError<usize, lexer::Token<'input>, LexicalError>> {
     leafparser::BuildDefinitionParser::new()
-        .parse(source, lexer::Lexer::new(source))
+        .parse(source, errors, lexer::Lexer::new(source))
         .map(ast::BuildDefinition::new)
 }

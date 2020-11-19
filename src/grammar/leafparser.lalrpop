@@ -1,3 +1,6 @@
+use std::str::FromStr;
+use lalrpop_util::ErrorRecovery;
+
 use crate::{
 	grammar::{
 		lexer,
@@ -6,13 +9,18 @@ use crate::{
 	},
 };
 
-grammar<'input>(input: &'input str);
+grammar<'input, 'err>(
+    input: &'input str,
+    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, lexer::LexicalError>>,
+);
 
 Spanned<Rule>: (Rule, Span) = <start: @L> <rule: Rule> <end: @R> => (rule, Span::new(start, end));
 SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
 
 SingleComma: () = {
     "," => (),
+
+    ! => errors.push(<>)
 }
 
 #[inline]
@@ -25,11 +33,11 @@ Comma<Rule>: Vec<Rule> =
 #[inline]
 CommaNoTrailing<Rule>: Vec<Rule> = <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
 
-IdExpressionUnspanned: String = <r"[a-zA-Z_][a-zA-Z0-9_]*"> => String::from(<>);
+IdExpressionUnspanned: String = r"[a-zA-Z_][a-zA-Z0-9_]*" => String::from(<>);
 
 IdExpression = Spanned<IdExpressionUnspanned>;
 
-NumTok: NumVal = <r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?"> => NumVal::from(<>);
+NumTok: NumVal = r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?" => NumVal::from_str(<>).unwrap();
 
 Num = Spanned<NumTok>;
 

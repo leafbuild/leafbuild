@@ -44,7 +44,18 @@ pub fn execute_on<'a>(
     let build_decl_file = root_path.join("build.leaf");
     let content = std::fs::read_to_string(build_decl_file)
         .map_err(|err| InterpretFailure::CannotReadFile(root_path.join("build.leaf"), err))?;
-    let result = grammar::parse(&content);
+    let mut errors = vec![];
+    let result = grammar::parse(&content, &mut errors);
+
+    handle.buildsys.register_file_and_report_chain(
+        &root_path.to_string_lossy().to_string(),
+        &content,
+        |fid| {
+            errors
+                .into_iter()
+                .map(move |err| LeafParseError::from((fid, err.error)))
+        },
+    );
 
     match result {
         Ok(build_definition) => {
