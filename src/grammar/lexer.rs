@@ -2,7 +2,7 @@ use logos::Logos;
 use std::ops::Range;
 
 /// A span in the source code
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Span {
     start: usize,
     end: usize,
@@ -15,7 +15,7 @@ impl Span {
     }
 
     #[must_use]
-    pub(crate) const fn as_rng(&self) -> Range<usize> {
+    pub(crate) const fn get_rng(&self) -> Range<usize> {
         self.start..self.end
     }
 
@@ -127,7 +127,7 @@ pub enum Tk {
     True,
     #[token("false")]
     False,
-    #[regex("([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?")]
+    #[regex("([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|0)[uU]?[lL]?")]
     Number,
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
     Id,
@@ -147,7 +147,7 @@ pub struct Token<'data> {
     pub(crate) token: Tk,
     pub(crate) data: &'data str,
 }
-pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
+pub type LxrSpanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
 pub struct Lexer<'a> {
     lexer: logos::Lexer<'a, Tk>,
@@ -167,7 +167,7 @@ pub struct LexicalError {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Spanned<Token<'a>, usize, LexicalError>;
+    type Item = LxrSpanned<Token<'a>, usize, LexicalError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.lexer.next();

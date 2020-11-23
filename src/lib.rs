@@ -39,6 +39,7 @@ extern crate codespan_reporting;
 extern crate lalrpop_util;
 #[macro_use]
 extern crate tracing;
+extern crate leafbuild_derive;
 extern crate term;
 extern crate thiserror;
 
