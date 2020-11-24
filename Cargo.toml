@@ -16,10 +16,15 @@ build = "build.rs" # LALRPOP preprocessing
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["c", "cpp"]
+default = ["c", "cpp", "cmake-ml"]
 
 c = []
 cpp = ["c"]
+
+ml = []
+
+cmake-ml = ["c", "ml"]
+meson-ml = ["ml"]
 
 [dependencies]
 itertools = "0.9"
@@ -40,6 +45,8 @@ atty = "0.2.14"
 
 tracing = "0.1"
 tracing-subscriber = "0.2"
+
+leafbuild_derive = { path = "leafbuild_derive" }
 
 [build-dependencies]
 lalrpop = "0.19"

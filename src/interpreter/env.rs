@@ -1,8 +1,11 @@
 //! The environment of the interpreter.
 use crate::diagnostics::{DiagCtx, FileId, LeafDiagnosticTrait};
 use crate::handle::config::Config;
+use crate::interpreter::internal::fun;
+use crate::interpreter::internal::values::Value;
 use crate::interpreter::LfModName;
 use derivative::Derivative;
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -115,4 +118,19 @@ impl<'frame> FileFrame<'frame> {
             __phantom: PhantomData,
         }
     }
+}
+
+/// Name lookup data. A stack of those make up a file frame
+#[derive(Debug)]
+pub struct SemiFrame<'frame> {
+    name_lookup: NameLookup<'frame>,
+
+    parent_frame: Option<&'frame SemiFrame<'frame>>,
+}
+
+/// A name lookup table
+#[derive(Debug)]
+pub struct NameLookup<'frame> {
+    variables: HashMap<String, Box<dyn Value<'frame>>>,
+    functions: HashMap<String, fun::Fun>,
 }

@@ -55,7 +55,7 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
             LeafParseError::LexicalError { file_id, error } => LeafDiagnostic::error()
                 .with_code(PARSE_ERROR)
                 .with_message("Lexer error")
-                .with_label(LeafLabel::primary(file_id, error.span.as_rng()).with_message("here")),
+                .with_label(LeafLabel::primary(file_id, error.span.get_rng()).with_message("here")),
         }
     }
 
