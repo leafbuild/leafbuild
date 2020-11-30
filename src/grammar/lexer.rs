@@ -1,11 +1,19 @@
+use crate::grammar::GrmError;
 use logos::Logos;
+use std::fmt;
 use std::ops::Range;
 
 /// A span in the source code
-#[derive(Copy, Clone, Debug, Ord, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Span {
     start: usize,
     end: usize,
+}
+
+impl fmt::Debug for Span {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}..{}", self.start, self.end)
+    }
 }
 
 impl Span {
@@ -167,15 +175,15 @@ pub struct LexicalError {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = LxrSpanned<Token<'a>, usize, LexicalError>;
+    type Item = LxrSpanned<Token<'a>, usize, GrmError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let token = self.lexer.next();
         token.map(|token| match token {
-            Tk::Error => Err(LexicalError {
+            Tk::Error => Err(GrmError::from(LexicalError {
                 token,
                 span: Span::from(self.lexer.span()),
-            }),
+            })),
             token => {
                 let span = self.lexer.span();
                 Ok((

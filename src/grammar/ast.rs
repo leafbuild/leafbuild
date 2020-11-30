@@ -933,18 +933,14 @@ impl FromStr for NumVal {
     type Err = ParseIntError;
     /// parse a number from a number literal string
     fn from_str(s: &str) -> Result<Self, ParseIntError> {
-        let mut tp = Tp::I32;
-        s.chars()
+        let mut tp = s
+            .chars()
             .rev()
-            .take_while(|chr| matches!(chr, 'u' | 'U' | 'l' | 'L'))
-            .for_each(|chr| match chr {
-                'u' | 'U' => {
-                    tp = tp.into_unsigned();
-                }
-                'l' | 'L' => {
-                    tp = tp.into_long();
-                }
-                _ => {}
+            .take_while(|chr| Self::is_suffix(*chr))
+            .fold(Tp::I32, |tp, chr| match chr {
+                'u' | 'U' => tp.into_unsigned(),
+                'l' | 'L' => tp.into_long(),
+                _ => tp,
             });
         if s.starts_with("0x") {
             Self::parse_hex(s, tp)

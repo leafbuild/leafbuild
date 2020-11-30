@@ -17,8 +17,8 @@ pub enum LeafParseError<'error> {
         token: (usize, Token<'error>, usize),
         file_id: FileId,
     },
-    LexicalError {
-        error: LexicalError,
+    Error {
+        error: GrmError,
         file_id: FileId,
     },
 }
@@ -52,10 +52,15 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
                 .with_code(PARSE_ERROR)
                 .with_message(format!("Extra token {:?}", token.1))
                 .with_label(LeafLabel::primary(file_id, token.0..token.2).with_message("here")),
-            LeafParseError::LexicalError { file_id, error } => LeafDiagnostic::error()
+            LeafParseError::Error { file_id, error } => LeafDiagnostic::error()
                 .with_code(PARSE_ERROR)
-                .with_message("Lexer error")
-                .with_label(LeafLabel::primary(file_id, error.span.get_rng()).with_message("here")),
+                .with_message(match error {
+                    GrmError::LexError(ref err) => "Lexer error".into(),
+                    GrmError::ParseIntError(ref err, _) => format!("Parsing number error: {}", err),
+                })
+                .with_label(
+                    LeafLabel::primary(file_id, error.get_span().get_rng()).with_message("here"),
+                ),
         }
     }
 
@@ -64,10 +69,8 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
     }
 }
 
-impl<'error> From<(FileId, ParseError<usize, Token<'error>, LexicalError>)>
-    for LeafParseError<'error>
-{
-    fn from((file_id, it): (FileId, ParseError<usize, Token<'error>, LexicalError>)) -> Self {
+impl<'error> From<(FileId, ParseError<usize, Token<'error>, GrmError>)> for LeafParseError<'error> {
+    fn from((file_id, it): (FileId, ParseError<usize, Token<'error>, GrmError>)) -> Self {
         match it {
             ParseError::InvalidToken { location } => Self::InvalidToken { location, file_id },
             ParseError::UnrecognizedEOF { location, expected } => Self::UnrecognizedEOF {
@@ -81,7 +84,7 @@ impl<'error> From<(FileId, ParseError<usize, Token<'error>, LexicalError>)>
                 file_id,
             },
             ParseError::ExtraToken { token } => Self::ExtraToken { token, file_id },
-            ParseError::User { error } => Self::LexicalError { error, file_id },
+            ParseError::User { error } => Self::Error { error, file_id },
         }
     }
 }

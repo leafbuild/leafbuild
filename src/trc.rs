@@ -1,5 +1,6 @@
 //! Module containing logic to format [`tracing`] events.
 use crate::interpreter::LfModName;
+use crate::utils::{AndThenDo, SomeNoneIfOwned};
 use ansi_term::{Color, Style};
 use itertools::Itertools;
 use std::error::Error;
@@ -162,7 +163,7 @@ where
     where
         Collector: FnMut(String) -> Result<(), io::Error>,
     {
-        let s = level.format_with_style(self.cfg.ansi, |s| match level {
+        let s = level.format_with_style_if(self.cfg.ansi, |s| match level {
             tracing::Level::TRACE => s.fg(Color::Cyan),
             tracing::Level::DEBUG => s.fg(Color::Green),
             tracing::Level::INFO => s.fg(Color::White),
@@ -188,10 +189,10 @@ where
                         .get::<LeafbuildSpanExtension>()?
                         .modname
                         .0
-                        .format_with_style(self.cfg.ansi, |s| s.fg(Color::Blue).bold()),
+                        .format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Blue).bold()),
                 )
             })
-            .join(&" > ".format_with_style(self.cfg.ansi, |s| s.fg(Color::Green).bold()));
+            .join(&" > ".format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Green).bold()));
 
         collector(s)
     }
@@ -268,11 +269,11 @@ where
 
         format!(
             "  {} {}::{}, location={}:{}\n",
-            "in".format_with_style(self.cfg.ansi, |s| s.fg(Color::Cyan)),
-            rs_mod_path.format_with_style(self.cfg.ansi, |s| s.fg(Color::Green)),
-            name.format_with_style(self.cfg.ansi, |s| s.fg(Color::Purple)),
-            file.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-            line.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            "in".format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Cyan)),
+            rs_mod_path.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Green)),
+            name.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Purple)),
+            file.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            line.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Yellow)),
         )
     }
 
@@ -284,10 +285,10 @@ where
 
         format!(
             "  {}: location={}:{}, rust module path={}\n",
-            "at".format_with_style(self.cfg.ansi, |s| s.fg(Color::Cyan)),
-            file.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-            line.format_with_style(self.cfg.ansi, |s| s.fg(Color::Yellow)),
-            rs_mod_path.format_with_style(self.cfg.ansi, |s| s.fg(Color::Green))
+            "at".format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Cyan)),
+            file.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            line.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Yellow)),
+            rs_mod_path.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Green))
         )
     }
 }
@@ -336,18 +337,14 @@ where
         let span = ctx.span(id).unwrap();
         let mut ext = span.extensions_mut();
         let data = ext.get_mut::<Data>().unwrap();
-        let path = data.kvs.iter().find_map(|(name, value)| {
-            if *name == "path" {
-                Some(value.clone())
-            } else {
-                None
-            }
-        });
-        if let Some(path) = path {
-            ext.insert(LeafbuildSpanExtension {
-                modname: LfModName::new(path),
+        data.kvs
+            .iter()
+            .find_map(|(name, value)| value.some_if_owned(*name == "path"))
+            .and_then_do(|path| {
+                ext.insert(LeafbuildSpanExtension {
+                    modname: LfModName::new(path),
+                })
             });
-        }
     }
 }
 
@@ -356,7 +353,7 @@ trait FormatWithAnsi {
     where
         F: FnOnce(&Self) -> String;
 
-    fn format_with_style<F>(&self, ansi: bool, f: F) -> String
+    fn format_with_style_if<F>(&self, ansi: bool, f: F) -> String
     where
         F: FnOnce(Style) -> Style;
 }
@@ -376,7 +373,7 @@ where
         }
     }
 
-    fn format_with_style<F>(&self, ansi: bool, f: F) -> String
+    fn format_with_style_if<F>(&self, ansi: bool, f: F) -> String
     where
         F: FnOnce(Style) -> Style,
     {

@@ -52,5 +52,6 @@ pub mod grammar;
 pub mod handle;
 pub mod interpreter;
 pub mod trc;
+pub(crate) mod utils;
 
 pub use cli::run;

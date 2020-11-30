@@ -77,9 +77,7 @@ pub enum InternalSubcommand {
 
 ///
 #[derive(Debug, Clap)]
-#[clap(
-    setting = AppSettings::ColoredHelp,
-)]
+#[clap(setting = AppSettings::ColoredHelp)]
 pub enum Subcommand {
     /// The build subcommand
     Build {

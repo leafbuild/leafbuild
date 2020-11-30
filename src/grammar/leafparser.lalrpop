@@ -3,6 +3,7 @@ use lalrpop_util::ErrorRecovery;
 
 use crate::{
 	grammar::{
+	    self as grm,
 		lexer,
 		lexer::*,
 		ast::*,
@@ -11,7 +12,7 @@ use crate::{
 
 grammar<'input, 'err>(
     input: &'input str,
-    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, lexer::LexicalError>>,
+    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, grm::GrmError>>,
 );
 
 SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::new(start, end));
@@ -20,7 +21,7 @@ SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(st
 SingleComma: () = {
     "," => (),
 
-    ! => errors.push(<>)
+    ! => errors.push(<>),
 }
 
 #[inline]
@@ -37,7 +38,7 @@ IdExpressionUnspanned: String = "identifier" => String::from(<>);
 
 IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
 
-NumTok: NumVal = "number" => NumVal::from_str(<>).unwrap();
+NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num).map_err(|e| lalrpop_util::ParseError::from(grm::GrmError::from((e, Span::new(start, end)))));
 
 Num = SpannedNonterminal<NumTok>;
 
@@ -89,9 +90,9 @@ NamedFuncArgs = CommaNoTrailing<NamedExpr>;
 NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
 
 
-IndexExpr: Box<Expr> = {
-    <base: ExprAtom> <open_bracket: SpannedLocation<"[">> <index: Expr> <close_bracket: SpannedLocation<"]">> => Box::new(Expr::Indexed {base, open_bracket, index, close_bracket}),
-}
+IndexExpr: Box<Expr> =
+    <base: ExprAtom> <open_bracket: SpannedLocation<"[">> <index: Expr> <close_bracket: SpannedLocation<"]">> =>
+        Box::new(Expr::Indexed {base, open_bracket, index, close_bracket});
 
 ExprAtom: Box<Expr> = {
     FuncCall => Box::new(Expr::FuncCall(<>)),
@@ -190,7 +191,8 @@ OrConditionalExpr: Box<Expr> = {
 OrOp: Opcode = SpannedLocation<"or"> => Opcode::Or(<>);
 
 TernaryExpr: Box<Expr> = {
-    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">> <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
+    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">>
+    <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
         Box::new(Expr::Ternary{condition, qmark, if_true, colon, if_false}),
     OrConditionalExpr
 }
@@ -205,13 +207,9 @@ Expr = TernaryExpr;
 //	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
 //}
 
-Declaration: Declaration =
-	SpannedLocation<"let"> IdExpression SpannedLocation<"="> Expr =>
-        Declaration::new(<>);
+Declaration: Declaration = SpannedLocation<"let"> IdExpression SpannedLocation<"="> Expr => Declaration::new(<>);
 
-Assignment: Assignment =
-	Expr AtrOp Expr =>
-        Assignment::new(<>);
+Assignment: Assignment = Expr AtrOp Expr => Assignment::new(<>);
 
 AtrOp: AtrOp = {
 	SpannedLocation<"="> => AtrOp::Atr(<>),
@@ -226,27 +224,16 @@ ArrayLit: Box<Expr> =
 	<left_brace: SpannedLocation<"{">> <args: Comma<Expr>> <right_brace: SpannedLocation<"}">> =>
         Box::new(Expr::Atom(Atom::ArrayLit(left_brace, args.into_iter().map(|x| *x).collect(), right_brace)));
 
-MapLit: Box<Expr> =
-	SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> =>
-        Box::new(Expr::Atom(Atom::MapLit(<>)));
-
+MapLit: Box<Expr> = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Box::new(Expr::Atom(Atom::MapLit(<>)));
 
 #[inline]
-ConditionalStatement: ConditionalStatement =
-	If ElseIf* Else? =>
-        ConditionalStatement::new(<>);
+ConditionalStatement: ConditionalStatement = If ElseIf* Else? => ConditionalStatement::new(<>);
 
-If: If =
-	SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
-        If::new(<>);
+If: If = SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocation<"}"> => If::new(<>);
 
-ElseIf: ElseIf =
-	SpannedLocation<"else"> If =>
-        ElseIf::new(<>);
+ElseIf: ElseIf = SpannedLocation<"else"> If => ElseIf::new(<>);
 
-Else: Else =
-	SpannedLocation<"else"> SpannedLocation<"{"> Statement+ SpannedLocation<"}"> =>
-        Else::new(<>);
+Else: Else = SpannedLocation<"else"> SpannedLocation<"{"> Statement+ SpannedLocation<"}"> => Else::new(<>);
 
 RepetitiveStatement: RepetitiveStatement =
     SpannedLocation<"foreach"> ForInExpr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
@@ -262,7 +249,7 @@ ControlStatement: ControlStatement = {
 
 extern {
     type Location = usize;
-    type Error = lexer::LexicalError;
+    type Error = grm::GrmError;
 
     enum lexer::Token<'input> {
         "+=" => Token {token: Tk::PlusEq, data: <&'input str>},

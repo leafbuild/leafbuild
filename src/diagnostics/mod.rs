@@ -2,6 +2,7 @@ pub mod errors;
 pub mod warnings;
 
 use codespan_reporting::diagnostic::{Diagnostic, Label, LabelStyle, Severity};
+use codespan_reporting::files;
 use codespan_reporting::files::{Files, Location, SimpleFile};
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use std::borrow::Borrow;
@@ -73,20 +74,36 @@ impl<'a> Files<'a> for LeafbuildFiles {
     type Name = &'a String;
     type Source = &'a String;
 
-    fn name(&'a self, id: Self::FileId) -> Option<Self::Name> {
-        self.files.get(id.id).map(LeafbuildFile::name)
+    fn name(&'a self, id: Self::FileId) -> Result<Self::Name, files::Error> {
+        self.files
+            .get(id.id)
+            .map(LeafbuildFile::name)
+            .ok_or(files::Error::FileMissing)
     }
 
-    fn source(&'a self, id: Self::FileId) -> Option<Self::Source> {
-        self.files.get(id.id).map(LeafbuildFile::source)
+    fn source(&'a self, id: Self::FileId) -> Result<Self::Source, files::Error> {
+        self.files
+            .get(id.id)
+            .map(LeafbuildFile::source)
+            .ok_or(files::Error::FileMissing)
     }
 
-    fn line_index(&self, file_id: Self::FileId, byte_index: usize) -> Option<usize> {
-        self.files.get(file_id.id)?.line_index((), byte_index)
+    fn line_index(&self, file_id: Self::FileId, byte_index: usize) -> Result<usize, files::Error> {
+        self.files
+            .get(file_id.id)
+            .ok_or(files::Error::FileMissing)
+            .and_then(|f| f.line_index((), byte_index))
     }
 
-    fn line_range(&self, file_id: Self::FileId, line_index: usize) -> Option<Range<usize>> {
-        self.files.get(file_id.id)?.line_range((), line_index)
+    fn line_range(
+        &self,
+        file_id: Self::FileId,
+        line_index: usize,
+    ) -> Result<Range<usize>, files::Error> {
+        self.files
+            .get(file_id.id)
+            .ok_or(files::Error::FileMissing)
+            .and_then(|f| f.line_range((), line_index))
     }
 }
 
@@ -107,19 +124,27 @@ impl<'file> Files<'file> for LeafBuildTempFileContainer<'file> {
     type Name = &'file str;
     type Source = &'file str;
 
-    fn name(&'file self, _id: Self::FileId) -> Option<Self::Name> {
-        Some(self.file.name())
+    fn name(&'file self, _id: Self::FileId) -> Result<Self::Name, files::Error> {
+        Ok(*self.file.name())
     }
 
-    fn source(&'file self, _id: Self::FileId) -> Option<Self::Source> {
-        Some(self.file.source())
+    fn source(&'file self, _id: Self::FileId) -> Result<Self::Source, files::Error> {
+        Ok(self.file.source())
     }
 
-    fn line_index(&'file self, _id: Self::FileId, byte_index: usize) -> Option<usize> {
+    fn line_index(
+        &'file self,
+        _id: Self::FileId,
+        byte_index: usize,
+    ) -> Result<usize, files::Error> {
         self.file.line_index((), byte_index)
     }
 
-    fn line_number(&'file self, _id: Self::FileId, line_index: usize) -> Option<usize> {
+    fn line_number(
+        &'file self,
+        _id: Self::FileId,
+        line_index: usize,
+    ) -> Result<usize, files::Error> {
         self.file.line_number((), line_index)
     }
 
@@ -128,15 +153,23 @@ impl<'file> Files<'file> for LeafBuildTempFileContainer<'file> {
         _id: Self::FileId,
         line_index: usize,
         byte_index: usize,
-    ) -> Option<usize> {
+    ) -> Result<usize, files::Error> {
         self.file.column_number((), line_index, byte_index)
     }
 
-    fn location(&'file self, _id: Self::FileId, byte_index: usize) -> Option<Location> {
+    fn location(
+        &'file self,
+        _id: Self::FileId,
+        byte_index: usize,
+    ) -> Result<Location, files::Error> {
         self.file.location((), byte_index)
     }
 
-    fn line_range(&'file self, _id: Self::FileId, line_index: usize) -> Option<Range<usize>> {
+    fn line_range(
+        &'file self,
+        _id: Self::FileId,
+        line_index: usize,
+    ) -> Result<Range<usize>, files::Error> {
         self.file.line_range((), line_index)
     }
 }
