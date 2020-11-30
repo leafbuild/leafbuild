@@ -1,8 +1,11 @@
 //! AST structures
 use crate::grammar::lexer::Span;
+use leafbuild_derive::Loc;
 use std::any::Any;
+use std::fmt;
 use std::num::ParseIntError;
 use std::ops::Range;
+use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 type Location = Range<usize>;
@@ -21,8 +24,75 @@ pub trait Loc {
     }
 }
 
+/// A spanned ast structure; holds data about where in the file a certain ast element is.
+#[derive(PartialOrd, Eq, PartialEq)]
+pub struct Spanned<T>(T, Span);
+
+impl<T> Spanned<T> {
+    /// Constructor
+    ///
+    /// Creates a Spanned<T> from the T and the span.
+    pub const fn new(v: T, span: Span) -> Self {
+        Self(v, span)
+    }
+}
+
+impl<T> fmt::Debug for Spanned<T>
+where
+    T: fmt::Debug,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Spanned")
+            .field("data", &self.0)
+            .field("location", &self.1)
+            .finish()
+    }
+}
+
+impl<T> Deref for Spanned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Spanned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
+
+impl<T> Clone for Spanned<T>
+where
+    T: Clone,
+{
+    fn clone(&self) -> Self {
+        Self(self.0.clone(), self.1)
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.0 = source.0.clone();
+        self.1 = source.1;
+    }
+}
+
+impl<T> Loc for Spanned<T> {
+    fn get_start(&self) -> usize {
+        self.1.get_start()
+    }
+
+    fn get_end(&self) -> usize {
+        self.1.get_end()
+    }
+
+    fn get_rng(&self) -> Location {
+        self.1.get_rng()
+    }
+}
+
 /// A number value
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialOrd, Eq, PartialEq)]
 pub enum NumVal {
     /// i32 number
     I32(i32),
@@ -35,95 +105,65 @@ pub enum NumVal {
 }
 
 /// A small building block for expressions
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub enum Atom {
     /// A number
-    Number((NumVal, Span)),
+    Number(#[whole_span] Spanned<NumVal>),
     /// A bool
-    Bool((bool, Span)),
+    Bool(#[whole_span] Spanned<bool>),
     /// A string
-    Str((String, Span)),
+    Str(#[whole_span] Spanned<String>),
     /// An identifier
-    Id((String, Span)),
+    Id(#[whole_span] Spanned<String>),
     /// A literal array
-    ArrayLit((Span, Vec<Expr>, Span)),
+    ArrayLit(#[start_span] Span, Vec<Expr>, #[end_span] Span),
     /// A literal map
-    MapLit((Span, Vec<NamedExpr>, Span)),
-}
-
-impl Loc for Atom {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::Bool((_, loc))
-            | Self::Number((_, loc))
-            | Self::Id((_, loc))
-            | Self::Str((_, loc)) => loc.get_start(),
-            Self::ArrayLit((lbrace, _, _)) | Self::MapLit((lbrace, _, _)) => lbrace.get_start(),
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::Bool((_, loc))
-            | Self::Number((_, loc))
-            | Self::Id((_, loc))
-            | Self::Str((_, loc)) => loc.get_end(),
-            Self::ArrayLit((_, _, rbrace)) | Self::MapLit((_, _, rbrace)) => rbrace.get_end(),
-        }
-    }
-
-    fn get_rng(&self) -> Location {
-        match self {
-            Self::Bool((_, loc))
-            | Self::Number((_, loc))
-            | Self::Id((_, loc))
-            | Self::Str((_, loc)) => loc.as_rng(),
-            Self::ArrayLit((left_brace, _, right_brace))
-            | Self::MapLit((left_brace, _, right_brace)) => {
-                left_brace.get_start()..right_brace.get_end()
-            }
-        }
-    }
+    MapLit(#[start_span] Span, Vec<NamedExpr>, #[end_span] Span),
 }
 
 /// An expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub enum Expr {
     /// A single atom
-    Atom(Atom),
+    Atom(#[whole_span] Atom),
     /// A binary operation
-    Op(Box<Expr>, Opcode, Box<Expr>),
+    Op(#[start_span] Box<Expr>, Opcode, #[end_span] Box<Expr>),
     /// A unary operation
-    UnaryOp(UnaryOpcode, Box<Expr>),
+    UnaryOp(#[start_span] UnaryOpcode, #[end_span] Box<Expr>),
     /// A function call
-    FuncCall(FuncCall),
+    FuncCall(#[whole_span] FuncCall),
     /// A method call
-    MethodCall(MethodCall),
+    MethodCall(#[whole_span] MethodCall),
     /// A property access operation
-    PropertyAccess(PropertyAccess),
+    PropertyAccess(#[whole_span] PropertyAccess),
     /// A `( Expr )` expression
     Paren {
         /// Span of left, opening parenthesis
+        #[start_span]
         lparen: Span,
         /// Expression
         expr: Box<Expr>,
         /// Span of right, closing parenthesis
+        #[end_span]
         rparen: Span,
     },
     /// An array/map indexing expression (`base [ index ]`)
     Indexed {
         /// The base expression
+        #[start_span]
         base: Box<Expr>,
         /// The span of the left, opening bracket
         open_bracket: Span,
         /// The index expression
         index: Box<Expr>,
         /// The span of the right, closing bracket
+        #[end_span]
         close_bracket: Span,
     },
     /// A ternary conditional expression
     Ternary {
         /// The condition expression
+        #[start_span]
         condition: Box<Expr>,
         /// The span of the `?`
         qmark: Span,
@@ -132,80 +172,26 @@ pub enum Expr {
         /// The span of the `:`
         colon: Span,
         /// The expression to evaluate if the condition is false
+        #[end_span]
         if_false: Box<Expr>,
     },
 }
 
-pub(crate) struct Spanned<T> {
-    data: T,
-    location: Span,
-}
-
 impl Expr {}
 
-impl Loc for Expr {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::Atom(atm) => atm.get_start(),
-            Self::FuncCall(call) => call.get_start(),
-            Self::MethodCall(call) => call.get_start(),
-            Self::Op(expr, _, _) => expr.get_start(),
-            Self::PropertyAccess(prop_access) => prop_access.get_start(),
-            Self::Paren { lparen, .. } => lparen.get_start(),
-            Self::UnaryOp(op, _) => op.get_start(),
-            Self::Indexed { base, .. } => base.get_start(),
-            Self::Ternary { condition, .. } => condition.get_start(),
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::Atom(atm) => atm.get_end(),
-            Self::FuncCall(call) => call.get_end(),
-            Self::MethodCall(call) => call.get_end(),
-            Self::PropertyAccess(prop_access) => prop_access.get_end(),
-            Self::Paren { rparen, .. } => rparen.get_end(),
-            Self::Indexed { close_bracket, .. } => close_bracket.get_end(),
-            Self::Ternary { if_false: expr, .. }
-            | Self::UnaryOp(_, expr)
-            | Self::Op(_, _, expr) => expr.get_end(),
-        }
-    }
-
-    fn get_rng(&self) -> Location {
-        match self {
-            Self::Atom(atm) => atm.get_rng(),
-            Self::FuncCall(call) => call.get_rng(),
-            Self::MethodCall(call) => call.get_rng(),
-            Self::Op(expr1, _, expr2) => expr1.get_start()..expr2.get_end(),
-            Self::UnaryOp(op, expr) => op.get_start()..expr.get_end(),
-            Self::PropertyAccess(prop_access) => prop_access.get_rng(),
-            Self::Paren { lparen, rparen, .. } => lparen.get_start()..rparen.get_end(),
-            Self::Indexed {
-                base,
-                close_bracket,
-                ..
-            } => base.get_start()..close_bracket.get_end(),
-            Self::Ternary {
-                condition,
-                if_false,
-                ..
-            } => condition.get_start()..if_false.get_end(),
-        }
-    }
-}
-
 /// A property access expression
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct PropertyAccess {
+    #[start_span]
     base: Box<Expr>,
-    property_name: (String, Span),
+    #[end_span]
+    property_name: Spanned<String>,
 }
 
 impl PropertyAccess {
     /// Constructs a new property access from the base expression and property name and span.
     #[must_use]
-    pub fn new(base: Box<Expr>, property_name: (String, Span)) -> Self {
+    pub fn new(base: Box<Expr>, property_name: Spanned<String>) -> Self {
         Self {
             base,
             property_name,
@@ -228,150 +214,68 @@ impl PropertyAccess {
     }
 }
 
-impl Loc for PropertyAccess {
-    fn get_start(&self) -> usize {
-        self.base.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.property_name.1.get_end()
-    }
-}
-
 /// A binary operation
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Loc, PartialOrd, Eq, PartialEq)]
 pub enum Opcode {
     /// `*`
-    Mul(Span),
+    Mul(#[whole_span] Span),
     /// `/`
-    Div(Span),
+    Div(#[whole_span] Span),
     /// `+`
-    Add(Span),
+    Add(#[whole_span] Span),
     /// `-`
-    Sub(Span),
+    Sub(#[whole_span] Span),
     /// `%`
-    Mod(Span),
+    Mod(#[whole_span] Span),
     /// `and`
-    And(Span),
+    And(#[whole_span] Span),
     /// `or`
-    Or(Span),
+    Or(#[whole_span] Span),
     /// `in`
-    In(Span),
+    In(#[whole_span] Span),
     /// `not in`
-    NotIn(Span),
+    NotIn(#[whole_span] Span),
     /// `==`
-    Equal(Span),
+    Equal(#[whole_span] Span),
     /// `>`
-    G(Span),
+    G(#[whole_span] Span),
     /// `<`
-    L(Span),
+    L(#[whole_span] Span),
     /// `>=`
-    GE(Span),
+    GE(#[whole_span] Span),
     /// `<=`
-    LE(Span),
+    LE(#[whole_span] Span),
     /// `!=`
-    NE(Span),
+    NE(#[whole_span] Span),
     /// `<<`
-    LBitshift(Span),
+    LBitshift(#[whole_span] Span),
     /// `>>`
-    RBitshift(Span),
+    RBitshift(#[whole_span] Span),
 }
 
 impl Opcode {}
 
-impl Loc for Opcode {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::Mul(loc)
-            | Self::Div(loc)
-            | Self::Add(loc)
-            | Self::Sub(loc)
-            | Self::Mod(loc)
-            | Self::And(loc)
-            | Self::Or(loc)
-            | Self::In(loc)
-            | Self::NotIn(loc)
-            | Self::Equal(loc)
-            | Self::G(loc)
-            | Self::L(loc)
-            | Self::GE(loc)
-            | Self::LE(loc)
-            | Self::NE(loc)
-            | Self::LBitshift(loc)
-            | Self::RBitshift(loc) => loc.get_start(),
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::Mul(loc)
-            | Self::Div(loc)
-            | Self::Add(loc)
-            | Self::Sub(loc)
-            | Self::Mod(loc)
-            | Self::And(loc)
-            | Self::Or(loc)
-            | Self::In(loc)
-            | Self::NotIn(loc)
-            | Self::Equal(loc)
-            | Self::G(loc)
-            | Self::L(loc)
-            | Self::GE(loc)
-            | Self::LE(loc)
-            | Self::NE(loc)
-            | Self::LBitshift(loc)
-            | Self::RBitshift(loc) => loc.get_end(),
-        }
-    }
-}
-
 /// An unary operation
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub enum UnaryOpcode {
     /// `+`
-    Plus(Span),
+    Plus(#[whole_span] Span),
     /// `-`
-    Minus(Span),
+    Minus(#[whole_span] Span),
     /// `not`
-    Not(Span),
+    Not(#[whole_span] Span),
     /// `~`
-    BitwiseNot(Span),
+    BitwiseNot(#[whole_span] Span),
 }
 
 impl UnaryOpcode {}
 
-impl Loc for UnaryOpcode {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::BitwiseNot(loc) | Self::Not(loc) | Self::Plus(loc) | Self::Minus(loc) => {
-                loc.get_start()
-            }
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::BitwiseNot(loc) | Self::Not(loc) | Self::Plus(loc) | Self::Minus(loc) => {
-                loc.get_end()
-            }
-        }
-    }
-
-    fn get_rng(&self) -> Location {
-        match self {
-            Self::BitwiseNot(loc) | Self::Not(loc) | Self::Plus(loc) | Self::Minus(loc) => {
-                loc.as_rng()
-            }
-        }
-    }
-}
-
 /// A function call
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
 pub struct FuncCall {
-    func_name: (String, Span),
-    func_args: FuncCallArgs,
+    func_name: Spanned<String>,
     left_paren: Span,
+    func_args: FuncCallArgs,
     right_paren: Span,
 }
 
@@ -379,7 +283,7 @@ impl FuncCall {
     /// Returns a new function call from the function name, spans of the parentheses and the arguments.
     #[must_use]
     pub const fn new(
-        name: (String, Span),
+        name: Spanned<String>,
         left_paren: Span,
         call_args: FuncCallArgs,
         right_paren: Span,
@@ -422,7 +326,7 @@ impl Loc for FuncCall {
 }
 
 /// The arguments passed to a function / method in a function / method call
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
 pub struct FuncCallArgs {
     positional_args: Vec<PositionalArg>,
     named_args: Vec<NamedExpr>,
@@ -470,28 +374,15 @@ impl FuncCallArgs {
 }
 
 /// A positional argument
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct PositionalArg {
+    #[whole_span]
     value: Expr,
 }
 
 impl PositionalArg {
     pub(crate) const fn get_value(&self) -> &Expr {
         &self.value
-    }
-}
-
-impl Loc for PositionalArg {
-    fn get_start(&self) -> usize {
-        self.value.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.value.get_end()
-    }
-
-    fn get_rng(&self) -> Location {
-        self.value.get_rng()
     }
 }
 
@@ -502,10 +393,12 @@ impl From<Box<Expr>> for PositionalArg {
 }
 
 /// A named expression. Is created from `name = value`.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct NamedExpr {
-    name: (String, Span),
+    #[start_span]
+    name: Spanned<String>,
     eq_span: Span,
+    #[end_span]
     value: Box<Expr>,
 }
 
@@ -523,18 +416,8 @@ impl NamedExpr {
     }
 }
 
-impl Loc for NamedExpr {
-    fn get_start(&self) -> usize {
-        self.name.1.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.value.get_end()
-    }
-}
-
-impl From<((String, Span), Span, Box<Expr>)> for NamedExpr {
-    fn from((name, eq_span, value): ((String, Span), Span, Box<Expr>)) -> Self {
+impl From<(Spanned<String>, Span, Box<Expr>)> for NamedExpr {
+    fn from((name, eq_span, value): (Spanned<String>, Span, Box<Expr>)) -> Self {
         Self {
             name,
             eq_span,
@@ -545,7 +428,7 @@ impl From<((String, Span), Span, Box<Expr>)> for NamedExpr {
 
 /// A method call.
 // TODO: refactor this
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
 pub struct MethodCall {
     method_property: PropertyAccess,
     args: FuncCallArgs,
@@ -596,10 +479,12 @@ impl Loc for MethodCall {
 }
 
 /// An assignment
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct Assignment {
+    #[start_span]
     bound_name: Box<Expr>,
     op: AtrOp,
+    #[end_span]
     value: Box<Expr>,
 }
 
@@ -633,29 +518,21 @@ impl Assignment {
     }
 }
 
-impl Loc for Assignment {
-    fn get_start(&self) -> usize {
-        self.bound_name.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.value.get_end()
-    }
-}
-
 /// A declaration
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct Declaration {
+    #[start_span]
     let_tok: Span,
-    name: (String, Span),
+    name: Spanned<String>,
     eq: Span,
+    #[end_span]
     value: Box<Expr>,
 }
 
 impl Declaration {
     /// Constructor
     #[must_use]
-    pub const fn new(let_tok: Span, name: (String, Span), eq: Span, value: Box<Expr>) -> Self {
+    pub const fn new(let_tok: Span, name: Spanned<String>, eq: Span, value: Box<Expr>) -> Self {
         Self {
             let_tok,
             name,
@@ -683,42 +560,32 @@ impl Declaration {
     }
 }
 
-impl Loc for Declaration {
-    #[must_use]
-    fn get_start(&self) -> usize {
-        self.let_tok.get_start()
-    }
-
-    #[must_use]
-    fn get_end(&self) -> usize {
-        self.value.get_end()
-    }
-}
-
 /// An assignment operation
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub enum AtrOp {
     /// `=`
-    Atr(Span),
+    Atr(#[whole_span] Span),
     /// `+=`
-    AddAtr(Span),
+    AddAtr(#[whole_span] Span),
     /// `-=`
-    SubAtr(Span),
+    SubAtr(#[whole_span] Span),
     /// `*=`
-    MulAtr(Span),
+    MulAtr(#[whole_span] Span),
     /// `/=`
-    DivAtr(Span),
+    DivAtr(#[whole_span] Span),
     /// `%=`
-    ModAtr(Span),
+    ModAtr(#[whole_span] Span),
 }
 
 /// An `if expr { statements }` structure
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct If {
+    #[start_span]
     if_tok: Span,
     condition: Box<Expr>,
     left_brace: Span,
     statements: Vec<Statement>,
+    #[end_span]
     right_brace: Span,
 }
 
@@ -750,31 +617,13 @@ impl If {
     }
 }
 
-impl Loc for If {
-    fn get_start(&self) -> usize {
-        self.if_tok.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.right_brace.get_end()
-    }
-}
-
 /// An `else <if>` structure
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct ElseIf {
+    #[start_span]
     else_tok: Span,
+    #[end_span]
     if_: If,
-}
-
-impl Loc for ElseIf {
-    fn get_start(&self) -> usize {
-        self.else_tok.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.if_.get_end()
-    }
 }
 
 impl ElseIf {
@@ -790,22 +639,14 @@ impl ElseIf {
 }
 
 /// An `else { statements }` structure
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct Else {
+    #[start_span]
     else_tok: Span,
     left_brace: Span,
     statements: Vec<Statement>,
+    #[end_span]
     right_brace: Span,
-}
-
-impl Loc for Else {
-    fn get_start(&self) -> usize {
-        self.else_tok.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.right_brace.get_end()
-    }
 }
 
 impl Else {
@@ -830,7 +671,7 @@ impl Else {
 }
 
 /// A conditional statement
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
 pub struct ConditionalStatement {
     initial_if: If,
     else_ifs: Vec<ElseIf>,
@@ -879,12 +720,14 @@ impl Loc for ConditionalStatement {
 }
 
 /// A repetitive statement (`foreach`)
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct RepetitiveStatement {
+    #[start_span]
     foreach_tok: Span,
     for_in_expr: ForInExpr,
     left_brace: Span,
     statements: Vec<Statement>,
+    #[end_span]
     right_brace: Span,
 }
 
@@ -917,33 +760,25 @@ impl RepetitiveStatement {
     }
 }
 
-impl Loc for RepetitiveStatement {
-    fn get_start(&self) -> usize {
-        self.for_in_expr.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.right_brace.get_end()
-    }
-}
-
 /// The `name in expression` expression found in the foreach.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub struct ForInExpr {
-    name: (String, Span),
+    #[start_span]
+    name: Spanned<String>,
     in_tok: Span,
+    #[end_span]
     expr: Box<Expr>,
 }
 
 impl ForInExpr {
     /// Constructor
     #[must_use]
-    pub const fn new(name: (String, Span), in_tok: Span, expr: Box<Expr>) -> Self {
+    pub const fn new(name: Spanned<String>, in_tok: Span, expr: Box<Expr>) -> Self {
         Self { name, in_tok, expr }
     }
 
     #[must_use]
-    pub(crate) const fn get_name(&self) -> &(String, Span) {
+    pub(crate) const fn get_name(&self) -> &Spanned<String> {
         &self.name
     }
 
@@ -953,88 +788,32 @@ impl ForInExpr {
     }
 }
 
-impl Loc for ForInExpr {
-    fn get_start(&self) -> usize {
-        self.name.1.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.expr.get_end()
-    }
-}
-
 /// A control statement.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub enum ControlStatement {
     /// `continue`
-    Continue(Span),
+    Continue(#[whole_span] Span),
     /// `break`
-    Break(Span),
-}
-
-impl Loc for ControlStatement {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::Continue(loc) | Self::Break(loc) => loc.get_start(),
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::Continue(loc) | Self::Break(loc) => loc.get_end(),
-        }
-    }
-
-    fn get_rng(&self) -> Location {
-        match self {
-            Self::Continue(loc) | Self::Break(loc) => loc.as_rng(),
-        }
-    }
+    Break(#[whole_span] Span),
 }
 
 /// A statement.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
 pub enum Statement {
     /// Calls a function
-    FuncCall(FuncCall),
+    FuncCall(#[whole_span] FuncCall),
     /// Calls a method
-    MethodCall(MethodCall),
+    MethodCall(#[whole_span] MethodCall),
     /// Declares a variable
-    Declaration(Declaration),
+    Declaration(#[whole_span] Declaration),
     /// Assigns to a variable.
-    Assignment(Assignment),
+    Assignment(#[whole_span] Assignment),
     /// A conditional statement
-    Conditional(ConditionalStatement),
+    Conditional(#[whole_span] ConditionalStatement),
     /// A control statement
-    Control(ControlStatement),
+    Control(#[whole_span] ControlStatement),
     /// A repetitive statement
-    Repetitive(RepetitiveStatement),
-}
-
-impl Loc for Statement {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::FuncCall(call) => call.get_start(),
-            Self::MethodCall(call) => call.get_start(),
-            Self::Declaration(decl) => decl.get_start(),
-            Self::Assignment(assignment) => assignment.get_start(),
-            Self::Control(control_statement) => control_statement.get_start(),
-            Self::Conditional(conditional_statement) => conditional_statement.get_start(),
-            Self::Repetitive(repetitive) => repetitive.get_start(),
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::FuncCall(call) => call.get_end(),
-            Self::MethodCall(call) => call.get_end(),
-            Self::Declaration(decl) => decl.get_end(),
-            Self::Assignment(assignment) => assignment.get_end(),
-            Self::Control(control_statement) => control_statement.get_end(),
-            Self::Conditional(conditional_statement) => conditional_statement.get_end(),
-            Self::Repetitive(repetitive) => repetitive.get_end(),
-        }
-    }
+    Repetitive(#[whole_span] RepetitiveStatement),
 }
 
 impl<T> Loc for Vec<T>
@@ -1076,8 +855,9 @@ where
 }
 
 /// The whole build definition
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq)]
 pub struct BuildDefinition {
+    #[whole_span]
     statements: Vec<Statement>,
 }
 
@@ -1119,6 +899,15 @@ impl Tp {
         }
     }
 
+    const fn zero(self) -> NumVal {
+        match self {
+            Self::I32 => NumVal::I32(0),
+            Self::I64 => NumVal::I64(0),
+            Self::U32 => NumVal::U32(0),
+            Self::U64 => NumVal::U64(0),
+        }
+    }
+
     fn create_from_str(self, s: &str, radix: u32) -> Result<NumVal, ParseIntError> {
         match self {
             Self::I32 => i32::from_str_radix(s, radix).map(NumVal::I32),
@@ -1144,18 +933,14 @@ impl FromStr for NumVal {
     type Err = ParseIntError;
     /// parse a number from a number literal string
     fn from_str(s: &str) -> Result<Self, ParseIntError> {
-        let mut tp = Tp::I32;
-        s.chars()
+        let mut tp = s
+            .chars()
             .rev()
-            .take_while(|chr| matches!(chr, 'u' | 'U' | 'l' | 'L'))
-            .for_each(|chr| match chr {
-                'u' | 'U' => {
-                    tp = tp.into_unsigned();
-                }
-                'l' | 'L' => {
-                    tp = tp.into_long();
-                }
-                _ => {}
+            .take_while(|chr| Self::is_suffix(*chr))
+            .fold(Tp::I32, |tp, chr| match chr {
+                'u' | 'U' => tp.into_unsigned(),
+                'l' | 'L' => tp.into_long(),
+                _ => tp,
             });
         if s.starts_with("0x") {
             Self::parse_hex(s, tp)
@@ -1188,10 +973,12 @@ impl NumVal {
 
     fn parse_oct(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
         // s = "0..."
-        tp.create_from_str(
-            s.trim_start_matches('0').trim_end_matches(Self::is_suffix),
-            8,
-        )
+        let s = s.trim_start_matches('0').trim_end_matches(Self::is_suffix);
+        if s == "" {
+            return Ok(tp.zero());
+        }
+
+        tp.create_from_str(s, 8)
     }
 
     fn parse_dec(s: &str, tp: Tp) -> Result<Self, ParseIntError> {

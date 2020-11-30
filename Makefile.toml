@@ -36,22 +36,26 @@ dependencies = [
 [tasks.doc-build]
 install_crate = "mdbook"
 cwd = "doc"
+workspace = false
 command = "mdbook"
 args = ["build"]
 
 [tasks.doc-serve]
 install_crate = "mdbook"
 cwd = "doc"
+workspace = false
 command = "mdbook"
 args = ["serve"]
 
 [tasks.doc-nuke]
 cwd = "doc"
+workspace = false
 command = "rm"
 args = ["-rf", "book"]
 
 [tasks.doc-push]
 cwd = "doc/book"
+workspace = false
 script = [
     '''
     git init
@@ -67,6 +71,7 @@ dependencies = [
 
 [tasks.doc-build-highlighter]
 cwd = "doc"
+workspace = false
 script = [
     '''
     cp ./leafbuild_highlight.js hl_clone/highlight.js/src/languages/leafbuild.js
@@ -81,6 +86,7 @@ script = [
 [tasks.setup-dev-env]
 install_crate = "rusty-hook"
 install_crate_args = ["--git",  "https://github.com/swellaby/rusty-hook", "--branch", "master"]
+workspace = false
 command = "rusty-hook"
 args = ["init"]
 
@@ -95,6 +101,7 @@ script = [
 ]
 
 [tasks.clean-docs-env]
+workspace = false
 script = [
     '''
     rm -rf doc/hl_clone
@@ -103,6 +110,7 @@ script = [
 
 [tasks.verify-commit-message]
 cwd = "git"
+workspace = false
 command = "cargo"
 args = [
     "run",
@@ -114,6 +122,7 @@ args = [
 ]
 
 [tasks.ci-flow]
+workspace = false
 dependencies = [
     "check"
 ]

@@ -12,6 +12,7 @@
 - [The `docs` Repo and Documentation](dev/documentation.md)
   - [Highlighter](dev/highlighter.md)
 - [Root makefile recipes](dev/root_makefile_recipes.md)
+- [Validation checks](validation_checks.md)
 
 # Others
 - [Motivation](motivation.md)

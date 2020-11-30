@@ -3,6 +3,7 @@ use lalrpop_util::ErrorRecovery;
 
 use crate::{
 	grammar::{
+	    self as grm,
 		lexer,
 		lexer::*,
 		ast::*,
@@ -11,16 +12,16 @@ use crate::{
 
 grammar<'input, 'err>(
     input: &'input str,
-    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, lexer::LexicalError>>,
+    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, grm::GrmError>>,
 );
 
-Spanned<Rule>: (Rule, Span) = <start: @L> <rule: Rule> <end: @R> => (rule, Span::new(start, end));
+SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::new(start, end));
 SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
 
 SingleComma: () = {
     "," => (),
 
-    ! => errors.push(<>)
+    ! => errors.push(<>),
 }
 
 #[inline]
@@ -33,27 +34,27 @@ Comma<Rule>: Vec<Rule> =
 #[inline]
 CommaNoTrailing<Rule>: Vec<Rule> = <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
 
-IdExpressionUnspanned: String = r"[a-zA-Z_][a-zA-Z0-9_]*" => String::from(<>);
+IdExpressionUnspanned: String = "identifier" => String::from(<>);
 
-IdExpression = Spanned<IdExpressionUnspanned>;
+IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
 
-NumTok: NumVal = r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?" => NumVal::from_str(<>).unwrap();
+NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num).map_err(|e| lalrpop_util::ParseError::from(grm::GrmError::from((e, Span::new(start, end)))));
 
-Num = Spanned<NumTok>;
+Num = SpannedNonterminal<NumTok>;
 
 BoolTok: bool = {
     "true" => true,
     "false" => false,
 }
 
-BoolLit = Spanned<BoolTok>;
+BoolLit = SpannedNonterminal<BoolTok>;
 
 StrTok: String = {
     <s: r#"'(\\['nt\\]|[^'\\])+'"#> => String::from(&s[1..(s.len()-1)]),
     <s: r#"'''([^']*|[']{1,2}[^'])*'''"#> => String::from(&s[3..(s.len()-3)]),
 }
 
-Str = Spanned<StrTok>;
+Str = SpannedNonterminal<StrTok>;
 
 UnaryNot: UnaryOpcode = SpannedLocation<"not"> => UnaryOpcode::Not(<>);
 
@@ -88,15 +89,21 @@ NamedFuncArgs = CommaNoTrailing<NamedExpr>;
 
 NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
 
-UnaryPlusMinusOpcode: UnaryOpcode = {
-	SpannedLocation<"-"> => UnaryOpcode::Minus(<>),
-	SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
-}
+
+IndexExpr: Box<Expr> =
+    <base: ExprAtom> <open_bracket: SpannedLocation<"[">> <index: Expr> <close_bracket: SpannedLocation<"]">> =>
+        Box::new(Expr::Indexed {base, open_bracket, index, close_bracket});
 
 ExprAtom: Box<Expr> = {
     FuncCall => Box::new(Expr::FuncCall(<>)),
+    IndexExpr => <>,
     Num => Box::new(Expr::Atom(Atom::Number(<>))),
 //    MethodCall,
+}
+
+UnaryPlusMinusOpcode: UnaryOpcode = {
+	SpannedLocation<"-"> => UnaryOpcode::Minus(<>),
+	SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
 }
 
 UnaryPlusMinusExpression = {
@@ -184,7 +191,8 @@ OrConditionalExpr: Box<Expr> = {
 OrOp: Opcode = SpannedLocation<"or"> => Opcode::Or(<>);
 
 TernaryExpr: Box<Expr> = {
-    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">> <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
+    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">>
+    <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
         Box::new(Expr::Ternary{condition, qmark, if_true, colon, if_false}),
     OrConditionalExpr
 }
@@ -199,13 +207,9 @@ Expr = TernaryExpr;
 //	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
 //}
 
-Declaration: Declaration =
-	SpannedLocation<"let"> IdExpression SpannedLocation<"="> Expr =>
-        Declaration::new(<>);
+Declaration: Declaration = SpannedLocation<"let"> IdExpression SpannedLocation<"="> Expr => Declaration::new(<>);
 
-Assignment: Assignment =
-	Expr AtrOp Expr =>
-        Assignment::new(<>);
+Assignment: Assignment = Expr AtrOp Expr => Assignment::new(<>);
 
 AtrOp: AtrOp = {
 	SpannedLocation<"="> => AtrOp::Atr(<>),
@@ -218,29 +222,18 @@ AtrOp: AtrOp = {
 
 ArrayLit: Box<Expr> =
 	<left_brace: SpannedLocation<"{">> <args: Comma<Expr>> <right_brace: SpannedLocation<"}">> =>
-        Box::new(Expr::Atom(Atom::ArrayLit((left_brace, args.into_iter().map(|x| *x).collect(), right_brace))));
+        Box::new(Expr::Atom(Atom::ArrayLit(left_brace, args.into_iter().map(|x| *x).collect(), right_brace)));
 
-MapLit: Box<Expr> =
-	SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> =>
-        Box::new(Expr::Atom(Atom::MapLit((<>))));
-
+MapLit: Box<Expr> = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Box::new(Expr::Atom(Atom::MapLit(<>)));
 
 #[inline]
-ConditionalStatement: ConditionalStatement =
-	If ElseIf* Else? =>
-        ConditionalStatement::new(<>);
+ConditionalStatement: ConditionalStatement = If ElseIf* Else? => ConditionalStatement::new(<>);
 
-If: If =
-	SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
-        If::new(<>);
+If: If = SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocation<"}"> => If::new(<>);
 
-ElseIf: ElseIf =
-	SpannedLocation<"else"> If =>
-        ElseIf::new(<>);
+ElseIf: ElseIf = SpannedLocation<"else"> If => ElseIf::new(<>);
 
-Else: Else =
-	SpannedLocation<"else"> SpannedLocation<"{"> Statement+ SpannedLocation<"}"> =>
-        Else::new(<>);
+Else: Else = SpannedLocation<"else"> SpannedLocation<"{"> Statement+ SpannedLocation<"}"> => Else::new(<>);
 
 RepetitiveStatement: RepetitiveStatement =
     SpannedLocation<"foreach"> ForInExpr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
@@ -256,7 +249,7 @@ ControlStatement: ControlStatement = {
 
 extern {
     type Location = usize;
-    type Error = lexer::LexicalError;
+    type Error = grm::GrmError;
 
     enum lexer::Token<'input> {
         "+=" => Token {token: Tk::PlusEq, data: <&'input str>},
@@ -302,8 +295,8 @@ extern {
         "break" => Token {token: Tk::Break, data: <&'input str>},
         "true" => Token {token: Tk::True, data: <&'input str>},
         "false" => Token {token: Tk::False, data: <&'input str>},
-        r"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]*)[uU]?[lL]?" => Token {token: Tk::Number, data: <&'input str>},
-        r"[a-zA-Z_][a-zA-Z0-9_]*" => Token {token: Tk::Id, data: <&'input str>},
+        "number" => Token {token: Tk::Number, data: <&'input str>},
+        "identifier" => Token {token: Tk::Id, data: <&'input str>},
         r#"'(\\['nt\\]|[^'\\])+'"# => Token {token: Tk::String, data: <&'input str>},
         r#"'''([^']*|[']{1,2}[^'])*'''"# => Token {token: Tk::MultilineString, data: <&'input str>},
     }
