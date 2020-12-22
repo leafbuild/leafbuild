@@ -175,6 +175,7 @@ impl<'file> Files<'file> for LeafBuildTempFileContainer<'file> {
 }
 
 /// the diagnostic type
+#[derive(Debug)]
 pub struct LeafDiagnostic {
     message: String,
     diagnostic_type: LeafDiagnosticType,
@@ -242,26 +243,33 @@ impl LeafDiagnostic {
     }
 }
 
-impl Into<Diagnostic<FileId>> for LeafDiagnostic {
-    fn into(self) -> Diagnostic<FileId> {
-        Diagnostic::new(match self.diagnostic_type {
+impl From<LeafDiagnostic> for Diagnostic<FileId> {
+    fn from(diagnostic: LeafDiagnostic) -> Self {
+        Self::new(match diagnostic.diagnostic_type {
             LeafDiagnosticType::Error => Severity::Error,
             LeafDiagnosticType::Warn => Severity::Warning,
         })
-        .with_message(self.message)
+        .with_message(diagnostic.message)
         .with_code(format!(
             "{}{}",
-            match self.diagnostic_type {
+            match diagnostic.diagnostic_type {
                 LeafDiagnosticType::Error => "E",
                 LeafDiagnosticType::Warn => "W",
             },
-            self.diagnostic_code
+            diagnostic.diagnostic_code
         ))
-        .with_labels(self.labels.into_iter().map(|label| label.into()).collect())
-        .with_notes(self.notes)
+        .with_labels(
+            diagnostic
+                .labels
+                .into_iter()
+                .map(|label| label.into())
+                .collect(),
+        )
+        .with_notes(diagnostic.notes)
     }
 }
 
+#[derive(Debug)]
 pub enum LeafDiagnosticType {
     Warn,
     Error,
@@ -295,11 +303,13 @@ impl LeafLabelLocation for RangeInclusive<usize> {
     }
 }
 
+#[derive(Debug)]
 pub enum LeafLabelType {
     Primary,
     Secondary,
 }
 
+#[derive(Debug)]
 pub struct LeafLabel {
     file_id: FileId,
     label_type: LeafLabelType,
@@ -335,17 +345,17 @@ impl LeafLabel {
     }
 }
 
-impl Into<Label<FileId>> for LeafLabel {
-    fn into(self) -> Label<FileId> {
-        Label::new(
-            match self.label_type {
+impl From<LeafLabel> for Label<FileId> {
+    fn from(label: LeafLabel) -> Self {
+        Self::new(
+            match label.label_type {
                 LeafLabelType::Primary => LabelStyle::Primary,
                 LeafLabelType::Secondary => LabelStyle::Secondary,
             },
-            self.file_id,
-            self.location,
+            label.file_id,
+            label.location,
         )
-        .with_message(self.message)
+        .with_message(label.message)
     }
 }
 

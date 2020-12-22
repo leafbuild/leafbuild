@@ -1,6 +1,7 @@
 use crate::diagnostics::{DiagConfig, FileId, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel};
 use crate::grammar::lexer::Token;
 use crate::grammar::GrmError;
+use itertools::Itertools;
 use lalrpop_util::ParseError;
 macro_rules! error_codes {
     ($([$name:ident, $file:expr]),* $(,)?) => {

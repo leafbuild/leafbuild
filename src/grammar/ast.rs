@@ -1,12 +1,8 @@
 //! AST structures
-use crate::grammar::lexer::Span;
+use crate::grammar::lexer::{NumVal, Span};
 use leafbuild_derive::Loc;
-use std::any::Any;
 use std::fmt;
-use std::num::ParseIntError;
 use std::ops::Range;
-use std::ops::{Deref, DerefMut};
-use std::str::FromStr;
 
 type Location = Range<usize>;
 
@@ -25,17 +21,8 @@ pub trait Loc {
 }
 
 /// A spanned ast structure; holds data about where in the file a certain ast element is.
-#[derive(PartialOrd, Eq, PartialEq)]
+#[derive(PartialOrd, Eq, PartialEq, new)]
 pub struct Spanned<T>(T, Span);
-
-impl<T> Spanned<T> {
-    /// Constructor
-    ///
-    /// Creates a Spanned<T> from the T and the span.
-    pub const fn new(v: T, span: Span) -> Self {
-        Self(v, span)
-    }
-}
 
 impl<T> fmt::Debug for Spanned<T>
 where
@@ -46,20 +33,6 @@ where
             .field("data", &self.0)
             .field("location", &self.1)
             .finish()
-    }
-}
-
-impl<T> Deref for Spanned<T> {
-    type Target = T;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl<T> DerefMut for Spanned<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 
@@ -91,21 +64,8 @@ impl<T> Loc for Spanned<T> {
     }
 }
 
-/// A number value
-#[derive(Copy, Clone, Debug, PartialOrd, Eq, PartialEq)]
-pub enum NumVal {
-    /// i32 number
-    I32(i32),
-    /// i64 number
-    I64(i64),
-    /// u32 number
-    U32(u32),
-    /// u64 number
-    U64(u64),
-}
-
 /// A small building block for expressions
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum Atom {
     /// A number
     Number(#[whole_span] Spanned<NumVal>),
@@ -122,7 +82,7 @@ pub enum Atom {
 }
 
 /// An expression
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum Expr {
     /// A single atom
     Atom(#[whole_span] Atom),
@@ -180,7 +140,7 @@ pub enum Expr {
 impl Expr {}
 
 /// A property access expression
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct PropertyAccess {
     #[start_span]
     base: Box<Expr>,
@@ -189,15 +149,6 @@ pub struct PropertyAccess {
 }
 
 impl PropertyAccess {
-    /// Constructs a new property access from the base expression and property name and span.
-    #[must_use]
-    pub fn new(base: Box<Expr>, property_name: Spanned<String>) -> Self {
-        Self {
-            base,
-            property_name,
-        }
-    }
-
     #[must_use]
     pub(crate) const fn get_base(&self) -> &Expr {
         &self.base
@@ -215,7 +166,7 @@ impl PropertyAccess {
 }
 
 /// A binary operation
-#[derive(Copy, Clone, Debug, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum Opcode {
     /// `*`
     Mul(#[whole_span] Span),
@@ -256,7 +207,7 @@ pub enum Opcode {
 impl Opcode {}
 
 /// An unary operation
-#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum UnaryOpcode {
     /// `+`
     Plus(#[whole_span] Span),
@@ -271,7 +222,7 @@ pub enum UnaryOpcode {
 impl UnaryOpcode {}
 
 /// A function call
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
 pub struct FuncCall {
     func_name: Spanned<String>,
     left_paren: Span,
@@ -280,22 +231,6 @@ pub struct FuncCall {
 }
 
 impl FuncCall {
-    /// Returns a new function call from the function name, spans of the parentheses and the arguments.
-    #[must_use]
-    pub const fn new(
-        name: Spanned<String>,
-        left_paren: Span,
-        call_args: FuncCallArgs,
-        right_paren: Span,
-    ) -> Self {
-        Self {
-            func_name: name,
-            func_args: call_args,
-            left_paren,
-            right_paren,
-        }
-    }
-
     /// Returns a reference to the name of the function this calls.
     #[must_use]
     pub const fn get_name(&self) -> &String {
@@ -326,37 +261,28 @@ impl Loc for FuncCall {
 }
 
 /// The arguments passed to a function / method in a function / method call
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
 pub struct FuncCallArgs {
     positional_args: Vec<PositionalArg>,
     named_args: Vec<NamedExpr>,
 }
 
 impl FuncCallArgs {
-    /// Constructor
-    #[must_use]
-    pub const fn new(positional_args: Vec<PositionalArg>, named_args: Vec<NamedExpr>) -> Self {
-        Self {
-            positional_args,
-            named_args,
-        }
-    }
-
     /// Creates a new instance only with positional arguments
     #[must_use]
-    pub const fn new_only_positional(positional_args: Vec<PositionalArg>) -> Self {
+    pub fn new_only_positional(positional_args: Vec<PositionalArg>) -> Self {
         Self::new(positional_args, vec![])
     }
 
     /// Creates a new instance only with named arguments
     #[must_use]
-    pub const fn new_only_named(named_args: Vec<NamedExpr>) -> Self {
+    pub fn new_only_named(named_args: Vec<NamedExpr>) -> Self {
         Self::new(vec![], named_args)
     }
 
     /// Creates a new instance with no arguments(used where the function was called without any arguments)
     #[must_use]
-    pub const fn empty() -> Self {
+    pub fn empty() -> Self {
         Self::new(vec![], vec![])
     }
 
@@ -374,7 +300,7 @@ impl FuncCallArgs {
 }
 
 /// A positional argument
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct PositionalArg {
     #[whole_span]
     value: Expr,
@@ -386,20 +312,20 @@ impl PositionalArg {
     }
 }
 
-impl From<Box<Expr>> for PositionalArg {
-    fn from(b: Box<Expr>) -> Self {
-        Self { value: *b }
+impl From<Expr> for PositionalArg {
+    fn from(b: Expr) -> Self {
+        Self { value: b }
     }
 }
 
 /// A named expression. Is created from `name = value`.
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct NamedExpr {
     #[start_span]
     name: Spanned<String>,
     eq_span: Span,
     #[end_span]
-    value: Box<Expr>,
+    value: Expr,
 }
 
 impl NamedExpr {
@@ -416,8 +342,8 @@ impl NamedExpr {
     }
 }
 
-impl From<(Spanned<String>, Span, Box<Expr>)> for NamedExpr {
-    fn from((name, eq_span, value): (Spanned<String>, Span, Box<Expr>)) -> Self {
+impl From<(Spanned<String>, Span, Expr)> for NamedExpr {
+    fn from((name, eq_span, value): (Spanned<String>, Span, Expr)) -> Self {
         Self {
             name,
             eq_span,
@@ -428,25 +354,17 @@ impl From<(Spanned<String>, Span, Box<Expr>)> for NamedExpr {
 
 /// A method call.
 // TODO: refactor this
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, Loc, new)]
 pub struct MethodCall {
+    #[start_span]
     method_property: PropertyAccess,
+    paren_open: Span,
     args: FuncCallArgs,
-    end_pos: usize,
+    #[end_span]
+    paren_close: Span,
 }
 
 impl MethodCall {
-    /// Creates a method call from the method property, args and end position
-    // TODO: refactor this
-    #[must_use]
-    pub const fn new(method_property: PropertyAccess, args: FuncCallArgs, end_pos: usize) -> Self {
-        Self {
-            method_property,
-            args,
-            end_pos,
-        }
-    }
-
     #[must_use]
     pub(crate) const fn get_base_expr(&self) -> &Expr {
         &self.method_property.base
@@ -468,37 +386,17 @@ impl MethodCall {
     }
 }
 
-impl Loc for MethodCall {
-    fn get_start(&self) -> usize {
-        self.method_property.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.end_pos
-    }
-}
-
 /// An assignment
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Assignment {
     #[start_span]
-    bound_name: Box<Expr>,
+    bound_name: Expr,
     op: AtrOp,
     #[end_span]
-    value: Box<Expr>,
+    value: Expr,
 }
 
 impl Assignment {
-    /// Returns an assignment from the name, operation and value.
-    #[must_use]
-    pub const fn new(bound_name: Box<Expr>, op: AtrOp, value: Box<Expr>) -> Self {
-        Self {
-            bound_name,
-            op,
-            value,
-        }
-    }
-
     /// Returns the bound name expression
     #[must_use]
     pub const fn get_bound(&self) -> &Expr {
@@ -519,28 +417,17 @@ impl Assignment {
 }
 
 /// A declaration
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Declaration {
     #[start_span]
     let_tok: Span,
     name: Spanned<String>,
     eq: Span,
     #[end_span]
-    value: Box<Expr>,
+    value: Expr,
 }
 
 impl Declaration {
-    /// Constructor
-    #[must_use]
-    pub const fn new(let_tok: Span, name: Spanned<String>, eq: Span, value: Box<Expr>) -> Self {
-        Self {
-            let_tok,
-            name,
-            eq,
-            value,
-        }
-    }
-
     /// Returns a reference to the name
     #[must_use]
     pub const fn get_name(&self) -> &String {
@@ -561,7 +448,7 @@ impl Declaration {
 }
 
 /// An assignment operation
-#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum AtrOp {
     /// `=`
     Atr(#[whole_span] Span),
@@ -578,11 +465,11 @@ pub enum AtrOp {
 }
 
 /// An `if expr { statements }` structure
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct If {
     #[start_span]
     if_tok: Span,
-    condition: Box<Expr>,
+    condition: Expr,
     left_brace: Span,
     statements: Vec<Statement>,
     #[end_span]
@@ -590,22 +477,6 @@ pub struct If {
 }
 
 impl If {
-    pub(crate) fn new(
-        if_tok: Span,
-        condition: Box<Expr>,
-        left_brace: Span,
-        statements: Vec<Statement>,
-        right_brace: Span,
-    ) -> Self {
-        Self {
-            if_tok,
-            condition,
-            left_brace,
-            statements,
-            right_brace,
-        }
-    }
-
     #[must_use]
     pub(crate) const fn get_condition(&self) -> &Expr {
         &self.condition
@@ -618,7 +489,7 @@ impl If {
 }
 
 /// An `else <if>` structure
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct ElseIf {
     #[start_span]
     else_tok: Span,
@@ -628,18 +499,13 @@ pub struct ElseIf {
 
 impl ElseIf {
     #[must_use]
-    pub(crate) const fn new(else_tok: Span, if_: If) -> Self {
-        Self { else_tok, if_ }
-    }
-
-    #[must_use]
     pub(crate) const fn get_if(&self) -> &If {
         &self.if_
     }
 }
 
 /// An `else { statements }` structure
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Else {
     #[start_span]
     else_tok: Span,
@@ -650,20 +516,6 @@ pub struct Else {
 }
 
 impl Else {
-    pub(crate) fn new(
-        else_tok: Span,
-        left_brace: Span,
-        statements: Vec<Statement>,
-        right_brace: Span,
-    ) -> Self {
-        Self {
-            else_tok,
-            left_brace,
-            statements,
-            right_brace,
-        }
-    }
-
     #[must_use]
     pub(crate) const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements
@@ -671,7 +523,7 @@ impl Else {
 }
 
 /// A conditional statement
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
 pub struct ConditionalStatement {
     initial_if: If,
     else_ifs: Vec<ElseIf>,
@@ -679,14 +531,6 @@ pub struct ConditionalStatement {
 }
 
 impl ConditionalStatement {
-    pub(crate) fn new(initial_if: If, else_ifs: Vec<ElseIf>, else_: Option<Else>) -> Self {
-        Self {
-            initial_if,
-            else_ifs,
-            else_,
-        }
-    }
-
     #[must_use]
     pub(crate) const fn get_initial_if(&self) -> &If {
         &self.initial_if
@@ -720,7 +564,7 @@ impl Loc for ConditionalStatement {
 }
 
 /// A repetitive statement (`foreach`)
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct RepetitiveStatement {
     #[start_span]
     foreach_tok: Span,
@@ -732,24 +576,6 @@ pub struct RepetitiveStatement {
 }
 
 impl RepetitiveStatement {
-    /// Constructor
-    #[must_use]
-    pub const fn new(
-        foreach_tok: Span,
-        for_in_expr: ForInExpr,
-        left_brace: Span,
-        statements: Vec<Statement>,
-        right_brace: Span,
-    ) -> Self {
-        Self {
-            foreach_tok,
-            for_in_expr,
-            left_brace,
-            statements,
-            right_brace,
-        }
-    }
-
     #[must_use]
     pub(crate) const fn get_for_in_expr(&self) -> &ForInExpr {
         &self.for_in_expr
@@ -761,22 +587,16 @@ impl RepetitiveStatement {
 }
 
 /// The `name in expression` expression found in the foreach.
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct ForInExpr {
     #[start_span]
     name: Spanned<String>,
     in_tok: Span,
     #[end_span]
-    expr: Box<Expr>,
+    expr: Expr,
 }
 
 impl ForInExpr {
-    /// Constructor
-    #[must_use]
-    pub const fn new(name: Spanned<String>, in_tok: Span, expr: Box<Expr>) -> Self {
-        Self { name, in_tok, expr }
-    }
-
     #[must_use]
     pub(crate) const fn get_name(&self) -> &Spanned<String> {
         &self.name
@@ -789,7 +609,7 @@ impl ForInExpr {
 }
 
 /// A control statement.
-#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum ControlStatement {
     /// `continue`
     Continue(#[whole_span] Span),
@@ -798,7 +618,7 @@ pub enum ControlStatement {
 }
 
 /// A statement.
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum Statement {
     /// Calls a function
     FuncCall(#[whole_span] FuncCall),
@@ -855,138 +675,16 @@ where
 }
 
 /// The whole build definition
-#[derive(Debug, Clone, Loc, Eq, PartialEq)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct BuildDefinition {
     #[whole_span]
     statements: Vec<Statement>,
 }
 
 impl BuildDefinition {
-    /// Constructor
-    #[must_use]
-    pub const fn new(statements: Vec<Statement>) -> Self {
-        Self { statements }
-    }
-
     /// Returns a reference to the statements
     #[must_use]
     pub const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements
-    }
-}
-
-#[derive(Copy, Clone)]
-enum Tp {
-    I32,
-    I64,
-    U32,
-    U64,
-}
-impl Tp {
-    const fn into_unsigned(self) -> Self {
-        match self {
-            Self::I32 => Self::U32,
-            Self::I64 => Self::U64,
-            x => x,
-        }
-    }
-
-    const fn into_long(self) -> Self {
-        match self {
-            Self::I32 => Self::I64,
-            Self::U32 => Self::U64,
-            x => x,
-        }
-    }
-
-    const fn zero(self) -> NumVal {
-        match self {
-            Self::I32 => NumVal::I32(0),
-            Self::I64 => NumVal::I64(0),
-            Self::U32 => NumVal::U32(0),
-            Self::U64 => NumVal::U64(0),
-        }
-    }
-
-    fn create_from_str(self, s: &str, radix: u32) -> Result<NumVal, ParseIntError> {
-        match self {
-            Self::I32 => i32::from_str_radix(s, radix).map(NumVal::I32),
-            Self::U32 => u32::from_str_radix(s, radix).map(NumVal::U32),
-            Self::I64 => i64::from_str_radix(s, radix).map(NumVal::I64),
-            Self::U64 => u64::from_str_radix(s, radix).map(NumVal::U64),
-        }
-    }
-}
-
-impl NumVal {
-    fn to_boxed_value(self) -> Box<dyn Any> {
-        match self {
-            Self::I32(v) => Box::new(v),
-            Self::I64(v) => Box::new(v),
-            Self::U32(v) => Box::new(v),
-            Self::U64(v) => Box::new(v),
-        }
-    }
-}
-
-impl FromStr for NumVal {
-    type Err = ParseIntError;
-    /// parse a number from a number literal string
-    fn from_str(s: &str) -> Result<Self, ParseIntError> {
-        let mut tp = s
-            .chars()
-            .rev()
-            .take_while(|chr| Self::is_suffix(*chr))
-            .fold(Tp::I32, |tp, chr| match chr {
-                'u' | 'U' => tp.into_unsigned(),
-                'l' | 'L' => tp.into_long(),
-                _ => tp,
-            });
-        if s.starts_with("0x") {
-            Self::parse_hex(s, tp)
-        } else if s.starts_with("0b") {
-            Self::parse_bin(s, tp)
-        } else if s.starts_with('0') {
-            Self::parse_oct(s, tp)
-        } else {
-            Self::parse_dec(s, tp)
-        }
-    }
-}
-
-impl NumVal {
-    fn parse_hex(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
-        // s = "0x.."
-        tp.create_from_str(
-            s.trim_start_matches("0x").trim_end_matches(Self::is_suffix),
-            16,
-        )
-    }
-
-    fn parse_bin(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
-        // s = "0b..."
-        tp.create_from_str(
-            s.trim_start_matches("0b").trim_end_matches(Self::is_suffix),
-            2,
-        )
-    }
-
-    fn parse_oct(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
-        // s = "0..."
-        let s = s.trim_start_matches('0').trim_end_matches(Self::is_suffix);
-        if s == "" {
-            return Ok(tp.zero());
-        }
-
-        tp.create_from_str(s, 8)
-    }
-
-    fn parse_dec(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
-        // s = "..."
-        tp.create_from_str(s.trim_end_matches(Self::is_suffix), 10)
-    }
-
-    const fn is_suffix(chr: char) -> bool {
-        matches!(chr, 'u' | 'U' | 'l' | 'L')
     }
 }

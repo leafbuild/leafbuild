@@ -36,7 +36,7 @@ pub fn parse<'input>(
 }
 
 /// A grammar error, happened while parsing.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum GrmError {
     /// A lexical error occurred
     LexError(LexicalError),

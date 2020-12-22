@@ -17,6 +17,7 @@ grammar<'input, 'err>(
 
 SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::new(start, end));
 SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
+Box<Rule>: Box<Rule> = <rule: Rule> => Box::new(rule);
 
 SingleComma: () = {
     "," => (),
@@ -90,14 +91,14 @@ NamedFuncArgs = CommaNoTrailing<NamedExpr>;
 NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
 
 
-IndexExpr: Box<Expr> =
-    <base: ExprAtom> <open_bracket: SpannedLocation<"[">> <index: Expr> <close_bracket: SpannedLocation<"]">> =>
-        Box::new(Expr::Indexed {base, open_bracket, index, close_bracket});
+IndexExpr: Expr =
+    <base: Box<ExprAtom>> <open_bracket: SpannedLocation<"[">> <index: Box<Expr>> <close_bracket: SpannedLocation<"]">> =>
+        Expr::Indexed {base, open_bracket, index, close_bracket};
 
-ExprAtom: Box<Expr> = {
-    FuncCall => Box::new(Expr::FuncCall(<>)),
-    IndexExpr => <>,
-    Num => Box::new(Expr::Atom(Atom::Number(<>))),
+ExprAtom: Expr = {
+    FuncCall => Expr::FuncCall(<>),
+    IndexExpr,
+    Num => Expr::Atom(Atom::Number(<>)),
 //    MethodCall,
 }
 
@@ -106,8 +107,8 @@ UnaryPlusMinusOpcode: UnaryOpcode = {
 	SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
 }
 
-UnaryPlusMinusExpression = {
-    UnaryPlusMinusOpcode UnaryPlusMinusExpression => Box::new(Expr::UnaryOp(<>)),
+UnaryPlusMinusExpression: Expr = {
+    UnaryPlusMinusOpcode Box<UnaryPlusMinusExpression> => Expr::UnaryOp(<>),
     ExprAtom,
 }
 
@@ -116,8 +117,8 @@ UnaryLogicalAndBitwiseNot: UnaryOpcode = {
 	SpannedLocation<"~"> => UnaryOpcode::BitwiseNot(<>),
 }
 
-UnaryLogicalAndBitwiseNotExpression: Box<Expr> = {
-    UnaryLogicalAndBitwiseNot UnaryPlusMinusExpression => Box::new(Expr::UnaryOp(<>)),
+UnaryLogicalAndBitwiseNotExpression: Expr = {
+    UnaryLogicalAndBitwiseNot Box<UnaryPlusMinusExpression> => Expr::UnaryOp(<>),
     UnaryPlusMinusExpression
 }
 
@@ -127,8 +128,8 @@ MulOp: Opcode = {
     SpannedLocation<"%"> => Opcode::Mod(<>),
 }
 
-Factor: Box<Expr> = {
-    Factor MulOp UnaryLogicalAndBitwiseNotExpression => Box::new(Expr::Op(<>)),
+Factor: Expr = {
+    Box<Factor> MulOp Box<UnaryLogicalAndBitwiseNotExpression> => Expr::Op(<>),
     UnaryLogicalAndBitwiseNotExpression,
 }
 
@@ -137,8 +138,8 @@ AddOp: Opcode = {
     SpannedLocation<"-"> => Opcode::Sub(<>),
 }
 
-AddExpr: Box<Expr> = {
-    AddExpr AddOp Factor => Box::new(Expr::Op(<>)),
+AddExpr: Expr = {
+    Box<AddExpr> AddOp Box<Factor> => Expr::Op(<>),
     Factor,
 }
 
@@ -147,8 +148,8 @@ BitShiftOp: Opcode = {
     SpannedLocation<">>"> => Opcode::RBitshift(<>),
 }
 
-BitShiftExpr: Box<Expr> = {
-    BitShiftExpr BitShiftOp AddExpr => Box::new(Expr::Op(<>)),
+BitShiftExpr: Expr = {
+    Box<BitShiftExpr> BitShiftOp Box<AddExpr> => Expr::Op(<>),
     AddExpr,
 }
 
@@ -161,8 +162,8 @@ RelOp: Opcode = {
 	SpannedLocation<("not" "in")> => Opcode::NotIn(<>),
 }
 
-RelExpr: Box<Expr> = {
-	RelExpr RelOp BitShiftExpr => Box::new(Expr::Op(<>)),
+RelExpr: Expr = {
+	Box<RelExpr> RelOp Box<BitShiftExpr> => Expr::Op(<>),
 	AddExpr,
 }
 
@@ -171,29 +172,29 @@ RelOp2: Opcode = {
     SpannedLocation<"!="> => Opcode::NE(<>),
 }
 
-RelExpr2: Box<Expr> = {
-	RelExpr2 RelOp2 RelExpr => Box::new(Expr::Op(<>)),
+RelExpr2: Expr = {
+	Box<RelExpr2> RelOp2 Box<RelExpr> => Expr::Op(<>),
 	RelExpr,
 }
 
-AndConditionalExpr: Box<Expr> = {
-	AndConditionalExpr AndOp RelExpr2 => Box::new(Expr::Op(<>)),
+AndConditionalExpr: Expr = {
+	Box<AndConditionalExpr> AndOp Box<RelExpr2> => Expr::Op(<>),
 	RelExpr2,
 }
 
 AndOp: Opcode = SpannedLocation<"and"> => Opcode::And(<>);
 
-OrConditionalExpr: Box<Expr> = {
-	OrConditionalExpr OrOp AndConditionalExpr => Box::new(Expr::Op(<>)),
+OrConditionalExpr: Expr = {
+	Box<OrConditionalExpr> OrOp Box<AndConditionalExpr> => Expr::Op(<>),
 	AndConditionalExpr,
 }
 
 OrOp: Opcode = SpannedLocation<"or"> => Opcode::Or(<>);
 
-TernaryExpr: Box<Expr> = {
-    <condition: OrConditionalExpr> <qmark: SpannedLocation<"?">>
-    <if_true: TernaryExpr> <colon: SpannedLocation<":">> <if_false: OrConditionalExpr> =>
-        Box::new(Expr::Ternary{condition, qmark, if_true, colon, if_false}),
+TernaryExpr: Expr = {
+    <condition: Box<OrConditionalExpr>> <qmark: SpannedLocation<"?">>
+    <if_true: Box<TernaryExpr>> <colon: SpannedLocation<":">> <if_false: Box<OrConditionalExpr>> =>
+        Expr::Ternary{condition, qmark, if_true, colon, if_false},
     OrConditionalExpr
 }
 
@@ -220,11 +221,11 @@ AtrOp: AtrOp = {
 	SpannedLocation<"%="> => AtrOp::ModAtr(<>),
 }
 
-ArrayLit: Box<Expr> =
+ArrayLit: Expr =
 	<left_brace: SpannedLocation<"{">> <args: Comma<Expr>> <right_brace: SpannedLocation<"}">> =>
-        Box::new(Expr::Atom(Atom::ArrayLit(left_brace, args.into_iter().map(|x| *x).collect(), right_brace)));
+        Expr::Atom(Atom::ArrayLit(left_brace, args, right_brace));
 
-MapLit: Box<Expr> = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Box::new(Expr::Atom(Atom::MapLit(<>)));
+MapLit: Expr = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Expr::Atom(Atom::MapLit(<>));
 
 #[inline]
 ConditionalStatement: ConditionalStatement = If ElseIf* Else? => ConditionalStatement::new(<>);

@@ -38,7 +38,13 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
                 .with_code(PARSE_ERROR)
                 .with_message("Unrecognized EOF")
                 .with_label(LeafLabel::primary(file_id, location..=location).with_message("here"))
-                .with_note(format!("Expected one of {:?}", expected)),
+                .with_note(format!(
+                    "Expected one of {}",
+                    expected
+                        .iter()
+                        .map(|x| format!(r#""{}""#, &x[1..x.len() - 1]))
+                        .join(", ")
+                )),
             LeafParseError::UnrecognizedToken {
                 token,
                 expected,
@@ -47,7 +53,13 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
                 .with_code(PARSE_ERROR)
                 .with_message(format!("Unrecognized token {:?}", token.1))
                 .with_label(LeafLabel::primary(file_id, token.0..token.2).with_message("here"))
-                .with_note(format!("Expected one of {:?}", expected)),
+                .with_note(format!(
+                    "Expected one of {}",
+                    expected
+                        .iter()
+                        .map(|x| format!(r#""{}""#, &x[1..x.len() - 1]))
+                        .join(", ")
+                )),
             LeafParseError::ExtraToken { file_id, token } => LeafDiagnostic::error()
                 .with_code(PARSE_ERROR)
                 .with_message(format!("Extra token {:?}", token.1))

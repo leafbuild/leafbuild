@@ -2,24 +2,26 @@
     html_favicon_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg",
     html_logo_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg"
 )]
+#![forbid(
+    unsafe_code,
+    unused_allocation,
+    coherence_leak_check,
+    confusable_idents,
+    trivial_bounds
+)]
 #![deny(
     missing_docs,
     missing_crate_level_docs,
     missing_copy_implementations,
     missing_debug_implementations,
-    confusable_idents,
-    unsafe_code,
-    unused_allocation,
     unused_imports,
     unused_import_braces,
     deprecated,
     broken_intra_doc_links,
-    coherence_leak_check,
     where_clauses_object_safety,
     order_dependent_trait_objects,
     unconditional_panic,
     unconditional_recursion,
-    trivial_bounds,
     indirect_structural_match
 )]
 #![deny(
@@ -29,6 +31,7 @@
     clippy::pedantic,
     clippy::nursery
 )]
+#![allow(clippy::module_name_repetitions)]
 
 //! A C/C++ buildsystem.
 //! # Examples
@@ -42,6 +45,8 @@ extern crate tracing;
 extern crate leafbuild_derive;
 extern crate term;
 extern crate thiserror;
+#[macro_use]
+extern crate derive_new;
 
 #[path = "buildsys-utils/mod.rs"]
 pub mod buildsys_utils;
