@@ -11,14 +11,11 @@ pub(super) fn run_statement(frame: &mut FileFrame, statement: &Statement) {
         statement
     );
     match statement {
-        Statement::FuncCall(ref call) => {
+        Statement::ExecExpr(ref exp) => {
             // _frame.with_context(|context| call.get_rng())
-            println!("Func call {}", call.get_name());
-
             // call.lookup_in_context(frame);
         }
-        Statement::MethodCall(_)
-        | Statement::Declaration(_)
+        Statement::Declaration(_)
         | Statement::Assignment(_)
         | Statement::Conditional(_)
         | Statement::Control(_)

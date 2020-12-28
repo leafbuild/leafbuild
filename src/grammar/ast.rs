@@ -222,41 +222,21 @@ pub enum UnaryOpcode {
 impl UnaryOpcode {}
 
 /// A function call
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct FuncCall {
-    func_name: Spanned<String>,
+    #[start_span]
+    func_base: Box<Expr>,
     left_paren: Span,
     func_args: FuncCallArgs,
+    #[end_span]
     right_paren: Span,
 }
 
 impl FuncCall {
-    /// Returns a reference to the name of the function this calls.
-    #[must_use]
-    pub const fn get_name(&self) -> &String {
-        &self.func_name.0
-    }
-
-    /// Returns a reference to the span of the function name in the file
-    #[must_use]
-    pub const fn get_name_loc(&self) -> &Span {
-        &self.func_name.1
-    }
-
     /// Returns the function arguments
     #[must_use]
     pub const fn get_args(&self) -> &FuncCallArgs {
         &self.func_args
-    }
-}
-
-impl Loc for FuncCall {
-    fn get_start(&self) -> usize {
-        self.func_name.1.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.right_paren.get_end()
     }
 }
 
@@ -620,10 +600,8 @@ pub enum ControlStatement {
 /// A statement.
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum Statement {
-    /// Calls a function
-    FuncCall(#[whole_span] FuncCall),
-    /// Calls a method
-    MethodCall(#[whole_span] MethodCall),
+    /// Executes an expression, calling functions and methods that may or may not have side effects.
+    ExecExpr(#[whole_span] Expr),
     /// Declares a variable
     Declaration(#[whole_span] Declaration),
     /// Assigns to a variable.
