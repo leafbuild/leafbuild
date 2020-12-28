@@ -155,12 +155,14 @@ pub enum Tk {
     MultilineString,
     #[regex(r#"//[^\n]*"#)]
     SingleLineComment,
-    // #[regex(r#"/\*([^\*]*\*+[^\*/])*([^\*]*\*+|[^\*])*\*/"#)]
-    // BlockComment,
+    #[regex(r"/\*([^*]|\**[^*/])*\*+/")]
+    BlockComment,
     // #[token("\n")]
     // Newline,
     #[error]
     #[regex(r"[ \n\t\r]+", logos::skip)]
+    // fix for https://github.com/maciejhirsz/logos/issues/180
+    #[regex(r"/\*([^*]|\*+[^*/])*\*?")]
     Error,
 }
 

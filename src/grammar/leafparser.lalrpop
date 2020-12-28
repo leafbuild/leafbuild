@@ -51,8 +51,8 @@ BoolTok: bool = {
 BoolLit = SpannedNonterminal<BoolTok>;
 
 StrTok: String = {
-    <s: r#"'(\\['nt\\]|[^'\\])+'"#> => String::from(&s[1..(s.len()-1)]),
-    <s: r#"'''([^']*|[']{1,2}[^'])*'''"#> => String::from(&s[3..(s.len()-3)]),
+    <s: "single line string"> => String::from(&s[1..(s.len()-1)]),
+    <s: "multiline string"> => String::from(&s[3..(s.len()-3)]),
 }
 
 Str = SpannedNonterminal<StrTok>;
@@ -285,7 +285,7 @@ extern {
         "false" => Token {token: Tk::False, data: <&'input str>},
         "number" => Token {token: Tk::Number, data: <&'input str>},
         "identifier" => Token {token: Tk::Id, data: <&'input str>},
-        r#"'(\\['nt\\]|[^'\\])+'"# => Token {token: Tk::String, data: <&'input str>},
-        r#"'''([^']*|[']{1,2}[^'])*'''"# => Token {token: Tk::MultilineString, data: <&'input str>},
+        "single line string" => Token {token: Tk::String, data: <&'input str>},
+        "multiline string" => Token {token: Tk::MultilineString, data: <&'input str>},
     }
 }
