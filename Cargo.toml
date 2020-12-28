@@ -27,7 +27,7 @@ cmake-ml = ["c", "ml"]
 meson-ml = ["ml"]
 
 [dependencies]
-itertools = "0.9"
+itertools = "0.10"
 lalrpop-util = "0.19"
 regex = "1"
 codespan-reporting = "0.11"
