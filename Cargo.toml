@@ -11,7 +11,6 @@ readme = "README.md"
 categories = ["command-line-utilities"]
 keywords = ["cli", "interpreter", "command-line"]
 
-build = "build.rs" # LALRPOP preprocessing
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -28,27 +27,34 @@ meson-ml = ["ml"]
 
 [dependencies]
 itertools = "0.10"
-lalrpop-util = "0.19"
 regex = "1"
 codespan-reporting = "0.11"
 term = "0.6"
-unindent = "0.1"
 termcolor = "1.1"
 clap = "3.0.0-beta.2"
-logos = "0.11"
 which = "4.0"
 thiserror = "1.0"
-derivative = "2.1.1"
+derivative = "2.1"
 chrono = "0.4"
 ansi_term = "0.12"
 atty = "0.2"
-snailquote = "0.3"
 derive-new = "0.5"
+lalrpop-util = "0.19"
 
 tracing = "0.1"
 tracing-subscriber = "0.2"
 
-leafbuild_derive = { path = "leafbuild_derive" }
+leafbuild_derive = { path = "leafbuild_derive", version = "0.1.0" }
+leafbuild_ast = { path = "leafbuild_ast", version = "0.1.0" }
+leafbuild_parser = { path = "leafbuild_parser", version = "0.1.0" }
+leafbuild_interpreter = { path = "leafbuild_interpreter", version = "0.1.0" }
 
-[build-dependencies]
-lalrpop = "0.19"
+[workspace]
+members = [
+    "leafbuild_derive",
+    "leafbuild_ast",
+    "leafbuild_parser",
+    "leafbuild_interpreter",
+    "ghk",
+    "leafbuild_ghk",
+]

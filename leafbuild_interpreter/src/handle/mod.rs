@@ -5,7 +5,7 @@
 
 pub mod config;
 
-use crate::interpreter::env::{ConfigurationError, LfBuildsys, WriteResultsError};
+use crate::env::{ConfigurationError, LfBuildsys, WriteResultsError};
 
 /// The wrapper
 #[derive(Debug)]

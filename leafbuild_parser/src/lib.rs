@@ -1,5 +1,53 @@
-//! The grammar of the `build.leaf` files.
-pub mod ast;
+#![doc(
+    html_favicon_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg",
+    html_logo_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg"
+)]
+#![forbid(
+    unsafe_code,
+    unused_allocation,
+    coherence_leak_check,
+    confusable_idents,
+    trivial_bounds
+)]
+#![deny(
+    missing_docs,
+    missing_crate_level_docs,
+    missing_copy_implementations,
+    missing_debug_implementations,
+    unused_imports,
+    unused_import_braces,
+    deprecated,
+    broken_intra_doc_links,
+    where_clauses_object_safety,
+    order_dependent_trait_objects,
+    unconditional_panic,
+    unconditional_recursion,
+    indirect_structural_match
+)]
+#![deny(
+    clippy::correctness,
+    clippy::style,
+    clippy::complexity,
+    clippy::pedantic,
+    clippy::nursery
+)]
+#![allow(clippy::module_name_repetitions)]
+
+//! The parser of the `build.leaf` files.
+extern crate leafbuild_ast;
+
+#[macro_use]
+extern crate lalrpop_util;
+
+use std::num::ParseIntError;
+
+use lalrpop_util::{ErrorRecovery, ParseError};
+
+use leafbuild_ast::ast;
+
+use crate::lexer::LexicalError;
+use leafbuild_ast::span::Span;
+
 lalrpop_mod!(
 /// the parser
 #[allow(
@@ -7,6 +55,7 @@ lalrpop_mod!(
     missing_crate_level_docs,
     missing_debug_implementations,
     missing_copy_implementations,
+    unused_imports,
     clippy::all,
     clippy::correctness, 
     clippy::style,
@@ -15,13 +64,8 @@ lalrpop_mod!(
     clippy::pedantic,
     clippy::nursery
 )]
-pub leafparser, "/grammar/leafparser.rs");
-pub(crate) mod lexer;
-
-use crate::grammar::lexer::LexicalError;
-use lalrpop_util::{ErrorRecovery, ParseError};
-pub use lexer::Span;
-use std::num::ParseIntError;
+pub leafparser);
+pub mod lexer;
 
 /// Parses the source and returns the definition.
 /// # Errors
@@ -45,7 +89,9 @@ pub enum GrmError {
 }
 
 impl GrmError {
-    pub(crate) const fn get_span(&self) -> Span {
+    /// Returns the [`Span`] where this error occurred.
+    #[must_use]
+    pub const fn get_span(&self) -> Span {
         match self {
             Self::LexError(ref err) => err.span,
             Self::ParseIntError(_, ref span) => *span,

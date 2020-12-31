@@ -8,6 +8,7 @@ use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
 use std::ops::{Range, RangeInclusive};
+use std::path::PathBuf;
 
 #[derive(Debug, Copy, Clone)]
 pub struct FileId {
@@ -57,7 +58,7 @@ pub struct LeafbuildFiles {
 }
 
 impl<'a> LeafbuildFiles {
-    pub(crate) fn add(&'a mut self, name: String, source: String) -> FileId {
+    pub fn add(&'a mut self, name: String, source: String) -> FileId {
         self.files.push(LeafbuildFile::new(name, source));
         FileId::new(self.files.len() - 1)
     }
@@ -112,7 +113,7 @@ struct LeafBuildTempFileContainer<'file> {
 }
 
 impl<'file> LeafBuildTempFileContainer<'file> {
-    pub(crate) fn new(name: &'file str, source: &'file str) -> Self {
+    pub fn new(name: &'file str, source: &'file str) -> Self {
         Self {
             file: SimpleFile::new(name, source),
         }
@@ -186,7 +187,7 @@ pub struct LeafDiagnostic {
 
 impl LeafDiagnostic {
     #[must_use]
-    pub(crate) fn new(diagnostic_type: LeafDiagnosticType) -> Self {
+    pub fn new(diagnostic_type: LeafDiagnosticType) -> Self {
         Self {
             diagnostic_type,
             message: String::default(),
@@ -197,47 +198,47 @@ impl LeafDiagnostic {
     }
 
     #[must_use]
-    pub(crate) fn error() -> Self {
+    pub fn error() -> Self {
         Self::new(LeafDiagnosticType::Error)
     }
 
     #[must_use]
-    pub(crate) fn warn() -> Self {
+    pub fn warn() -> Self {
         Self::new(LeafDiagnosticType::Warn)
     }
 
     #[must_use]
-    pub(crate) fn with_message(mut self, message: impl Into<String>) -> Self {
+    pub fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = message.into();
         self
     }
 
     #[must_use]
-    pub(crate) fn with_label(mut self, label: impl Into<LeafLabel>) -> Self {
+    pub fn with_label(mut self, label: impl Into<LeafLabel>) -> Self {
         self.labels.push(label.into());
         self
     }
 
     #[must_use]
-    pub(crate) fn with_labels(mut self, labels: Vec<LeafLabel>) -> Self {
+    pub fn with_labels(mut self, labels: Vec<LeafLabel>) -> Self {
         self.labels = labels;
         self
     }
 
     #[must_use]
-    pub(crate) fn with_note(mut self, note: impl Into<String>) -> Self {
+    pub fn with_note(mut self, note: impl Into<String>) -> Self {
         self.notes.push(note.into());
         self
     }
 
     #[must_use]
-    pub(crate) fn with_notes(mut self, notes: Vec<String>) -> Self {
+    pub fn with_notes(mut self, notes: Vec<String>) -> Self {
         self.notes = notes;
         self
     }
 
     #[must_use]
-    pub(crate) const fn with_code(mut self, code: usize) -> Self {
+    pub const fn with_code(mut self, code: usize) -> Self {
         self.diagnostic_code = code;
         self
     }
@@ -269,7 +270,7 @@ impl From<LeafDiagnostic> for Diagnostic<FileId> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum LeafDiagnosticType {
     Warn,
     Error,
@@ -318,7 +319,7 @@ pub struct LeafLabel {
 }
 
 impl LeafLabel {
-    pub(crate) fn primary<T: LeafLabelLocation>(file_id: FileId, location: impl Borrow<T>) -> Self {
+    pub fn primary<T: LeafLabelLocation>(file_id: FileId, location: impl Borrow<T>) -> Self {
         Self {
             file_id,
             label_type: LeafLabelType::Primary,
@@ -327,10 +328,7 @@ impl LeafLabel {
         }
     }
 
-    pub(crate) fn secondary<T: LeafLabelLocation>(
-        file_id: FileId,
-        location: impl Borrow<T>,
-    ) -> Self {
+    pub fn secondary<T: LeafLabelLocation>(file_id: FileId, location: impl Borrow<T>) -> Self {
         Self {
             file_id,
             label_type: LeafLabelType::Secondary,
@@ -339,7 +337,7 @@ impl LeafLabel {
         }
     }
 
-    pub(crate) fn with_message(mut self, message: impl Into<String>) -> Self {
+    pub fn with_message(mut self, message: impl Into<String>) -> Self {
         self.message = message.into();
         self
     }
@@ -359,9 +357,19 @@ impl From<LeafLabel> for Label<FileId> {
     }
 }
 
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Clone)]
 pub struct DiagConfig {
     error_eval_cascade: bool,
+    log_location: PathBuf,
+}
+
+impl Default for DiagConfig {
+    fn default() -> Self {
+        Self {
+            error_eval_cascade: false,
+            log_location: PathBuf::from("leafbuild.log"),
+        }
+    }
 }
 
 #[derive(Default, Debug)]
@@ -371,13 +379,13 @@ pub struct DiagCtx {
 }
 
 impl DiagCtx {
-    pub(crate) fn new(global_diagnostics_config: DiagConfig) -> Self {
+    pub fn new(global_diagnostics_config: DiagConfig) -> Self {
         Self {
             global_diagnostics_config,
             files: LeafbuildFiles::default(),
         }
     }
-    pub(crate) fn report_diagnostic(&self, diagnostic: impl LeafDiagnosticTrait) {
+    pub fn report_diagnostic(&self, diagnostic: impl LeafDiagnosticTrait) {
         if !diagnostic.should_report(&self.global_diagnostics_config) {
             return;
         }
@@ -392,10 +400,10 @@ impl DiagCtx {
         )
         .unwrap();
     }
-    pub(crate) fn add_file(&mut self, name: String, source: String) -> FileId {
+    pub fn add_file(&mut self, name: String, source: String) -> FileId {
         self.files.add(name, source)
     }
-    pub(crate) fn with_temp_file<F>(&mut self, name: &str, source: &str, f: F)
+    pub fn with_temp_file<F>(&mut self, name: &str, source: &str, f: F)
     where
         F: FnOnce(TempDiagnosticsCtx, FileId),
     {
@@ -420,7 +428,7 @@ pub struct TempDiagnosticsCtx<'a> {
 }
 
 impl<'a> TempDiagnosticsCtx<'a> {
-    pub(crate) fn report_diagnostic(&self, diagnostic: impl LeafDiagnosticTrait) {
+    pub fn report_diagnostic(&self, diagnostic: impl LeafDiagnosticTrait) {
         if !diagnostic.should_report(self.config) {
             return;
         }

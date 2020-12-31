@@ -1,8 +1,8 @@
 pub(super) mod fun;
 pub(super) mod values;
 
-use crate::grammar::ast::{Loc, Statement};
-use crate::interpreter::env::FileFrame;
+use crate::env::FileFrame;
+use leafbuild_ast::ast::{Loc, Statement};
 
 pub(super) fn run_statement(frame: &mut FileFrame, statement: &Statement) {
     trace!(

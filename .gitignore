@@ -162,5 +162,6 @@ fabric.properties
 /.idea/modules.xml
 /.idea/vcs.xml
 /.idea/*.iml
+/.idea
 
 src/grammar/leafparser.rs

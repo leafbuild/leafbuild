@@ -4,7 +4,7 @@
 //!
 //! Most of them will be optional.
 
-use crate::interpreter::env::LfBuildsys;
+use leafbuild_interpreter::env::LfBuildsys;
 use std::error::Error;
 use std::io;
 use std::path::PathBuf;

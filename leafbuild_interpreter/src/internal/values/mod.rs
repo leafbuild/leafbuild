@@ -1,6 +1,6 @@
 pub mod types;
 
-use crate::grammar::Span;
+use leafbuild_ast::Span;
 use std::fmt::Debug;
 use thiserror::Error;
 use types::ValueType;

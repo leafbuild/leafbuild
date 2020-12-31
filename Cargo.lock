@@ -314,6 +314,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "ghk"
+version = "0.1.0"
+
+[[package]]
 name = "hashbrown"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -421,19 +425,27 @@ dependencies = [
  "derivative",
  "derive-new",
  "itertools 0.10.0",
- "lalrpop",
  "lalrpop-util",
+ "leafbuild_ast",
  "leafbuild_derive",
- "logos",
+ "leafbuild_interpreter",
+ "leafbuild_parser",
  "regex",
- "snailquote",
  "term 0.6.1",
  "termcolor",
  "thiserror",
  "tracing",
  "tracing-subscriber",
- "unindent",
  "which",
+]
+
+[[package]]
+name = "leafbuild_ast"
+version = "0.1.0"
+dependencies = [
+ "derive-new",
+ "leafbuild_derive",
+ "snailquote",
 ]
 
 [[package]]
@@ -443,6 +455,36 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "leafbuild_ghk"
+version = "0.1.0"
+
+[[package]]
+name = "leafbuild_interpreter"
+version = "0.1.0"
+dependencies = [
+ "codespan-reporting",
+ "derivative",
+ "itertools 0.10.0",
+ "lalrpop-util",
+ "leafbuild_ast",
+ "leafbuild_parser",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
+name = "leafbuild_parser"
+version = "0.1.0"
+dependencies = [
+ "itertools 0.10.0",
+ "lalrpop",
+ "lalrpop-util",
+ "leafbuild_ast",
+ "logos",
+ "unindent",
 ]
 
 [[package]]

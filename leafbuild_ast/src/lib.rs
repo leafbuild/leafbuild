@@ -33,23 +33,16 @@
 )]
 #![allow(clippy::module_name_repetitions)]
 
-//! A C/C++ buildsystem.
-//! # Examples
-//! See example usage in the binary.
+//! The crate that holds the `ast` `adt`s produced by `leafbuild_parser`
+//! and "consumed" by `leafbuild_interpreter`.
 
-extern crate codespan_reporting;
 #[macro_use]
-extern crate tracing;
 extern crate derive_new;
+#[macro_use]
 extern crate leafbuild_derive;
-extern crate term;
-extern crate thiserror;
 
-pub use cli::run;
+pub mod ast;
+pub mod span;
+pub mod token_data;
 
-#[path = "buildsys-utils/mod.rs"]
-pub mod buildsys_utils;
-pub mod cli;
-pub mod docs;
-pub mod trc;
-pub(crate) mod utils;
+pub use span::Span;

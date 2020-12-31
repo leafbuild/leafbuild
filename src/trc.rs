@@ -1,8 +1,8 @@
 //! Module containing logic to format [`tracing`] events.
-use crate::interpreter::LfModName;
 use crate::utils::{AndThenDo, SomeNoneIfOwned};
 use ansi_term::{Color, Style};
 use itertools::Itertools;
+use leafbuild_interpreter::LfModName;
 use std::error::Error;
 use std::fmt::Debug;
 use std::io::{BufWriter, Write};

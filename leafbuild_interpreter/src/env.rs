@@ -1,9 +1,9 @@
 //! The environment of the interpreter.
 use crate::diagnostics::{DiagCtx, FileId, LeafDiagnosticTrait};
 use crate::handle::config::Config;
-use crate::interpreter::internal::fun;
-use crate::interpreter::internal::values::Value;
-use crate::interpreter::LfModName;
+use crate::internal::fun;
+use crate::internal::values::Value;
+use crate::LfModName;
 use derivative::Derivative;
 use std::collections::HashMap;
 use std::marker::PhantomData;

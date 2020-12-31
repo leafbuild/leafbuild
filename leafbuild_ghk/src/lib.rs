@@ -33,23 +33,4 @@
 )]
 #![allow(clippy::module_name_repetitions)]
 
-//! A C/C++ buildsystem.
-//! # Examples
-//! See example usage in the binary.
-
-extern crate codespan_reporting;
-#[macro_use]
-extern crate tracing;
-extern crate derive_new;
-extern crate leafbuild_derive;
-extern crate term;
-extern crate thiserror;
-
-pub use cli::run;
-
-#[path = "buildsys-utils/mod.rs"]
-pub mod buildsys_utils;
-pub mod cli;
-pub mod docs;
-pub mod trc;
-pub(crate) mod utils;
+//! The git hooks used by `leafbuild`.

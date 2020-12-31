@@ -1,8 +1,8 @@
 //! AST structures
-use crate::grammar::lexer::{NumVal, Span};
-use leafbuild_derive::Loc;
+use crate::span::Span;
+use crate::token_data::NumVal;
 use std::fmt;
-use std::ops::Range;
+use std::ops::{Deref, DerefMut, Range};
 
 type Location = Range<usize>;
 
@@ -23,6 +23,20 @@ pub trait Loc {
 /// A spanned ast structure; holds data about where in the file a certain ast element is.
 #[derive(PartialOrd, Eq, PartialEq, new)]
 pub struct Spanned<T>(T, Span);
+
+impl<T> Deref for Spanned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl<T> DerefMut for Spanned<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl<T> fmt::Debug for Spanned<T>
 where
@@ -127,7 +141,7 @@ pub enum Expr {
         condition: Box<Expr>,
         /// The span of the `?`
         qmark: Span,
-        /// The expression tp evaluate if the condition is true
+        /// The expression to evaluate if the condition is true
         if_true: Box<Expr>,
         /// The span of the `:`
         colon: Span,
@@ -144,24 +158,26 @@ impl Expr {}
 pub struct PropertyAccess {
     #[start_span]
     base: Box<Expr>,
+    dot_span: Span,
     #[end_span]
     property_name: Spanned<String>,
 }
 
 impl PropertyAccess {
+    /// Reference to the base expression
+    /// ```text
+    /// object . property_name
+    /// ^^^^^^
+    /// ```
     #[must_use]
-    pub(crate) const fn get_base(&self) -> &Expr {
+    pub const fn get_base(&self) -> &Expr {
         &self.base
     }
 
+    /// Return the name of the property
     #[must_use]
-    pub(crate) const fn get_property_name(&self) -> &String {
-        &self.property_name.0
-    }
-
-    #[must_use]
-    pub(crate) const fn get_property_name_loc(&self) -> &Span {
-        &self.property_name.1
+    pub const fn get_property(&self) -> &Spanned<String> {
+        &self.property_name
     }
 }
 
@@ -287,7 +303,9 @@ pub struct PositionalArg {
 }
 
 impl PositionalArg {
-    pub(crate) const fn get_value(&self) -> &Expr {
+    /// Returns the expression of this positional argument.
+    #[must_use]
+    pub const fn get_value(&self) -> &Expr {
         &self.value
     }
 }
@@ -333,6 +351,11 @@ impl From<(Spanned<String>, Span, Expr)> for NamedExpr {
 }
 
 /// A method call.
+/// Goes like
+/// ```text
+/// base_expression . method_name ( arguments )
+/// ```
+/// Where `base_expression . method_name` make a [`PropertyAccess`] expression.
 // TODO: refactor this
 #[derive(Debug, Clone, PartialOrd, Eq, PartialEq, Loc, new)]
 pub struct MethodCall {
@@ -345,23 +368,21 @@ pub struct MethodCall {
 }
 
 impl MethodCall {
+    /// Base expression, the one you call the method on.
     #[must_use]
-    pub(crate) const fn get_base_expr(&self) -> &Expr {
+    pub const fn get_base_expr(&self) -> &Expr {
         &self.method_property.base
     }
 
+    /// The name of the method.
     #[must_use]
-    pub(crate) const fn get_name(&self) -> &String {
-        self.method_property.get_property_name()
+    pub const fn get_name(&self) -> &Spanned<String> {
+        self.method_property.get_property()
     }
 
+    /// The arguments
     #[must_use]
-    pub(crate) const fn get_name_loc(&self) -> &Span {
-        self.method_property.get_property_name_loc()
-    }
-
-    #[must_use]
-    pub(crate) const fn get_args(&self) -> &FuncCallArgs {
+    pub const fn get_args(&self) -> &FuncCallArgs {
         &self.args
     }
 }
@@ -377,19 +398,19 @@ pub struct Assignment {
 }
 
 impl Assignment {
-    /// Returns the bound name expression
+    /// The bound name expression
     #[must_use]
     pub const fn get_bound(&self) -> &Expr {
         &self.bound_name
     }
 
-    /// Returns the operation
+    /// The operation
     #[must_use]
     pub const fn get_op(&self) -> &AtrOp {
         &self.op
     }
 
-    /// Returns the value expression
+    /// The value expression
     #[must_use]
     pub const fn get_value(&self) -> &Expr {
         &self.value
@@ -397,6 +418,10 @@ impl Assignment {
 }
 
 /// A declaration
+/// Goes like
+/// ```text
+/// let name = value
+/// ```
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Declaration {
     #[start_span]
@@ -457,13 +482,15 @@ pub struct If {
 }
 
 impl If {
+    /// The condition of this if
     #[must_use]
-    pub(crate) const fn get_condition(&self) -> &Expr {
+    pub const fn get_condition(&self) -> &Expr {
         &self.condition
     }
 
+    /// The statements to execute if the condition is true
     #[must_use]
-    pub(crate) const fn get_statements(&self) -> &Vec<Statement> {
+    pub const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements
     }
 }
@@ -478,8 +505,9 @@ pub struct ElseIf {
 }
 
 impl ElseIf {
+    ///
     #[must_use]
-    pub(crate) const fn get_if(&self) -> &If {
+    pub const fn get_if(&self) -> &If {
         &self.if_
     }
 }
@@ -496,8 +524,9 @@ pub struct Else {
 }
 
 impl Else {
+    /// The statements of this else block
     #[must_use]
-    pub(crate) const fn get_statements(&self) -> &Vec<Statement> {
+    pub const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements
     }
 }
@@ -511,18 +540,21 @@ pub struct ConditionalStatement {
 }
 
 impl ConditionalStatement {
+    /// The first `if`
     #[must_use]
-    pub(crate) const fn get_initial_if(&self) -> &If {
+    pub const fn get_initial_if(&self) -> &If {
         &self.initial_if
     }
 
+    /// All `else if`s
     #[must_use]
-    pub(crate) const fn get_else_ifs(&self) -> &Vec<ElseIf> {
+    pub const fn get_else_ifs(&self) -> &Vec<ElseIf> {
         &self.else_ifs
     }
 
+    /// The `else`
     #[must_use]
-    pub(crate) const fn get_else(&self) -> &Option<Else> {
+    pub const fn get_else(&self) -> &Option<Else> {
         &self.else_
     }
 }
@@ -556,12 +588,14 @@ pub struct RepetitiveStatement {
 }
 
 impl RepetitiveStatement {
+    /// The `... in ...` expression
     #[must_use]
-    pub(crate) const fn get_for_in_expr(&self) -> &ForInExpr {
+    pub const fn get_for_in_expr(&self) -> &ForInExpr {
         &self.for_in_expr
     }
+    /// The statements
     #[must_use]
-    pub(crate) const fn get_statements(&self) -> &Vec<Statement> {
+    pub const fn get_statements(&self) -> &Vec<Statement> {
         &self.statements
     }
 }
@@ -577,13 +611,15 @@ pub struct ForInExpr {
 }
 
 impl ForInExpr {
+    /// The name
     #[must_use]
-    pub(crate) const fn get_name(&self) -> &Spanned<String> {
+    pub const fn get_name(&self) -> &Spanned<String> {
         &self.name
     }
 
+    /// The expression
     #[must_use]
-    pub(crate) const fn get_expr(&self) -> &Expr {
+    pub const fn get_expr(&self) -> &Expr {
         &self.expr
     }
 }

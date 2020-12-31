@@ -1,18 +1,16 @@
 use std::str::FromStr;
 use lalrpop_util::ErrorRecovery;
 
-use crate::{
-	grammar::{
-	    self as grm,
-		lexer,
-		lexer::*,
-		ast::*,
-	},
+use leafbuild_ast::{
+	ast::*,
+	token_data::*,
+    span::*,
 };
+use crate::{GrmError, lexer::{self, Tk, Token}};
 
 grammar<'input, 'err>(
     input: &'input str,
-    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, grm::GrmError>>,
+    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, GrmError>>,
 );
 
 SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::new(start, end));
@@ -39,7 +37,7 @@ IdExpressionUnspanned: String = "identifier" => String::from(<>);
 
 IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
 
-NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num).map_err(|e| lalrpop_util::ParseError::from(grm::GrmError::from((e, Span::new(start, end)))));
+NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num).map_err(|e| lalrpop_util::ParseError::from(GrmError::from((e, Span::new(start, end)))));
 
 Num = SpannedNonterminal<NumTok>;
 
@@ -136,6 +134,12 @@ Expr: Expr = {
     #[precedence(level="1")]
     Num => Expr::Atom(Atom::Number(<>)),
 
+    #[precedence(level="1")]
+    ArrayLit,
+
+    #[precedence(level="1")]
+    MapLit,
+
     #[precedence(level="2")]
     Box<Expr> SpannedLocation<"("> FuncArgs SpannedLocation<")"> => Expr::FuncCall(FuncCall::new(<>)),
 
@@ -209,7 +213,7 @@ AtrOp: AtrOp = {
 }
 
 ArrayLit: Expr =
-	<left_brace: SpannedLocation<"{">> <args: Comma<Expr>> <right_brace: SpannedLocation<"}">> =>
+	<left_brace: SpannedLocation<"[">> <args: Comma<Expr>> <right_brace: SpannedLocation<"]">> =>
         Expr::Atom(Atom::ArrayLit(left_brace, args, right_brace));
 
 MapLit: Expr = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Expr::Atom(Atom::MapLit(<>));
@@ -237,7 +241,7 @@ ControlStatement: ControlStatement = {
 
 extern {
     type Location = usize;
-    type Error = grm::GrmError;
+    type Error = GrmError;
 
     enum lexer::Token<'input> {
         "+=" => Token {token: Tk::PlusEq, data: <&'input str>},

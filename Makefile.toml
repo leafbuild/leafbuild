@@ -109,7 +109,6 @@ script = [
 ]
 
 [tasks.verify-commit-message]
-cwd = "git"
 workspace = false
 command = "cargo"
 args = [
@@ -118,7 +117,7 @@ args = [
     "--bin", "verify_commit_message",
     "--",
     # Check for files in the root directory
-    "../${@}"
+    "${@}"
 ]
 
 [tasks.ci-flow]
