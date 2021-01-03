@@ -2,7 +2,7 @@
 Language: Leaf build definition files
 Description: Leaf Build is an open-source system for build automation.
 Author: Dinu Blanovschi <dinu.blanovschi@criptext.com>
-Website: https://gitlab.com/leafbuild/leafbuild
+Website: https://github.com/leafbuild/leafbuild
 */
 
 /** @type LanguageFn */

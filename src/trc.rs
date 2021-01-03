@@ -155,13 +155,9 @@ where
         &self.cfg.level < event.metadata().level()
     }
 
-    fn format_level<Collector>(
-        &self,
-        level: Level,
-        mut collector: Collector,
-    ) -> Result<(), io::Error>
+    fn format_level<Sink>(&self, level: Level, mut sink: Sink) -> Result<(), io::Error>
     where
-        Collector: FnMut(String) -> Result<(), io::Error>,
+        Sink: FnMut(String) -> Result<(), io::Error>,
     {
         let s = level.format_with_style_if(self.cfg.ansi, |s| match level {
             tracing::Level::TRACE => s.fg(Color::Cyan),
@@ -170,17 +166,17 @@ where
             tracing::Level::WARN => s.fg(Color::Yellow),
             tracing::Level::ERROR => s.fg(Color::Red),
         });
-        collector(s)
+        sink(s)
     }
 
-    fn format_leafbuild_mod_path<'scope, S, Collector>(
+    fn format_leafbuild_mod_path<'scope, S, Sink>(
         &self,
         scopes: impl Iterator<Item = SpanRef<'scope, S>>,
-        mut collector: Collector,
+        mut sink: Sink,
     ) -> Result<(), io::Error>
     where
         S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
-        Collector: FnMut(String) -> Result<(), io::Error>,
+        Sink: FnMut(String) -> Result<(), io::Error>,
     {
         let s = scopes
             .filter_map(|span| {
@@ -194,18 +190,15 @@ where
             })
             .join(&" > ".format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Green).bold()));
 
-        collector(s)
+        sink(s)
     }
 
-    fn format_event_fields<Collector>(
-        event: &Event,
-        mut collector: Collector,
-    ) -> Result<(), io::Error>
+    fn format_event_fields<Sink>(event: &Event, mut sink: Sink) -> Result<(), io::Error>
     where
-        Collector: FnMut(String) -> Result<(), io::Error>,
+        Sink: FnMut(String) -> Result<(), io::Error>,
     {
         let mut visitor = LeafbuildFmtVisitor {
-            collector: &mut collector,
+            collector: &mut sink,
             comma: false,
             err: Ok(()),
         };
@@ -214,37 +207,37 @@ where
         visitor.err
     }
 
-    fn format_debug_if_in_debug_mode<'scope, S, Collector>(
+    fn format_debug_if_in_debug_mode<'scope, S, Sink>(
         &self,
         scopes: impl Iterator<Item = SpanRef<'scope, S>>,
         event: &Event<'_>,
-        collector: Collector,
+        sink: Sink,
     ) -> Result<(), io::Error>
     where
         S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
-        Collector: FnMut(String) -> Result<(), io::Error>,
+        Sink: FnMut(String) -> Result<(), io::Error>,
     {
         if self.cfg.debug_mode {
-            self.format_debug(scopes, event, collector)?;
+            self.format_debug(scopes, event, sink)?;
         }
 
         Ok(())
     }
 
-    fn format_debug<'scope, S, Collector>(
+    fn format_debug<'scope, S, Sink>(
         &self,
         scopes: impl Iterator<Item = SpanRef<'scope, S>>,
         event: &Event<'_>,
-        collector: Collector,
+        sink: Sink,
     ) -> Result<(), io::Error>
     where
         S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
-        Collector: FnMut(String) -> Result<(), io::Error>,
+        Sink: FnMut(String) -> Result<(), io::Error>,
     {
         self.format_debug_scope(scopes)
             .into_iter()
             .chain(std::iter::once(self.format_debug_event(event)))
-            .try_for_each(collector)
+            .try_for_each(sink)
     }
 
     fn format_debug_scope<'scope, S>(
@@ -381,46 +374,8 @@ where
     }
 }
 
-trait Formatter<T = ()> {
-    fn get_handle(&self) -> T;
-
-    fn format_event_and_write<S>(
-        &self,
-        event: &Event<'_>,
-        ctx: Context<'_, S>,
-    ) -> Result<(), io::Error>
-    where
-        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug;
-}
-
-struct LeafbuildTrcLayerCollector<W>(BufWriter<W>)
-where
-    W: Write;
-
-impl<W> LeafbuildTrcLayerCollector<W>
-where
-    W: Write,
-{
-    fn collect(&mut self, s: &str) -> Result<(), io::Error> {
-        self.0.write_all(s.as_bytes())
-    }
-
-    fn flush(&mut self) -> Result<(), io::Error> {
-        self.0.flush()
-    }
-}
-
-impl<W> Formatter<LeafbuildTrcLayerCollector<W::Writer>> for LeafbuildTrcLayer<W>
-where
-    W: MakeWriter + 'static,
-{
-    fn get_handle(&self) -> LeafbuildTrcLayerCollector<W::Writer> {
-        LeafbuildTrcLayerCollector(BufWriter::with_capacity(
-            4096,
-            self.make_writer.make_writer(),
-        ))
-    }
-
+trait FormatterWithSink<Sink> {
+    fn get_sink(&self) -> Sink;
     fn format_event_and_write<S>(
         &self,
         event: &Event<'_>,
@@ -429,16 +384,63 @@ where
     where
         S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
     {
-        let mut collector = self.get_handle();
-        self.format_leafbuild_mod_path(ctx.scope(), |s| collector.collect(&s))
-            .and_then(|_| collector.collect(" "))
-            .and_then(|_| self.format_level(*event.metadata().level(), |s| collector.collect(&s)))
-            .and_then(|_| collector.collect(": "))
-            .and_then(|_| Self::format_event_fields(event, |s| collector.collect(&s)))
-            .and_then(|_| collector.collect("\n"))
-            .and_then(|_| {
-                self.format_debug_if_in_debug_mode(ctx.scope(), event, |s| collector.collect(&s))
-            })
-            .and_then(|_| collector.flush())
+        self.format_event_and_write_with_sink(event, ctx, self.get_sink())
+    }
+
+    fn format_event_and_write_with_sink<S>(
+        &self,
+        event: &Event<'_>,
+        ctx: Context<'_, S>,
+        sink: Sink,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug;
+}
+
+struct LeafbuildTrcLayerSink<W>(BufWriter<W>)
+where
+    W: Write;
+
+impl<W> LeafbuildTrcLayerSink<W>
+where
+    W: Write,
+{
+    fn sink(&mut self, s: impl AsRef<str>) -> Result<(), io::Error> {
+        self.0.write_all(s.as_ref().as_bytes())
+    }
+
+    fn flush(&mut self) -> Result<(), io::Error> {
+        self.0.flush()
+    }
+}
+
+impl<W> FormatterWithSink<LeafbuildTrcLayerSink<W::Writer>> for LeafbuildTrcLayer<W>
+where
+    W: MakeWriter + 'static,
+{
+    fn get_sink(&self) -> LeafbuildTrcLayerSink<W::Writer> {
+        LeafbuildTrcLayerSink(BufWriter::with_capacity(
+            4096,
+            self.make_writer.make_writer(),
+        ))
+    }
+
+    fn format_event_and_write_with_sink<S>(
+        &self,
+        event: &Event<'_>,
+        ctx: Context<'_, S>,
+        mut sink: LeafbuildTrcLayerSink<W::Writer>,
+    ) -> Result<(), io::Error>
+    where
+        S: Subscriber + for<'span> LookupSpan<'span> + fmt::Debug,
+    {
+        self.format_leafbuild_mod_path(ctx.scope(), |s| sink.sink(&s))
+            .and_then(|_| sink.sink(" "))
+            .and_then(|_| self.format_level(*event.metadata().level(), |s| sink.sink(&s)))
+            .and_then(|_| sink.sink(": "))
+            .and_then(|_| Self::format_event_fields(event, |s| sink.sink(&s)))
+            .and_then(|_| sink.sink("\n"))
+            .and_then(|_| self.format_debug_if_in_debug_mode(ctx.scope(), event, |s| sink.sink(&s)))
+            .and_then(|_| sink.flush())
     }
 }

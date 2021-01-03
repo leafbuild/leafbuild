@@ -1,6 +1,6 @@
 //! Definition and parsing of Cli.
 use clap::{AppSettings, Clap};
-use leafbuild_interpreter::handle::config::Config;
+use leafbuild_core::lf_buildsys::config::Config;
 use leafbuild_interpreter::handle::Handle;
 use leafbuild_interpreter::LfModName;
 use std::path::{Path, PathBuf};
@@ -135,7 +135,20 @@ pub fn run(cli: Cli) {
             leafbuild_interpreter::execute_on(
                 &mut handle,
                 &path_buf,
-                LfModName::new(path_buf.file_name().unwrap().to_string_lossy()),
+                LfModName::new(
+                    path_buf
+                        .file_name()
+                        .map(|it| it.to_string_lossy().to_string())
+                        .or_else(|| {
+                            Some(
+                                std::env::current_dir()
+                                    .ok()?
+                                    .file_name()
+                                    .map(|it| it.to_string_lossy().to_string())?,
+                            )
+                        })
+                        .unwrap_or_else(|| ".".into()),
+                ),
             )
             .and_then(|h| Ok(h.validate()?))
             .and_then(|h| Ok(h.write_results()?))

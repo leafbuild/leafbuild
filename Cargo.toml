@@ -6,7 +6,7 @@ authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
 edition = "2018"
 license = "BSD-3-Clause"
 repository = "https://github.com/leafbuild/leafbuild"
-documentation = "https://leafbuild.github.io/docs"
+documentation = "https://leafbuild.github.io/"
 readme = "README.md"
 categories = ["command-line-utilities"]
 keywords = ["cli", "interpreter", "command-line"]
@@ -20,10 +20,11 @@ default = ["c", "cpp", "cmake-ml"]
 c = []
 cpp = ["c"]
 
-ml = []
+ml = ["leafbuild-ml"]
 
-cmake-ml = ["c", "ml"]
-meson-ml = ["ml"]
+cmake-ml = ["c", "ml", "leafbuild-cmakeml"]
+meson-ml = ["ml", "leafbuild-mesonml"]
+premake-ml = ["ml", "leafbuild-premakeml"]
 
 [dependencies]
 itertools = "0.10"
@@ -44,17 +45,43 @@ lalrpop-util = "0.19"
 tracing = "0.1"
 tracing-subscriber = "0.2"
 
-leafbuild_derive = { path = "leafbuild_derive", version = "0.1.0" }
-leafbuild_ast = { path = "leafbuild_ast", version = "0.1.0" }
-leafbuild_parser = { path = "leafbuild_parser", version = "0.1.0" }
-leafbuild_interpreter = { path = "leafbuild_interpreter", version = "0.1.0" }
+leafbuild-core = { path = "leafbuild-core", version = "0.1.0" }
+leafbuild-derive = { path = "leafbuild-derive", version = "0.1.0" }
+leafbuild-ast = { path = "leafbuild-ast", version = "0.1.0" }
+leafbuild-parser = { path = "leafbuild-parser", version = "0.1.0" }
+leafbuild-interpreter = { path = "leafbuild-interpreter", version = "0.1.0" }
+
+[dependencies.leafbuild-ml]
+optional = true
+version = "0.1.0"
+path = "leafbuild-ml"
+
+[dependencies.leafbuild-cmakeml]
+optional = true
+version = "0.1.0"
+path = "leafbuild-cmakeml"
+
+[dependencies.leafbuild-mesonml]
+optional = true
+version = "0.1.0"
+path = "leafbuild-mesonml"
+
+[dependencies.leafbuild-premakeml]
+optional = true
+version = "0.1.0"
+path = "leafbuild-premakeml"
 
 [workspace]
 members = [
-    "leafbuild_derive",
-    "leafbuild_ast",
-    "leafbuild_parser",
-    "leafbuild_interpreter",
+    "leafbuild-core",
+    "leafbuild-derive",
+    "leafbuild-ast",
+    "leafbuild-parser",
+    "leafbuild-interpreter",
+    "leafbuild-ml",
+    "leafbuild-cmakeml",
+    "leafbuild-mesonml",
+    "leafbuild-premakeml",
     "ghk",
-    "leafbuild_ghk",
+    "leafbuild-ghk",
 ]

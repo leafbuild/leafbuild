@@ -1,0 +1,295 @@
+use std::str::FromStr;
+use lalrpop_util::ErrorRecovery;
+
+use leafbuild_ast::{
+    ast::*,
+    token_data::*,
+    span::*,
+};
+use crate::{GrmError, lexer::{self, Tk, Token}};
+
+grammar<'input, 'err>(
+    input: &'input str,
+    errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, GrmError>>,
+);
+
+SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::new(start, end));
+SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
+Box<Rule>: Box<Rule> = <rule: Rule> => Box::new(rule);
+
+SingleComma: () = {
+    "," => (),
+
+    ! => errors.push(<>),
+}
+
+#[inline]
+Comma<Rule>: Vec<Rule> =
+    <mut rules: (<Rule> SingleComma)*> <last: Rule?> => {
+        rules.extend(last);
+        rules
+    };
+
+#[inline]
+CommaNoTrailing<Rule>: Vec<Rule> = <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
+
+IdExpressionUnspanned: String = "identifier" => String::from(<>);
+
+IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
+
+NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num).map_err(|e| lalrpop_util::ParseError::from(GrmError::from((e, Span::new(start, end)))));
+
+Num = SpannedNonterminal<NumTok>;
+
+BoolTok: bool = {
+    "true" => true,
+    "false" => false,
+}
+
+BoolLit = SpannedNonterminal<BoolTok>;
+
+StrTok: String = {
+    <s: "single line string"> => String::from(&s[1..(s.len()-1)]),
+    <s: "multiline string"> => String::from(&s[3..(s.len()-3)]),
+}
+
+Str = SpannedNonterminal<StrTok>;
+
+UnaryNot: UnaryOpcode = SpannedLocation<"not"> => UnaryOpcode::Not(<>);
+
+pub BuildDefinition = <Statement*>;
+Statement: Statement = {
+	<Expr> ";" => Statement::ExecExpr(<>),
+	<Assignment> ";" => Statement::Assignment(<>),
+	<Declaration> ";" => Statement::Declaration(<>),
+	<ConditionalStatement> => Statement::Conditional(<>),
+	//<statement ControlStatement> => AstStatement::Control(statement),
+	<RepetitiveStatement> => Statement::Repetitive(<>),
+}
+
+FuncArgs: FuncCallArgs = {
+	<pos: PositionalFuncArgs> SingleComma <named: NamedFuncArgs> SingleComma? => FuncCallArgs::new(<>),
+	<PositionalFuncArgs> SingleComma? => FuncCallArgs::new_only_positional(<>),
+	<NamedFuncArgs> SingleComma? => FuncCallArgs::new_only_named(<>),
+	() => FuncCallArgs::empty(),
+}
+
+#[inline]
+PositionalFuncArgs = CommaNoTrailing<PositionalFuncArg>;
+
+PositionalFuncArg: PositionalArg = Expr => PositionalArg::from(<>);
+
+#[inline]
+NamedFuncArgs = CommaNoTrailing<NamedExpr>;
+
+NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
+
+UnaryPlusMinusOpcode: UnaryOpcode = {
+	SpannedLocation<"-"> => UnaryOpcode::Minus(<>),
+	SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
+}
+
+UnaryLogicalAndBitwiseNot: UnaryOpcode = {
+	SpannedLocation<"not"> => UnaryOpcode::Not(<>),
+	SpannedLocation<"~"> => UnaryOpcode::BitwiseNot(<>),
+}
+
+MulOp: Opcode = {
+    SpannedLocation<"*"> => Opcode::Mul(<>),
+    SpannedLocation<"/"> => Opcode::Div(<>),
+    SpannedLocation<"%"> => Opcode::Mod(<>),
+}
+
+AddOp: Opcode = {
+    SpannedLocation<"+"> => Opcode::Add(<>),
+    SpannedLocation<"-"> => Opcode::Sub(<>),
+}
+
+BitShiftOp: Opcode = {
+    SpannedLocation<"<<"> => Opcode::LBitshift(<>),
+    SpannedLocation<">>"> => Opcode::RBitshift(<>),
+}
+
+RelOp: Opcode = {
+	SpannedLocation<">"> => Opcode::G(<>),
+	SpannedLocation<"<"> => Opcode::L(<>),
+	SpannedLocation<">="> => Opcode::GE(<>),
+	SpannedLocation<"<="> => Opcode::LE(<>),
+	SpannedLocation<"in"> => Opcode::In(<>),
+	SpannedLocation<("not" "in")> => Opcode::NotIn(<>),
+}
+
+RelOp2: Opcode = {
+    SpannedLocation<"=="> => Opcode::Equal(<>),
+    SpannedLocation<"!="> => Opcode::NE(<>),
+}
+
+AndOp: Opcode = SpannedLocation<"and"> => Opcode::And(<>);
+
+OrOp: Opcode = SpannedLocation<"or"> => Opcode::Or(<>);
+
+Expr: Expr = {
+    #[precedence(level="1")]
+    IdExpression => Expr::Atom(Atom::Id(<>)),
+    #[precedence(level="1")]
+    Num => Expr::Atom(Atom::Number(<>)),
+
+    #[precedence(level="1")]
+    ArrayLit,
+
+    #[precedence(level="1")]
+    MapLit,
+
+    #[precedence(level="2")]
+    Box<Expr> SpannedLocation<"("> FuncArgs SpannedLocation<")"> => Expr::FuncCall(FuncCall::new(<>)),
+
+    #[precedence(level="2")]
+    <base: Box<Expr>> <open_bracket: SpannedLocation<"[">> <index: Box<Expr>> <close_bracket: SpannedLocation<"]">> =>
+            Expr::Indexed {base, open_bracket, index, close_bracket},
+
+    // #[precedence(level="2")]
+    // TODO: Property access
+
+    #[precedence(level="3")]
+    UnaryPlusMinusOpcode Box<Expr> => Expr::UnaryOp(<>),
+
+    #[precedence(level="3")]
+    UnaryLogicalAndBitwiseNot Box<Expr> => Expr::UnaryOp(<>),
+
+    #[precedence(level="4")]
+    #[assoc(side="left")]
+    Box<Expr> MulOp Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="5")]
+    #[assoc(side="left")]
+    Box<Expr> AddOp Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="6")]
+    #[assoc(side="left")]
+    Box<Expr> BitShiftOp Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="7")]
+    #[assoc(side="left")]
+    Box<Expr> RelOp Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="8")]
+    #[assoc(side="left")]
+    Box<Expr> RelOp2 Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="9")]
+    #[assoc(side="left")]
+    Box<Expr> AndOp Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="10")]
+    #[assoc(side="left")]
+    Box<Expr> OrOp Box<Expr> => Expr::Op(<>),
+
+    #[precedence(level="11")]
+    #[assoc(side="right")]
+    <condition: Box<Expr>> <qmark: SpannedLocation<"?">>
+    <if_true: Box<Expr>> <colon: SpannedLocation<":">> <if_false: Box<Expr>> =>
+        Expr::Ternary{condition, qmark, if_true, colon, if_false},
+};
+
+//MemberAccessExpr: AstPropertyAccess = {
+//    <t:Term> <dot: SpannedLocation<".">> <prop_name:IdExpression> => AstPropertyAccess::new(t, dot, prop_name),
+//}
+//
+//MethodCall: AstMethodCall = {
+//	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
+//}
+
+Declaration: Declaration = SpannedLocation<"let"> IdExpression SpannedLocation<"="> Expr => Declaration::new(<>);
+
+Assignment: Assignment = Expr AtrOp Expr => Assignment::new(<>);
+
+AtrOp: AtrOp = {
+	SpannedLocation<"="> => AtrOp::Atr(<>),
+	SpannedLocation<"+="> => AtrOp::AddAtr(<>),
+	SpannedLocation<"-="> => AtrOp::SubAtr(<>),
+	SpannedLocation<"*="> => AtrOp::MulAtr(<>),
+	SpannedLocation<"/="> => AtrOp::DivAtr(<>),
+	SpannedLocation<"%="> => AtrOp::ModAtr(<>),
+}
+
+ArrayLit: Expr =
+	<left_brace: SpannedLocation<"[">> <args: Comma<Expr>> <right_brace: SpannedLocation<"]">> =>
+        Expr::Atom(Atom::ArrayLit(left_brace, args, right_brace));
+
+MapLit: Expr = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Expr::Atom(Atom::MapLit(<>));
+
+#[inline]
+ConditionalStatement: ConditionalStatement = If ElseIf* Else? => ConditionalStatement::new(<>);
+
+If: If = SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocation<"}"> => If::new(<>);
+
+ElseIf: ElseIf = SpannedLocation<"else"> If => ElseIf::new(<>);
+
+Else: Else = SpannedLocation<"else"> SpannedLocation<"{"> Statement+ SpannedLocation<"}"> => Else::new(<>);
+
+RepetitiveStatement: RepetitiveStatement =
+    SpannedLocation<"foreach"> ForInExpr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
+        RepetitiveStatement::new(<>);
+
+ForInExpr: ForInExpr =
+    IdExpression SpannedLocation<"in"> Expr => ForInExpr::new(<>);
+
+ControlStatement: ControlStatement = {
+	SpannedLocation<"break"> => ControlStatement::Break(<>),
+	SpannedLocation<"continue"> => ControlStatement::Continue(<>),
+}
+
+extern {
+    type Location = usize;
+    type Error = GrmError;
+
+    enum lexer::Token<'input> {
+        "+=" => Token {token: Tk::PlusEq, data: <&'input str>},
+        "-=" => Token {token: Tk::MinusEq, data: <&'input str>},
+        "*=" => Token {token: Tk::MulEq, data: <&'input str>},
+        "/=" => Token {token: Tk::DivEq, data: <&'input str>},
+        "%=" => Token {token: Tk::ModEq, data: <&'input str>},
+        "+" => Token {token: Tk::Plus, data: <&'input str>},
+        "-" => Token {token: Tk::Minus, data: <&'input str>},
+        "*" => Token {token: Tk::Mul, data: <&'input str>},
+        "/" => Token {token: Tk::Slash, data: <&'input str>},
+        "%" => Token {token: Tk::Percent, data: <&'input str>},
+        "==" => Token {token: Tk::EqualEqual, data: <&'input str>},
+        ">=" => Token {token: Tk::GreaterEqual, data: <&'input str>},
+        ">" => Token {token: Tk::GreaterThan, data: <&'input str>},
+        "<=" => Token {token: Tk::LessEqual, data: <&'input str>},
+        "<" => Token {token: Tk::LessThan, data: <&'input str>},
+        "!=" => Token {token: Tk::NotEqual, data: <&'input str>},
+        "=" => Token {token: Tk::Equal, data: <&'input str>},
+        "<<" => Token {token: Tk::ShiftLeft, data: <&'input str>},
+        ">>" => Token {token: Tk::ShiftRight, data: <&'input str>},
+        "(" => Token {token: Tk::LParen, data: <&'input str>},
+        "[" => Token {token: Tk::LBracket, data: <&'input str>},
+        "{" => Token {token: Tk::LBrace, data: <&'input str>},
+        ")" => Token {token: Tk::RParen, data: <&'input str>},
+        "]" => Token {token: Tk::RBracket, data: <&'input str>},
+        "}" => Token {token: Tk::RBrace, data: <&'input str>},
+        "." => Token {token: Tk::Dot, data: <&'input str>},
+        ":" => Token {token: Tk::Colon, data: <&'input str>},
+        "?" => Token {token: Tk::QMark, data: <&'input str>},
+        ";" => Token {token: Tk::Semicolon, data: <&'input str>},
+        "," => Token {token: Tk::Comma, data: <&'input str>},
+        "~" => Token {token: Tk::Tilda, data: <&'input str>},
+        "and" => Token {token: Tk::And, data: <&'input str>},
+        "or" => Token {token: Tk::Or, data: <&'input str>},
+        "not" => Token {token: Tk::Not, data: <&'input str>},
+        "in" => Token {token: Tk::In, data: <&'input str>},
+        "let" => Token {token: Tk::Let, data: <&'input str>},
+        "if" => Token {token: Tk::If, data: <&'input str>},
+        "else" => Token {token: Tk::Else, data: <&'input str>},
+        "foreach" => Token {token: Tk::ForEach, data: <&'input str>},
+        "continue" => Token {token: Tk::Continue, data: <&'input str>},
+        "break" => Token {token: Tk::Break, data: <&'input str>},
+        "true" => Token {token: Tk::True, data: <&'input str>},
+        "false" => Token {token: Tk::False, data: <&'input str>},
+        "number" => Token {token: Tk::Number, data: <&'input str>},
+        "identifier" => Token {token: Tk::Id, data: <&'input str>},
+        "single line string" => Token {token: Tk::String, data: <&'input str>},
+        "multiline string" => Token {token: Tk::MultilineString, data: <&'input str>},
+    }
+}

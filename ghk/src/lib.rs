@@ -34,11 +34,3 @@
 #![allow(clippy::module_name_repetitions)]
 
 //! # GHK, git hooks
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}

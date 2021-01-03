@@ -1,5 +1,5 @@
 /*
-  Highlight.js 10.3.0 (97f9e888)
+  Highlight.js 10.3.99 (e8a8216b)
   License: BSD-3-Clause
   Copyright (c) 2006-2020, Ivan Sagalaev
 */
@@ -67,7 +67,7 @@ var hljs = (function () {
    */
   function inherit(original, ...objects) {
     /** @type Record<string,any> */
-    var result = {};
+    const result = Object.create(null);
 
     for (const key in original) {
       result[key] = original[key];
@@ -101,9 +101,9 @@ var hljs = (function () {
    */
   function nodeStream(node) {
     /** @type Event[] */
-    var result = [];
+    const result = [];
     (function _nodeStream(node, offset) {
-      for (var child = node.firstChild; child; child = child.nextSibling) {
+      for (let child = node.firstChild; child; child = child.nextSibling) {
         if (child.nodeType === 3) {
           offset += child.nodeValue.length;
         } else if (child.nodeType === 1) {
@@ -136,9 +136,9 @@ var hljs = (function () {
    * @param {string} value - the original source itself
    */
   function mergeStreams(original, highlighted, value) {
-    var processed = 0;
-    var result = '';
-    var nodeStack = [];
+    let processed = 0;
+    let result = '';
+    const nodeStack = [];
 
     function selectStream() {
       if (!original.length || !highlighted.length) {
@@ -193,7 +193,7 @@ var hljs = (function () {
     }
 
     while (original.length || highlighted.length) {
-      var stream = selectStream();
+      let stream = selectStream();
       result += escapeHTML(value.substring(processed, stream[0].offset));
       processed = stream[0].offset;
       if (stream === original) {
@@ -520,7 +520,7 @@ var hljs = (function () {
    * @param {string} lexeme
    */
   function startsWith(re, lexeme) {
-    var match = re && re.exec(lexeme);
+    const match = re && re.exec(lexeme);
     return match && match.index === 0;
   }
 
@@ -542,19 +542,19 @@ var hljs = (function () {
     //   interesting elements
     // - non-matching or lookahead parentheses, which do not capture. These
     //   follow the '(' with a '?'.
-    var backreferenceRe = /\[(?:[^\\\]]|\\.)*\]|\(\??|\\([1-9][0-9]*)|\\./;
-    var numCaptures = 0;
-    var ret = '';
-    for (var i = 0; i < regexps.length; i++) {
+    const backreferenceRe = /\[(?:[^\\\]]|\\.)*\]|\(\??|\\([1-9][0-9]*)|\\./;
+    let numCaptures = 0;
+    let ret = '';
+    for (let i = 0; i < regexps.length; i++) {
       numCaptures += 1;
-      var offset = numCaptures;
-      var re = source(regexps[i]);
+      const offset = numCaptures;
+      let re = source(regexps[i]);
       if (i > 0) {
         ret += separator;
       }
       ret += "(";
       while (re.length > 0) {
-        var match = backreferenceRe.exec(re);
+        const match = backreferenceRe.exec(re);
         if (match == null) {
           ret += re;
           break;
@@ -638,7 +638,7 @@ var hljs = (function () {
    * @returns {Partial<Mode>}
    */
   const COMMENT = function(begin, end, modeOptions = {}) {
-    var mode = inherit(
+    const mode = inherit(
       {
         className: 'comment',
         begin,
@@ -772,7 +772,7 @@ var hljs = (function () {
   });
 
   // keywords that should have no default relevance value
-  var COMMON_KEYWORDS = 'of and for in not or if then'.split(' ');
+  const COMMON_KEYWORDS = 'of and for in not or if then'.split(' ');
 
   // compilation
 
@@ -1133,6 +1133,10 @@ var hljs = (function () {
     if (language.contains && language.contains.includes('self')) {
       throw new Error("ERR: contains `self` is not supported at the top-level of a language.  See documentation.");
     }
+
+    // we need a null object, which inherit will guarantee
+    language.classNameAliases = inherit(language.classNameAliases || {});
+
     return compileMode(/** @type Mode */ (language));
   }
 
@@ -1205,7 +1209,7 @@ var hljs = (function () {
    */
   function compileKeywords(rawKeywords, caseInsensitive) {
     /** @type KeywordDict */
-    var compiledKeywords = {};
+    const compiledKeywords = {};
 
     if (typeof rawKeywords === 'string') { // string
       splitAndCompile('keyword', rawKeywords);
@@ -1231,7 +1235,7 @@ var hljs = (function () {
         keywordList = keywordList.toLowerCase();
       }
       keywordList.split(' ').forEach(function(keyword) {
-        var pair = keyword.split('|');
+        const pair = keyword.split('|');
         compiledKeywords[pair[0]] = [className, scoreForKeyword(pair[0], pair[1])];
       });
     }
@@ -1263,7 +1267,7 @@ var hljs = (function () {
     return COMMON_KEYWORDS.includes(keyword.toLowerCase());
   }
 
-  var version = "10.3.0";
+  var version = "10.3.99";
 
   // @ts-nocheck
 
@@ -1271,62 +1275,66 @@ var hljs = (function () {
     return Boolean(value || value === "");
   }
 
-  const Component = {
-    props: ["language", "code", "autodetect"],
-    data: function() {
-      return {
-        detectedLanguage: "",
-        unknownLanguage: false
-      };
-    },
-    computed: {
-      className() {
-        if (this.unknownLanguage) return "";
-
-        return "hljs " + this.detectedLanguage;
+  function BuildVuePlugin(hljs) {
+    const Component = {
+      props: ["language", "code", "autodetect"],
+      data: function() {
+        return {
+          detectedLanguage: "",
+          unknownLanguage: false
+        };
       },
-      highlighted() {
-        // no idea what language to use, return raw code
-        if (!this.autoDetect && !hljs.getLanguage(this.language)) {
-          console.warn(`The language "${this.language}" you specified could not be found.`);
-          this.unknownLanguage = true;
-          return escapeHTML(this.code);
+      computed: {
+        className() {
+          if (this.unknownLanguage) return "";
+    
+          return "hljs " + this.detectedLanguage;
+        },
+        highlighted() {
+          // no idea what language to use, return raw code
+          if (!this.autoDetect && !hljs.getLanguage(this.language)) {
+            console.warn(`The language "${this.language}" you specified could not be found.`);
+            this.unknownLanguage = true;
+            return escapeHTML(this.code);
+          }
+    
+          let result;
+          if (this.autoDetect) {
+            result = hljs.highlightAuto(this.code);
+            this.detectedLanguage = result.language;
+          } else {
+            result = hljs.highlight(this.language, this.code, this.ignoreIllegals);
+            this.detectedLanguage = this.language;
+          }
+          return result.value;
+        },
+        autoDetect() {
+          return !this.language || hasValueOrEmptyAttribute(this.autodetect);
+        },
+        ignoreIllegals() {
+          return true;
         }
-
-        let result;
-        if (this.autoDetect) {
-          result = hljs.highlightAuto(this.code);
-          this.detectedLanguage = result.language;
-        } else {
-          result = hljs.highlight(this.language, this.code, this.ignoreIllegals);
-          this.detectectLanguage = this.language;
-        }
-        return result.value;
       },
-      autoDetect() {
-        return !this.language || hasValueOrEmptyAttribute(this.autodetect);
-      },
-      ignoreIllegals() {
-        return true;
+      // this avoids needing to use a whole Vue compilation pipeline just
+      // to build Highlight.js
+      render(createElement) {
+        return createElement("pre", {}, [
+          createElement("code", {
+            class: this.className,
+            domProps: { innerHTML: this.highlighted }})
+        ]);
       }
-    },
-    // this avoids needing to use a whole Vue compilation pipeline just
-    // to build Highlight.js
-    render(createElement) {
-      return createElement("pre", {}, [
-        createElement("code", {
-          class: this.className,
-          domProps: { innerHTML: this.highlighted }})
-      ]);
-    }
-    // template: `<pre><code :class="className" v-html="highlighted"></code></pre>`
-  };
+      // template: `<pre><code :class="className" v-html="highlighted"></code></pre>`
+    };
+    
+    const VuePlugin = {
+      install(Vue) {
+        Vue.component('highlightjs', Component);
+      }
+    };
 
-  const VuePlugin = {
-    install(Vue) {
-      Vue.component('highlightjs', Component);
-    }
-  };
+    return { Component, VuePlugin };
+  }
 
   /*
   Syntax highlighting with language autodetection.
@@ -1346,28 +1354,28 @@ var hljs = (function () {
   const HLJS = function(hljs) {
     // Convenience variables for build-in objects
     /** @type {unknown[]} */
-    var ArrayProto = [];
+    const ArrayProto = [];
 
     // Global internal variables used within the highlight.js library.
     /** @type {Record<string, Language>} */
-    var languages = Object.create(null);
+    const languages = Object.create(null);
     /** @type {Record<string, string>} */
-    var aliases = Object.create(null);
+    const aliases = Object.create(null);
     /** @type {HLJSPlugin[]} */
-    var plugins = [];
+    const plugins = [];
 
     // safe/production mode - swallows more errors, tries to keep running
     // even if a single syntax or parse hits a fatal error
-    var SAFE_MODE = true;
-    var fixMarkupRe = /(^(<[^>]+>|\t|)+|\n)/gm;
-    var LANGUAGE_NOT_FOUND = "Could not find the language '{}', did you forget to load/include a language module?";
+    let SAFE_MODE = true;
+    const fixMarkupRe = /(^(<[^>]+>|\t|)+|\n)/gm;
+    const LANGUAGE_NOT_FOUND = "Could not find the language '{}', did you forget to load/include a language module?";
     /** @type {Language} */
     const PLAINTEXT_LANGUAGE = { disableAutodetect: true, name: 'Plain text', contains: [] };
 
     // Global options used when within external APIs. This is modified when
     // calling the `hljs.configure` function.
     /** @type HLJSOptions */
-    var options = {
+    let options = {
       noHighlightRe: /^(no-?highlight)$/i,
       languageDetectRe: /\blang(?:uage)?-([\w-]+)\b/i,
       classPrefix: 'hljs-',
@@ -1393,14 +1401,14 @@ var hljs = (function () {
      * @param {HighlightedHTMLElement} block - the HTML element to determine language for
      */
     function blockLanguage(block) {
-      var classes = block.className + ' ';
+      let classes = block.className + ' ';
 
       classes += block.parentNode ? block.parentNode.className : '';
 
       // language-* takes precedence over non-prefixed class names.
       const match = options.languageDetectRe.exec(classes);
       if (match) {
-        var language = getLanguage(match[1]);
+        const language = getLanguage(match[1]);
         if (!language) {
           console.warn(LANGUAGE_NOT_FOUND.replace("{}", match[1]));
           console.warn("Falling back to no-highlight mode for this block.", block);
@@ -1419,19 +1427,19 @@ var hljs = (function () {
      * @param {string} languageName - the language to use for highlighting
      * @param {string} code - the code to highlight
      * @param {boolean} [ignoreIllegals] - whether to ignore illegal matches, default is to bail
-     * @param {Mode} [continuation] - current continuation mode, if any
+     * @param {CompiledMode} [continuation] - current continuation mode, if any
      *
      * @returns {HighlightResult} Result - an object that represents the result
      * @property {string} language - the language name
      * @property {number} relevance - the relevance score
      * @property {string} value - the highlighted HTML code
      * @property {string} code - the original raw code
-     * @property {Mode} top - top of the current mode stack
+     * @property {CompiledMode} top - top of the current mode stack
      * @property {boolean} illegal - indicates whether any illegal matches were found
     */
     function highlight(languageName, code, ignoreIllegals, continuation) {
       /** @type {{ code: string, language: string, result?: any }} */
-      var context = {
+      const context = {
         code,
         language: languageName
       };
@@ -1441,7 +1449,7 @@ var hljs = (function () {
 
       // a before plugin can usurp the result completely by providing it's own
       // in which case we don't even need to call highlight
-      var result = context.result ?
+      const result = context.result ?
         context.result :
         _highlight(context.language, context.code, ignoreIllegals, continuation);
 
@@ -1458,10 +1466,11 @@ var hljs = (function () {
      * @param {string} languageName - the language to use for highlighting
      * @param {string} code - the code to highlight
      * @param {boolean} [ignoreIllegals] - whether to ignore illegal matches, default is to bail
-     * @param {Mode} [continuation] - current continuation mode, if any
+     * @param {CompiledMode} [continuation] - current continuation mode, if any
+     * @returns {HighlightResult} - result of the highlight operation
     */
     function _highlight(languageName, code, ignoreIllegals, continuation) {
-      var codeToHighlight = code;
+      const codeToHighlight = code;
 
       /**
        * Return keyword data if a match is a keyword
@@ -1470,7 +1479,7 @@ var hljs = (function () {
        * @returns {KeywordData | false}
        */
       function keywordData(mode, match) {
-        var matchText = language.case_insensitive ? match[0].toLowerCase() : match[0];
+        const matchText = language.case_insensitive ? match[0].toLowerCase() : match[0];
         return Object.prototype.hasOwnProperty.call(mode.keywords, matchText) && mode.keywords[matchText];
       }
 
@@ -1494,7 +1503,8 @@ var hljs = (function () {
             buf = "";
 
             relevance += keywordRelevance;
-            emitter.addKeyword(match[0], kind);
+            const cssClass = language.classNameAliases[kind] || kind;
+            emitter.addKeyword(match[0], cssClass);
           } else {
             buf += match[0];
           }
@@ -1508,7 +1518,7 @@ var hljs = (function () {
       function processSubLanguage() {
         if (modeBuffer === "") return;
         /** @type HighlightResult */
-        var result = null;
+        let result = null;
 
         if (typeof top.subLanguage === 'string') {
           if (!languages[top.subLanguage]) {
@@ -1516,7 +1526,7 @@ var hljs = (function () {
             return;
           }
           result = _highlight(top.subLanguage, modeBuffer, true, continuations[top.subLanguage]);
-          continuations[top.subLanguage] = result.top;
+          continuations[top.subLanguage] = /** @type {CompiledMode} */ (result.top);
         } else {
           result = highlightAuto(modeBuffer, top.subLanguage.length ? top.subLanguage : null);
         }
@@ -1545,7 +1555,7 @@ var hljs = (function () {
        */
       function startNewMode(mode) {
         if (mode.className) {
-          emitter.openNode(mode.className);
+          emitter.openNode(language.classNameAliases[mode.className] || mode.className);
         }
         top = Object.create(mode, { parent: { value: top } });
         return top;
@@ -1607,8 +1617,8 @@ var hljs = (function () {
        * @returns {number} how far to advance the parse cursor
        */
       function doBeginMatch(match) {
-        var lexeme = match[0];
-        var newMode = match.rule;
+        const lexeme = match[0];
+        const newMode = match.rule;
 
         const resp = new Response(newMode);
         // first internal before callbacks, then the public ones
@@ -1648,13 +1658,13 @@ var hljs = (function () {
        * @param {RegExpMatchArray} match - the current match
        */
       function doEndMatch(match) {
-        var lexeme = match[0];
-        var matchPlusRemainder = codeToHighlight.substr(match.index);
+        const lexeme = match[0];
+        const matchPlusRemainder = codeToHighlight.substr(match.index);
 
-        var endMode = endOfMode(top, match, matchPlusRemainder);
+        const endMode = endOfMode(top, match, matchPlusRemainder);
         if (!endMode) { return NO_MATCH; }
 
-        var origin = top;
+        const origin = top;
         if (origin.skip) {
           modeBuffer += lexeme;
         } else {
@@ -1685,8 +1695,8 @@ var hljs = (function () {
       }
 
       function processContinuations() {
-        var list = [];
-        for (var current = top; current !== language; current = current.parent) {
+        const list = [];
+        for (let current = top; current !== language; current = current.parent) {
           if (current.className) {
             list.unshift(current.className);
           }
@@ -1695,7 +1705,7 @@ var hljs = (function () {
       }
 
       /** @type {{type?: MatchType, index?: number, rule?: Mode}}} */
-      var lastMatch = {};
+      let lastMatch = {};
 
       /**
        *  Process an individual match
@@ -1704,7 +1714,7 @@ var hljs = (function () {
        * @param {EnhancedMatch} [match] - the match itself
        */
       function processLexeme(textBeforeMatch, match) {
-        var lexeme = match && match[0];
+        const lexeme = match && match[0];
 
         // add non-matched text to the current mode buffer
         modeBuffer += textBeforeMatch;
@@ -1741,7 +1751,7 @@ var hljs = (function () {
           err.mode = top;
           throw err;
         } else if (match.type === "end") {
-          var processed = doEndMatch(match);
+          const processed = doEndMatch(match);
           if (processed !== NO_MATCH) {
             return processed;
           }
@@ -1780,25 +1790,25 @@ var hljs = (function () {
         return lexeme.length;
       }
 
-      var language = getLanguage(languageName);
+      const language = getLanguage(languageName);
       if (!language) {
         console.error(LANGUAGE_NOT_FOUND.replace("{}", languageName));
         throw new Error('Unknown language: "' + languageName + '"');
       }
 
-      var md = compileLanguage(language);
-      var result = '';
+      const md = compileLanguage(language);
+      let result = '';
       /** @type {CompiledMode} */
-      var top = continuation || md;
-      /** @type Record<string,Mode> */
-      var continuations = {}; // keep continuations for sub-languages
-      var emitter = new options.__emitter(options);
+      let top = continuation || md;
+      /** @type Record<string,CompiledMode> */
+      const continuations = {}; // keep continuations for sub-languages
+      const emitter = new options.__emitter(options);
       processContinuations();
-      var modeBuffer = '';
-      var relevance = 0;
-      var index = 0;
-      var iterations = 0;
-      var resumeScanAtSamePosition = false;
+      let modeBuffer = '';
+      let relevance = 0;
+      let index = 0;
+      let iterations = 0;
+      let resumeScanAtSamePosition = false;
 
       try {
         top.matcher.considerAll();
@@ -1901,23 +1911,29 @@ var hljs = (function () {
     */
     function highlightAuto(code, languageSubset) {
       languageSubset = languageSubset || options.languages || Object.keys(languages);
-      var result = justTextHighlightResult(code);
-      var secondBest = result;
-      languageSubset.filter(getLanguage).filter(autoDetection).forEach(function(name) {
-        var current = _highlight(name, code, false);
-        current.language = name;
-        if (current.relevance > secondBest.relevance) {
-          secondBest = current;
-        }
-        if (current.relevance > result.relevance) {
-          secondBest = result;
-          result = current;
-        }
+      const plaintext = justTextHighlightResult(code);
+
+      const results = languageSubset.filter(getLanguage).filter(autoDetection).map(name =>
+        _highlight(name, code, false)
+      );
+      results.unshift(plaintext); // plaintext is always an option
+
+      const sorted = results.sort((a, b) => {
+        // sort base on relevance
+        return b.relevance - a.relevance;
+
+        // otherwise say they are equal, which has the effect of sorting on
+        // relevance while preserving the original ordering - which is how ties
+        // have historically been settled, ie the language that comes first always
+        // wins in the case of a tie
       });
-      if (secondBest.language) {
-        // second_best (with underscore) is the expected API
-        result.second_best = secondBest;
-      }
+
+      const [best, secondBest] = sorted;
+
+      /** @type {AutoHighlightResult} */
+      const result = best;
+      result.second_best = secondBest;
+
       return result;
     }
 
@@ -1953,8 +1969,8 @@ var hljs = (function () {
      * @param {string} [resultLang]
      */
     function buildClassName(prevClassName, currentLang, resultLang) {
-      var language = currentLang ? aliases[currentLang] : resultLang;
-      var result = [prevClassName.trim()];
+      const language = currentLang ? aliases[currentLang] : resultLang;
+      const result = [prevClassName.trim()];
 
       if (!prevClassName.match(/\bhljs\b/)) {
         result.push('hljs');
@@ -2023,7 +2039,7 @@ var hljs = (function () {
     /**
      * Updates highlight.js global options with the passed options
      *
-     * @param {{}} userOptions
+     * @param {Partial<HLJSOptions>} userOptions
      */
     function configure(userOptions) {
       if (userOptions.useBR) {
@@ -2042,7 +2058,7 @@ var hljs = (function () {
       if (initHighlighting.called) return;
       initHighlighting.called = true;
 
-      var blocks = document.querySelectorAll('pre code');
+      const blocks = document.querySelectorAll('pre code');
       ArrayProto.forEach.call(blocks, highlightBlock);
     };
 
@@ -2059,7 +2075,7 @@ var hljs = (function () {
      * @param {LanguageFn} languageDefinition
      */
     function registerLanguage(languageName, languageDefinition) {
-      var lang = null;
+      let lang = null;
       try {
         lang = languageDefinition(hljs);
       } catch (error) {
@@ -2099,10 +2115,10 @@ var hljs = (function () {
       @returns {Language | never}
     */
     function requireLanguage(name) {
-      var lang = getLanguage(name);
+      const lang = getLanguage(name);
       if (lang) { return lang; }
 
-      var err = new Error('The \'{}\' language is required, but not loaded.'.replace('{}', name));
+      const err = new Error('The \'{}\' language is required, but not loaded.'.replace('{}', name));
       throw err;
     }
 
@@ -2132,7 +2148,7 @@ var hljs = (function () {
      * @param {string} name - name of the language
      */
     function autoDetection(name) {
-      var lang = getLanguage(name);
+      const lang = getLanguage(name);
       return lang && !lang.disableAutodetect;
     }
 
@@ -2149,7 +2165,7 @@ var hljs = (function () {
      * @param {any} args
      */
     function fire(event, args) {
-      var cb = event;
+      const cb = event;
       plugins.forEach(function(plugin) {
         if (plugin[cb]) {
           plugin[cb](args);
@@ -2188,7 +2204,7 @@ var hljs = (function () {
       inherit: inherit$1,
       addPlugin,
       // plugins for frameworks
-      vuePlugin: VuePlugin
+      vuePlugin: BuildVuePlugin(hljs).VuePlugin
     });
 
     hljs.debugMode = function() { SAFE_MODE = false; };
@@ -2224,7 +2240,7 @@ hljs.registerLanguage('leafbuild', function () {
     Language: Leaf build definition files
     Description: Leaf Build is an open-source system for build automation.
     Author: Dinu Blanovschi <dinu.blanovschi@criptext.com>
-    Website: https://gitlab.com/leafbuild/leafbuild
+    Website: https://github.com/leafbuild/leafbuild
     */
 
     /** @type LanguageFn */
@@ -2395,7 +2411,7 @@ hljs.registerLanguage('rust', function () {
         },
         {
           className: 'meta',
-          begin: '#\\!?\\[', end: '\\]',
+          begin: '#!?\\[', end: '\\]',
           contains: [
             {
               className: 'meta-string',
@@ -2413,7 +2429,7 @@ hljs.registerLanguage('rust', function () {
         },
         {
           className: 'class',
-          beginKeywords: 'trait enum struct union', end: '{',
+          beginKeywords: 'trait enum struct union', end: /\{/,
           contains: [
             hljs.inherit(hljs.UNDERSCORE_TITLE_MODE, {endsParent: true})
           ],

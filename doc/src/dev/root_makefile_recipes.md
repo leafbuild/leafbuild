@@ -36,7 +36,7 @@ Invokes `mdbook` to serve the built files on [localhost:3000](http://localhost:3
 Cleans up the currently-built book in `doc/book`.
 
 ## `doc-push`
-Pushes the built doc to [the docs repo](https://github.com/leafbuild/docs).
+Pushes the built doc to [the docs repo](https://github.com/leafbuild/leafbuild.github.io).
 
 ## `doc-build-highlighter`
 Builds the syntax highlighter from the highlight.js repo with `doc/leafbuild_highlight.js`.

@@ -14,5 +14,3 @@ See the [kwargs of the `project()` function]() to find out more.
 The metadata present in the project should apply to all of its submodules.
 
 # The `build.leaf` file
-
- 

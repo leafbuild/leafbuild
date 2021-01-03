@@ -5,8 +5,8 @@ multilingual = false
 src = "src"
 title = "The Leaf Build System"
 
-git-repository-url = "https://gitlab.com/leafbuild/leafbuild"
-git-repository-icon = "fa-gitlab"
+git-repository-url = "https://github.com/leafbuild/leafbuild"
+git-repository-icon = "fa-github"
 
 [output.html]
 default-theme = "coal"
@@ -16,3 +16,8 @@ curly-quotes = true
 [output.html.fold]
 enable = true
 level = 1
+
+[preprocessor.links]
+
+
+[preprocessor.index]
