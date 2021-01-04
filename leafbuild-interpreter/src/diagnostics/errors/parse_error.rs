@@ -67,7 +67,7 @@ impl<'error> LeafDiagnosticTrait for LeafParseError<'error> {
             LeafParseError::Error { file_id, error } => LeafDiagnostic::error()
                 .with_code(PARSE_ERROR)
                 .with_message(match error {
-                    GrmError::LexError(ref err) => "Lexer error".into(),
+                    GrmError::LexError(_) => "Lexer error".into(),
                     GrmError::ParseIntError(ref err, _) => format!("Parsing number error: {}", err),
                 })
                 .with_label(

@@ -41,3 +41,10 @@ extern crate thiserror;
 
 pub mod diagnostics;
 pub mod lf_buildsys;
+pub mod utils;
+
+pub mod prelude {
+    //! The prelude
+    pub use super::diagnostics::{DiagCtx, LeafDiagnosticTrait};
+    pub use super::lf_buildsys::LfBuildsys;
+}
