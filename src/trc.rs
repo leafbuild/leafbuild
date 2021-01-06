@@ -1,7 +1,7 @@
 //! Module containing logic to format [`tracing`] events.
-use crate::utils::{AndThenDo, SomeNoneIfOwned};
 use ansi_term::{Color, Style};
 use itertools::Itertools;
+use leafbuild_core::prelude::{AndThenDo, SomeNoneIfOwned};
 use leafbuild_interpreter::LfModName;
 use std::error::Error;
 use std::fmt::Debug;
@@ -38,11 +38,11 @@ struct LeafbuildSpanExtension {
     modname: LfModName,
 }
 
-struct LeafbuildFmtVisitor<'a, Collector>
+struct LeafbuildFmtVisitor<'a, Sink>
 where
-    Collector: FnMut(String) -> Result<(), io::Error>,
+    Sink: FnMut(String) -> Result<(), io::Error>,
 {
-    collector: &'a mut Collector,
+    sink: &'a mut Sink,
     comma: bool,
     err: Result<(), io::Error>,
 }
@@ -52,33 +52,32 @@ where
     Collector: FnMut(String) -> Result<(), io::Error>,
 {
     fn record_i64(&mut self, field: &Field, value: i64) {
-        self.err = (self.collector)(format!("{}={} ", field.name(), value));
+        self.err = (self.sink)(format!("{}={} ", field.name(), value));
     }
 
     fn record_u64(&mut self, field: &Field, value: u64) {
-        self.err = (self.collector)(format!("{}={} ", field.name(), value));
+        self.err = (self.sink)(format!("{}={} ", field.name(), value));
     }
 
     fn record_bool(&mut self, field: &Field, value: bool) {
-        self.err = (self.collector)(format!("{}={} ", field.name(), value));
+        self.err = (self.sink)(format!("{}={} ", field.name(), value));
     }
 
     fn record_str(&mut self, field: &Field, value: &str) {
-        self.err = (self.collector)(format!("{}={} ", field.name(), value));
+        self.err = (self.sink)(format!("{}={} ", field.name(), value));
     }
 
     fn record_error(&mut self, field: &Field, value: &dyn Error) {
-        self.err = (self.collector)(format!("{}={} ", field.name(), value));
+        self.err = (self.sink)(format!("{}={} ", field.name(), value));
     }
 
     fn record_debug(&mut self, field: &Field, value: &dyn Debug) {
         let name = field.name();
         if name == "message" {
-            self.err =
-                (self.collector)(format!("{}{:?} ", if self.comma { "," } else { "" }, value));
+            self.err = (self.sink)(format!("{}{:?} ", if self.comma { "," } else { "" }, value));
             self.comma = true;
         } else {
-            self.err = (self.collector)(format!(
+            self.err = (self.sink)(format!(
                 "{}{}={:?} ",
                 if self.comma { "," } else { "" },
                 name,
@@ -198,7 +197,7 @@ where
         Sink: FnMut(String) -> Result<(), io::Error>,
     {
         let mut visitor = LeafbuildFmtVisitor {
-            collector: &mut sink,
+            sink: &mut sink,
             comma: false,
             err: Ok(()),
         };

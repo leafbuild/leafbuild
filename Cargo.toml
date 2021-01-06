@@ -72,12 +72,20 @@ version = "0.1.0"
 path = "leafbuild-premakeml"
 
 [workspace]
+default-members = [
+    "leafbuild-core",
+    "leafbuild-derive",
+    "leafbuild-ast",
+    "leafbuild-parser",
+    "leafbuild-interpreter",
+]
 members = [
     "leafbuild-core",
     "leafbuild-derive",
     "leafbuild-ast",
     "leafbuild-parser",
     "leafbuild-interpreter",
+
     "leafbuild-ml",
     "leafbuild-cmakeml",
     "leafbuild-mesonml",

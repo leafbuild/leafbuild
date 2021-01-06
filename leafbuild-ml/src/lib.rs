@@ -37,5 +37,13 @@
 
 #[macro_use]
 extern crate thiserror;
+#[macro_use]
+pub extern crate linkme;
+
 mod ml;
+#[macro_use]
+mod ml_bind;
+
+pub use linkme::distributed_slice;
 pub use ml::*;
+pub use ml_bind::MIDDLE_LAYERS;

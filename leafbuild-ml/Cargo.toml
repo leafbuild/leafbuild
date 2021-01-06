@@ -8,4 +8,6 @@ edition = "2018"
 
 [dependencies]
 thiserror = "1.0"
+linkme = "0.2"
+
 leafbuild-core = { path = "../leafbuild-core", version = "0.1.0" }

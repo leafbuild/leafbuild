@@ -8,5 +8,6 @@ edition = "2018"
 
 [dependencies]
 derive-new = "0.5"
-leafbuild-derive = { path = "../leafbuild-derive", version = "0.1.0" }
 snailquote = "0.3"
+
+leafbuild-derive = { path = "../leafbuild-derive", version = "0.1.0" }

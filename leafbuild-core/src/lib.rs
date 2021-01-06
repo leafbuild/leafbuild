@@ -47,4 +47,5 @@ pub mod prelude {
     //! The prelude
     pub use super::diagnostics::{DiagCtx, LeafDiagnosticTrait};
     pub use super::lf_buildsys::LfBuildsys;
+    pub use super::utils::*;
 }

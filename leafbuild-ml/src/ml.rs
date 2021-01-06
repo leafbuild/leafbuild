@@ -20,9 +20,9 @@ pub trait MiddleLayer {
     /// to the [`LfBuildsys`]
     /// # Errors
     /// Anything that can go wrong. Though the build will fail if this returns `Err`.
-    fn handle(
+    fn handle<'buildsys>(
         &self,
-        buildsys: &LfBuildsys,
+        buildsys: &'buildsys LfBuildsys<'buildsys>,
         boundary_details: BuildsysBoundaryDetails,
     ) -> Result<BuildsysChanges>;
 }

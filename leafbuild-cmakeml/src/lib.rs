@@ -35,3 +35,6 @@
 
 //! # leafbuild-cmakeml
 //! The cmake middle layer
+
+mod cmake_ml;
+pub use cmake_ml::*;

@@ -52,4 +52,3 @@ pub mod buildsys_utils;
 pub mod cli;
 pub mod docs;
 pub mod trc;
-pub(crate) mod utils;

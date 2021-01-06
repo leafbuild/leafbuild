@@ -30,7 +30,7 @@ pub enum ConfigurationError {
     #[error("referenced file doesn't exit: {file}")]
     ReferencedFileDoesntExist {
         /// The file that was referenced.
-        file: String,
+        file: PathBuf,
     },
 }
 

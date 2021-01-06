@@ -39,3 +39,5 @@ pub struct NameLookup<'frame> {
     variables: HashMap<String, Box<dyn Value<'frame>>>,
     functions: HashMap<String, fun::Fun>,
 }
+
+impl<'frame> NameLookup<'frame> {}
