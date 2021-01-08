@@ -1,8 +1,8 @@
 use itertools::Itertools;
-use lalrpop_util::ParseError;
 use leafbuild_core::diagnostics::{
     DiagConfig, FileId, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel,
 };
+use leafbuild_parser::lalrpop_util::ParseError;
 use leafbuild_parser::lexer::Token;
 use leafbuild_parser::GrmError;
 macro_rules! error_codes {

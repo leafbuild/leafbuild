@@ -263,6 +263,15 @@ pub struct FuncCallArgs {
     named_args: Vec<NamedExpr>,
 }
 
+impl From<(Vec<PositionalArg>, Vec<NamedExpr>)> for FuncCallArgs {
+    fn from((positional_args, named_args): (Vec<PositionalArg>, Vec<NamedExpr>)) -> Self {
+        Self {
+            positional_args,
+            named_args,
+        }
+    }
+}
+
 impl FuncCallArgs {
     /// Creates a new instance only with positional arguments
     #[must_use]

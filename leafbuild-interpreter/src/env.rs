@@ -1,5 +1,4 @@
 //! The environment of the interpreter.
-use crate::internal::fun;
 use crate::internal::values::Value;
 use crate::LfModName;
 use leafbuild_core::diagnostics::FileId;
@@ -37,7 +36,22 @@ pub struct SemiFrame<'frame> {
 #[derive(Debug)]
 pub struct NameLookup<'frame> {
     variables: HashMap<String, Box<dyn Value<'frame>>>,
-    functions: HashMap<String, fun::Fun>,
 }
 
-impl<'frame> NameLookup<'frame> {}
+impl<'frame> NameLookup<'frame> {
+    /// Returns the value of a variable in this name lookup with the given name
+    #[must_use]
+    pub fn lookup_variable(&'frame self, name: &str) -> Option<&'frame dyn Value<'frame>> {
+        let v = self.variables.get(name);
+        v.map(|it| -> &'frame dyn Value<'frame> { &**it })
+    }
+    /// Returns the value of a variable in this name lookup with the given name (mutable variant)
+    #[must_use]
+    pub fn lookup_variable_mut(
+        &'frame mut self,
+        name: &str,
+    ) -> Option<&'frame mut dyn Value<'frame>> {
+        let v = self.variables.get_mut(name);
+        v.map(|it| -> &'frame mut dyn Value<'frame> { &mut **it })
+    }
+}

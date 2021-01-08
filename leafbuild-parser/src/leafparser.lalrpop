@@ -24,15 +24,15 @@ SingleComma: () = {
 }
 
 #[inline]
-Comma<Rule>: Vec<Rule> =
-    <mut rules: (<Rule> SingleComma)*> <last: Rule?> => {
-        rules.extend(last);
-        rules
-    };
+Delimitate<Rule, S>: Vec<Rule> = <mut rules: (<Rule> S)*> <last: Rule?> => {rules.extend(last); rules};
 
 #[inline]
-CommaNoTrailing<Rule>: Vec<Rule> = <first: Rule> <mut rules: (SingleComma <Rule>)*> => { rules.insert(0, first); rules };
+Comma<Rule> = Delimitate<Rule, SingleComma>;
 
+#[inline]
+JoinComma<A, B> = Comma<A> Comma<B>;
+
+#[inline]
 IdExpressionUnspanned: String = "identifier" => String::from(<>);
 
 IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
@@ -41,6 +41,7 @@ NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num)
 
 Num = SpannedNonterminal<NumTok>;
 
+#[inline]
 BoolTok: bool = {
     "true" => true,
     "false" => false,
@@ -48,6 +49,7 @@ BoolTok: bool = {
 
 BoolLit = SpannedNonterminal<BoolTok>;
 
+#[inline]
 StrTok: String = {
     <s: "single line string"> => String::from(&s[1..(s.len()-1)]),
     <s: "multiline string"> => String::from(&s[3..(s.len()-3)]),
@@ -67,20 +69,9 @@ Statement: Statement = {
 	<RepetitiveStatement> => Statement::Repetitive(<>),
 }
 
-FuncArgs: FuncCallArgs = {
-	<pos: PositionalFuncArgs> SingleComma <named: NamedFuncArgs> SingleComma? => FuncCallArgs::new(<>),
-	<PositionalFuncArgs> SingleComma? => FuncCallArgs::new_only_positional(<>),
-	<NamedFuncArgs> SingleComma? => FuncCallArgs::new_only_named(<>),
-	() => FuncCallArgs::empty(),
-}
-
-#[inline]
-PositionalFuncArgs = CommaNoTrailing<PositionalFuncArg>;
+FuncArgs: FuncCallArgs = JoinComma<PositionalFuncArg, NamedExpr>  => FuncCallArgs::from(<>);
 
 PositionalFuncArg: PositionalArg = Expr => PositionalArg::from(<>);
-
-#[inline]
-NamedFuncArgs = CommaNoTrailing<NamedExpr>;
 
 NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
 
@@ -225,7 +216,7 @@ If: If = SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocat
 
 ElseIf: ElseIf = SpannedLocation<"else"> If => ElseIf::new(<>);
 
-Else: Else = SpannedLocation<"else"> SpannedLocation<"{"> Statement+ SpannedLocation<"}"> => Else::new(<>);
+Else: Else = SpannedLocation<"else"> SpannedLocation<"{"> Statement* SpannedLocation<"}"> => Else::new(<>);
 
 RepetitiveStatement: RepetitiveStatement =
     SpannedLocation<"foreach"> ForInExpr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
@@ -237,6 +228,7 @@ ForInExpr: ForInExpr =
 ControlStatement: ControlStatement = {
 	SpannedLocation<"break"> => ControlStatement::Break(<>),
 	SpannedLocation<"continue"> => ControlStatement::Continue(<>),
+	<ret_span: SpannedLocation<"return">> <value: Expr?> => ControlStatement::Break(ret_span),
 }
 
 extern {
@@ -285,6 +277,7 @@ extern {
         "foreach" => Token {token: Tk::ForEach, data: <&'input str>},
         "continue" => Token {token: Tk::Continue, data: <&'input str>},
         "break" => Token {token: Tk::Break, data: <&'input str>},
+        "return" => Token {token: Tk::Return, data: <&'input str>},
         "true" => Token {token: Tk::True, data: <&'input str>},
         "false" => Token {token: Tk::False, data: <&'input str>},
         "number" => Token {token: Tk::Number, data: <&'input str>},

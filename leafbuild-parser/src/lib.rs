@@ -37,7 +37,7 @@
 extern crate leafbuild_ast;
 
 #[macro_use]
-extern crate lalrpop_util;
+pub extern crate lalrpop_util;
 
 use std::num::ParseIntError;
 
@@ -57,7 +57,7 @@ lalrpop_mod!(
     missing_copy_implementations,
     unused_imports,
     clippy::all,
-    clippy::correctness, 
+    clippy::correctness,
     clippy::style,
     clippy::complexity,
     clippy::cargo,

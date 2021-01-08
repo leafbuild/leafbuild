@@ -89,6 +89,8 @@ pub(crate) enum Tk {
     Continue,
     #[token("break")]
     Break,
+    #[token("return")]
+    Return,
     #[token("true")]
     True,
     #[token("false")]

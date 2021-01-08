@@ -93,7 +93,9 @@ pub trait Value<'a>: Debug {
     ) -> Result<Box<dyn Value<'static>>, InvokeMethodError>;
 }
 
-include!("i32.rs");
-include!("i64.rs");
-include!("u32.rs");
-include!("u64.rs");
+#[macro_use]
+mod num;
+include! {"i32.rs"}
+include! {"i64.rs"}
+include! {"u32.rs"}
+include! {"u64.rs"}
