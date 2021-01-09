@@ -24,20 +24,36 @@ SingleComma: () = {
 }
 
 #[inline]
-Delimitate<Rule, S>: Vec<Rule> = <mut rules: (<Rule> S)*> <last: Rule?> => {rules.extend(last); rules};
+Delimitate<Rule, S>: Vec<Rule> =
+    <mut rules: (<Rule> S)*> <last: Rule?>
+        => {rules.extend(last); rules};
+
+#[inline]
+DelimitateNoTrailing<Rule, S>: Vec<Rule> =
+    <first: Rule> <mut rules: ((S) <Rule>)*>
+        => { rules.push(first); rules };
 
 #[inline]
 Comma<Rule> = Delimitate<Rule, SingleComma>;
 
 #[inline]
-JoinComma<A, B> = Comma<A> Comma<B>;
+CommaNoTrailing<Rule> = DelimitateNoTrailing<Rule, SingleComma>;
+
+JoinComma<A, B> = {
+    <CommaNoTrailing<A>> (SingleComma) <CommaNoTrailing<B>> SingleComma?,
+    <CommaNoTrailing<A>> SingleComma? => (<>, vec![]),
+    <CommaNoTrailing<B>> SingleComma? => (vec![], <>),
+    => (vec![], vec![]),
+}
 
 #[inline]
 IdExpressionUnspanned: String = "identifier" => String::from(<>);
 
 IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
 
-NumTok: NumVal = <start: @L> <num: "number"> <end: @R> =>? NumVal::from_str(num).map_err(|e| lalrpop_util::ParseError::from(GrmError::from((e, Span::new(start, end)))));
+NumTok: NumVal =
+    <start: @L> <num: "number"> <end: @R>
+        =>? NumVal::from_str(num).map_err(|e| GrmError::from((e, Span::new(start, end))).into());
 
 Num = SpannedNonterminal<NumTok>;
 
@@ -49,7 +65,6 @@ BoolTok: bool = {
 
 BoolLit = SpannedNonterminal<BoolTok>;
 
-#[inline]
 StrTok: String = {
     <s: "single line string"> => String::from(&s[1..(s.len()-1)]),
     <s: "multiline string"> => String::from(&s[3..(s.len()-3)]),
@@ -69,7 +84,10 @@ Statement: Statement = {
 	<RepetitiveStatement> => Statement::Repetitive(<>),
 }
 
-FuncArgs: FuncCallArgs = JoinComma<PositionalFuncArg, NamedExpr>  => FuncCallArgs::from(<>);
+FuncArgs: FuncCallArgs =
+    JoinComma<PositionalFuncArg, NamedExpr>
+        => FuncCallArgs::from(<>);
+
 
 PositionalFuncArg: PositionalArg = Expr => PositionalArg::from(<>);
 
