@@ -475,6 +475,7 @@ dependencies = [
  "leafbuild-ast",
  "leafbuild-core",
  "leafbuild-parser",
+ "linkme",
  "thiserror",
  "tracing",
 ]

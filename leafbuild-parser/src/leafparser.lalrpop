@@ -76,12 +76,12 @@ UnaryNot: UnaryOpcode = SpannedLocation<"not"> => UnaryOpcode::Not(<>);
 
 pub BuildDefinition = <Statement*>;
 Statement: Statement = {
-	<Expr> ";" => Statement::ExecExpr(<>),
-	<Assignment> ";" => Statement::Assignment(<>),
-	<Declaration> ";" => Statement::Declaration(<>),
-	<ConditionalStatement> => Statement::Conditional(<>),
-	//<statement ControlStatement> => AstStatement::Control(statement),
-	<RepetitiveStatement> => Statement::Repetitive(<>),
+    <Expr> ";" => Statement::ExecExpr(<>),
+    <Assignment> ";" => Statement::Assignment(<>),
+    <Declaration> ";" => Statement::Declaration(<>),
+    <ConditionalStatement> => Statement::Conditional(<>),
+    //<statement ControlStatement> => AstStatement::Control(statement),
+    <RepetitiveStatement> => Statement::Repetitive(<>),
 }
 
 FuncArgs: FuncCallArgs =
@@ -94,13 +94,13 @@ PositionalFuncArg: PositionalArg = Expr => PositionalArg::from(<>);
 NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
 
 UnaryPlusMinusOpcode: UnaryOpcode = {
-	SpannedLocation<"-"> => UnaryOpcode::Minus(<>),
-	SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
+    SpannedLocation<"-"> => UnaryOpcode::Minus(<>),
+    SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
 }
 
 UnaryLogicalAndBitwiseNot: UnaryOpcode = {
-	SpannedLocation<"not"> => UnaryOpcode::Not(<>),
-	SpannedLocation<"~"> => UnaryOpcode::BitwiseNot(<>),
+    SpannedLocation<"not"> => UnaryOpcode::Not(<>),
+    SpannedLocation<"~"> => UnaryOpcode::BitwiseNot(<>),
 }
 
 MulOp: Opcode = {
@@ -120,12 +120,12 @@ BitShiftOp: Opcode = {
 }
 
 RelOp: Opcode = {
-	SpannedLocation<">"> => Opcode::G(<>),
-	SpannedLocation<"<"> => Opcode::L(<>),
-	SpannedLocation<">="> => Opcode::GE(<>),
-	SpannedLocation<"<="> => Opcode::LE(<>),
-	SpannedLocation<"in"> => Opcode::In(<>),
-	SpannedLocation<("not" "in")> => Opcode::NotIn(<>),
+    SpannedLocation<">"> => Opcode::G(<>),
+    SpannedLocation<"<"> => Opcode::L(<>),
+    SpannedLocation<">="> => Opcode::GE(<>),
+    SpannedLocation<"<="> => Opcode::LE(<>),
+    SpannedLocation<"in"> => Opcode::In(<>),
+    SpannedLocation<("not" "in")> => Opcode::NotIn(<>),
 }
 
 RelOp2: Opcode = {
@@ -213,16 +213,16 @@ Declaration: Declaration = SpannedLocation<"let"> IdExpression SpannedLocation<"
 Assignment: Assignment = Expr AtrOp Expr => Assignment::new(<>);
 
 AtrOp: AtrOp = {
-	SpannedLocation<"="> => AtrOp::Atr(<>),
-	SpannedLocation<"+="> => AtrOp::AddAtr(<>),
-	SpannedLocation<"-="> => AtrOp::SubAtr(<>),
-	SpannedLocation<"*="> => AtrOp::MulAtr(<>),
-	SpannedLocation<"/="> => AtrOp::DivAtr(<>),
-	SpannedLocation<"%="> => AtrOp::ModAtr(<>),
+    SpannedLocation<"="> => AtrOp::Atr(<>),
+    SpannedLocation<"+="> => AtrOp::AddAtr(<>),
+    SpannedLocation<"-="> => AtrOp::SubAtr(<>),
+    SpannedLocation<"*="> => AtrOp::MulAtr(<>),
+    SpannedLocation<"/="> => AtrOp::DivAtr(<>),
+    SpannedLocation<"%="> => AtrOp::ModAtr(<>),
 }
 
 ArrayLit: Expr =
-	<left_brace: SpannedLocation<"[">> <args: Comma<Expr>> <right_brace: SpannedLocation<"]">> =>
+    <left_brace: SpannedLocation<"[">> <args: Comma<Expr>> <right_brace: SpannedLocation<"]">> =>
         Expr::Atom(Atom::ArrayLit(left_brace, args, right_brace));
 
 MapLit: Expr = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Expr::Atom(Atom::MapLit(<>));
@@ -244,9 +244,9 @@ ForInExpr: ForInExpr =
     IdExpression SpannedLocation<"in"> Expr => ForInExpr::new(<>);
 
 ControlStatement: ControlStatement = {
-	SpannedLocation<"break"> => ControlStatement::Break(<>),
-	SpannedLocation<"continue"> => ControlStatement::Continue(<>),
-	<ret_span: SpannedLocation<"return">> <value: Expr?> => ControlStatement::Break(ret_span),
+    SpannedLocation<"break"> => ControlStatement::Break(<>),
+    SpannedLocation<"continue"> => ControlStatement::Continue(<>),
+    <ret_span: SpannedLocation<"return">> <value: Expr?> => ControlStatement::Break(ret_span),
 }
 
 extern {

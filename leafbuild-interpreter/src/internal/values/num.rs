@@ -2,8 +2,7 @@
 ///
 /// $name = name of the number newtype
 ///
-/// $value_type = name of the [`ValueType`] enum value
-#[macro_export]
+/// $value_type = name of the [`ValueType`][`super::ValueType`] enum value
 macro_rules! impl_value_num {
     ($name:ident, $value_type:ident) => {
         impl<'a> Value<'a> for $name {

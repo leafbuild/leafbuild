@@ -6,6 +6,7 @@ pub enum ValueType {
     I64,
     U32,
     U64,
+    Bool,
 
     String,
 
@@ -30,6 +31,7 @@ impl fmt::Display for ValueType {
             Self::I64 => write!(f, "i64"),
             Self::U32 => write!(f, "u32"),
             Self::U64 => write!(f, "u64"),
+            Self::Bool => write!(f, "bool"),
             Self::String => write!(f, "string"),
             Self::Vector(v) => write!(f, "vector<{v}>", v = v),
             Self::Map(k, v) => write!(f, "map<{k}, {v}>", k = k, v = v),

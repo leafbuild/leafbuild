@@ -466,7 +466,7 @@ impl DiagCtx {
 
 /// A temporary diagnostics context.
 ///
-/// Behaves and exposes the same api(see [`TempDiagnosticsContext::report_diagnostic`])
+/// Behaves and exposes the same api(see [`TempDiagnosticsCtx::report_diagnostic`])
 /// as a normal diagnostics context would
 #[derive(Debug)]
 pub struct TempDiagnosticsCtx<'a> {

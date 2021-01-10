@@ -65,15 +65,16 @@ lalrpop_mod!(
     clippy::nursery
 )]
 pub leafparser);
-pub mod lexer;
+mod lexer;
+pub use lexer::Token;
 
 /// Parses the source and returns the definition.
 /// # Errors
 /// The parse error that prevents the proper AST from being built.
 pub fn parse<'input>(
     source: &'input str,
-    errors: &mut Vec<ErrorRecovery<usize, lexer::Token<'input>, GrmError>>,
-) -> Result<ast::BuildDefinition, ParseError<usize, lexer::Token<'input>, GrmError>> {
+    errors: &mut Vec<ErrorRecovery<usize, Token<'input>, GrmError>>,
+) -> Result<ast::BuildDefinition, ParseError<usize, Token<'input>, GrmError>> {
     leafparser::BuildDefinitionParser::new()
         .parse(source, errors, lexer::Lexer::new(source))
         .map(ast::BuildDefinition::new)

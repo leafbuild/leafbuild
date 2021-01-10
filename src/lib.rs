@@ -33,10 +33,26 @@
 )]
 #![allow(clippy::module_name_repetitions)]
 
-//! A C/C++ buildsystem.
-//! # Examples
-//! See example usage in the binary.
-
+//! A work in progress meta build system for C/C++ projects written in Rust.
+//!
+//! Primary values:
+//! - Speed. The Compile part in the Edit-Compile-Run cycle should
+//!  take as little as possible.
+//!
+//! - Compatibility with popular build systems out there.
+//!  There is a lot of C/C++ code out there, and your code may
+//!  have dependencies that use other build systems. In such
+//!  cases, `leafbuild` should try to make sure they will work together.
+//!
+//! - Keep the syntax as simple as *reasonable*, but don't take the simplicity
+//!  part too far(see meson, golang).
+//!
+//! # Contributions
+//! See [CONTRIBUTING.md](https://github.com/leafbuild/leafbuild/blob/master/CONTRIBUTING.md)
+//!
+//! # MSRV policy
+//! This will always work with the latest stable toolchain, though it may compile with older
+//! versions.
 extern crate codespan_reporting;
 #[macro_use]
 extern crate tracing;

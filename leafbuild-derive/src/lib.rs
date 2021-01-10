@@ -7,7 +7,6 @@ use std::borrow::Cow;
 use std::iter::FromIterator;
 use syn::{parse_macro_input, Data, DeriveInput, Field, Fields, Variant};
 
-/// used to quickly derive [`leafbuild_ast::ast::Loc`] in the other ast structures in [`leafbuild_ast::ast`]
 #[proc_macro_derive(Loc, attributes(whole_span, start_span, end_span))]
 pub fn derive_loc(item: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let input = parse_macro_input!(item as DeriveInput);

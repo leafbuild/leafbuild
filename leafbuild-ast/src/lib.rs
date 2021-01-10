@@ -33,8 +33,7 @@
 )]
 #![allow(clippy::module_name_repetitions)]
 
-//! The crate that holds the `ast` `adt`s produced by `leafbuild_parser`
-//! and "consumed" by `leafbuild_interpreter`.
+//! The crate that holds the `ast` structures of the `build.leaf` files.
 
 #[macro_use]
 extern crate derive_new;

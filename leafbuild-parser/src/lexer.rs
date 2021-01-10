@@ -6,7 +6,7 @@ use logos::Logos;
 
 /// The type of the token
 #[derive(Logos, Copy, Clone, Debug, PartialEq, PartialOrd, Eq)]
-pub(crate) enum Tk {
+pub enum Tk {
     #[token("+=")]
     PlusEq,
     #[token("-=")]
@@ -125,10 +125,10 @@ pub struct Token<'data> {
     pub(crate) token: Tk,
     pub(crate) data: &'data str,
 }
-pub(crate) type LxrSpanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
+pub type LxrSpanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
 #[allow(missing_debug_implementations)]
-pub(crate) struct Lexer<'a> {
+pub struct Lexer<'a> {
     lexer: logos::Lexer<'a, Tk>,
 }
 
