@@ -49,22 +49,23 @@ use crate::lexer::LexicalError;
 use leafbuild_ast::span::Span;
 
 lalrpop_mod!(
-/// the parser
-#[allow(
-    missing_docs,
-    missing_crate_level_docs,
-    missing_debug_implementations,
-    missing_copy_implementations,
-    unused_imports,
-    clippy::all,
-    clippy::correctness,
-    clippy::style,
-    clippy::complexity,
-    clippy::cargo,
-    clippy::pedantic,
-    clippy::nursery
-)]
-pub leafparser);
+    /// the parser
+    #[allow(
+        missing_docs,
+        missing_crate_level_docs,
+        missing_debug_implementations,
+        missing_copy_implementations,
+        unused_imports,
+        clippy::all,
+        clippy::correctness,
+        clippy::style,
+        clippy::complexity,
+        clippy::cargo,
+        clippy::pedantic,
+        clippy::nursery
+    )]
+    leafparser
+);
 mod lexer;
 pub use lexer::Token;
 
