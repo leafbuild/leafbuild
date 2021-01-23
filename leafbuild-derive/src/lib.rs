@@ -44,28 +44,37 @@ fn find_start_end_span(
             find_span_points(&data.fields).map(|span_points| match span_points {
                 SpanPoints::Whole(whole_span) => {
                     let name = &whole_span.1.ident;
+                    let idx = syn::Index::from(whole_span.0);
+                    let tokens = match name {
+                        Some(ident) => quote! {self.#ident},
+                        None => quote! {self.#idx},
+                    };
                     (
-                        quote! { self.#name.get_start() },
-                        quote! { self.#name.get_end() },
-                        quote! { self.#name.get_rng() },
+                        quote! { #tokens.get_start() },
+                        quote! { #tokens.get_end() },
+                        quote! { #tokens.get_rng() },
                     )
                 }
                 SpanPoints::StartEnd(start, end) => {
+                    let start_idx = syn::Index::from(start.0);
                     let start_name = &start.1.ident;
+                    let end_idx = syn::Index::from(end.0);
                     let end_name = &end.1.ident;
-                    if start.0 != end.0 {
-                        (
-                            quote! { self.#start_name.get_start() },
-                            quote! { self.#end_name.get_end() },
-                            quote! { self.#start_name.get_start()..self.#end_name.get_end() },
-                        )
-                    } else {
-                        (
-                            quote! { self.#start_name.get_start() },
-                            quote! { self.#start_name.get_end() },
-                            quote! { self.#start_name.get_rng() },
-                        )
-                    }
+
+                    let start_tokens = match start_name {
+                        Some(ident) => quote! {self.#ident.get_start()},
+                        None => quote! {self.#start_idx.get_start()},
+                    };
+                    let end_tokens = match end_name {
+                        Some(ident) => quote! {self.#ident.get_start()},
+                        None => quote! {self.#end_idx.get_end()},
+                    };
+
+                    (
+                        quote! { #start_tokens },
+                        quote! { #end_tokens },
+                        quote! { #start_tokens..#end_tokens },
+                    )
                 }
                 SpanPoints::StartFound(_) => {
                     panic!("Cannot derive Loc: only #[start_span] found on {}", name)

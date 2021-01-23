@@ -43,11 +43,12 @@
 
 #[macro_use]
 extern crate tracing;
+#[macro_use]
+extern crate thiserror;
 
 use std::io;
 use std::path::PathBuf;
 
-use thiserror::Error;
 use tracing::{span, Level};
 
 use crate::diagnostics::errors::LeafParseError;
@@ -114,12 +115,7 @@ pub fn execute_on<'a>(
                 .buildsys
                 .register_new_file(root_path.to_string_lossy().to_string(), content);
             let mut frame = env::FileFrame::new(fid, mod_path);
-            build_definition
-                .get_statements()
-                .iter()
-                .for_each(|statement| {
-                    internal::run_statement(&mut frame, statement);
-                });
+            internal::run_build_def(&mut frame, build_definition);
         }
         Err(error) => {
             handle.buildsys.register_file_and_report(

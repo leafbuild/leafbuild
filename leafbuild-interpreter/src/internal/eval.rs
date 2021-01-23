@@ -6,25 +6,25 @@ use crate::internal::values::types::ValueType;
 use crate::internal::values::{BoolWrap, I32Wrap, I64Wrap, U32Wrap, U64Wrap, Value};
 use leafbuild_ast::Span;
 
-enum CannotEvaluateError {
+pub(super) enum CannotEvaluateError {
     NotImplemented,
 }
 
-enum CannotEvaluateMutError {
+pub(super) enum CannotEvaluateMutError {
     NotImplemented,
 }
 
-trait Eval {
+pub(super) trait Eval {
     fn eval_in_context<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'frame>,
+        frame: &'frame mut FileFrame<'_>,
     ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
         Err(CannotEvaluateError::NotImplemented)
     }
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'frame>,
+        frame: &'frame mut FileFrame<'_>,
     ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
         Err(CannotEvaluateMutError::NotImplemented)
     }
@@ -33,7 +33,7 @@ trait Eval {
 impl Eval for Expr {
     fn eval_in_context<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'frame>,
+        frame: &'frame mut FileFrame<'_>,
     ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
         // match self {
         //     Expr::Atom(atom) => atom.eval_in_context(frame),
@@ -55,7 +55,7 @@ impl Eval for Expr {
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'frame>,
+        frame: &'frame mut FileFrame<'_>,
     ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
         Err(CannotEvaluateMutError::NotImplemented)
     }
@@ -64,7 +64,7 @@ impl Eval for Expr {
 impl Eval for Atom {
     fn eval_in_context<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'frame>,
+        frame: &'frame mut FileFrame<'_>,
     ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
         match self {
             Self::Number(num) => Ok(num.as_boxed_value()),
@@ -79,7 +79,7 @@ impl Eval for Atom {
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'frame>,
+        frame: &'frame mut FileFrame<'_>,
     ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
         unimplemented!()
     }

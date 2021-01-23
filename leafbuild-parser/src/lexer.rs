@@ -95,6 +95,8 @@ pub enum Tk {
     True,
     #[token("false")]
     False,
+    #[token("fn")]
+    Fn,
     #[regex("([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|0)[uU]?[lL]?")]
     Number,
     #[regex("[a-zA-Z_][a-zA-Z0-9_]*")]
@@ -103,9 +105,9 @@ pub enum Tk {
     String,
     #[regex(r#"'''([^']*|'[^']|''[^'])*'''"#)]
     MultilineString,
-    #[regex(r#"//[^\n]*"#)]
+    #[regex(r#"//[^\n]*"#, logos::skip)]
     SingleLineComment,
-    #[regex(r"/\*([^*]|\**[^*/])*\*+/")]
+    #[regex(r"/\*([^*]|\**[^*/])*\*+/", logos::skip)]
     BlockComment,
     // #[token("\n")]
     // Newline,

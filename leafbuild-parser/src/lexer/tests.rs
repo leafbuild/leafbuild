@@ -65,8 +65,4 @@ mod single_token {
         rf,
         Tk::MultilineString
     }
-
-    single_token_test_fn! {line_comment, "//a b c", Tk::SingleLineComment}
-    single_token_test_fn! {block_comment, "/*a b c*/", Tk::BlockComment}
-    single_token_test_fn! {block_comment_with_asterisk, "/*a b c ****** g h i */", Tk::BlockComment }
 }

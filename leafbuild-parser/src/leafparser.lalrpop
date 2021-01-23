@@ -17,11 +17,7 @@ SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => 
 SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
 Box<Rule>: Box<Rule> = <rule: Rule> => Box::new(rule);
 
-SingleComma: () = {
-    "," => (),
-
-    ! => errors.push(<>),
-}
+SingleComma: () = ",";
 
 #[inline]
 Delimitate<Rule, S>: Vec<Rule> =
@@ -31,7 +27,7 @@ Delimitate<Rule, S>: Vec<Rule> =
 #[inline]
 DelimitateNoTrailing<Rule, S>: Vec<Rule> =
     <first: Rule> <mut rules: ((S) <Rule>)*>
-        => { rules.push(first); rules };
+        => { rules.insert(0, first); rules };
 
 #[inline]
 Comma<Rule> = Delimitate<Rule, SingleComma>;
@@ -52,8 +48,8 @@ IdExpressionUnspanned: String = "identifier" => String::from(<>);
 IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
 
 NumTok: NumVal =
-    <start: @L> <num: "number"> <end: @R>
-        =>? NumVal::from_str(num).map_err(|e| GrmError::from((e, Span::new(start, end))).into());
+    <start: @L> <num: "number"> <end: @R> =>?
+        NumVal::from_str(num).map_err(|e| GrmError::from((e, Span::new(start, end))).into());
 
 Num = SpannedNonterminal<NumTok>;
 
@@ -138,62 +134,62 @@ AndOp: Opcode = SpannedLocation<"and"> => Opcode::And(<>);
 OrOp: Opcode = SpannedLocation<"or"> => Opcode::Or(<>);
 
 Expr: Expr = {
-    #[precedence(level="1")]
+    #[precedence(level="0")]
     IdExpression => Expr::Atom(Atom::Id(<>)),
-    #[precedence(level="1")]
+    #[precedence(level="0")]
     Num => Expr::Atom(Atom::Number(<>)),
 
-    #[precedence(level="1")]
+    #[precedence(level="0")]
     ArrayLit,
 
-    #[precedence(level="1")]
+    #[precedence(level="0")]
     MapLit,
 
-    #[precedence(level="2")]
+    #[precedence(level="1")]
     Box<Expr> SpannedLocation<"("> FuncArgs SpannedLocation<")"> => Expr::FuncCall(FuncCall::new(<>)),
 
-    #[precedence(level="2")]
+    #[precedence(level="1")]
     <base: Box<Expr>> <open_bracket: SpannedLocation<"[">> <index: Box<Expr>> <close_bracket: SpannedLocation<"]">> =>
             Expr::Indexed {base, open_bracket, index, close_bracket},
 
-    // #[precedence(level="2")]
+    // #[precedence(level="1")]
     // TODO: Property access
 
-    #[precedence(level="3")]
+    #[precedence(level="2")]
     UnaryPlusMinusOpcode Box<Expr> => Expr::UnaryOp(<>),
 
-    #[precedence(level="3")]
+    #[precedence(level="2")]
     UnaryLogicalAndBitwiseNot Box<Expr> => Expr::UnaryOp(<>),
 
-    #[precedence(level="4")]
+    #[precedence(level="3")]
     #[assoc(side="left")]
     Box<Expr> MulOp Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="5")]
+    #[precedence(level="4")]
     #[assoc(side="left")]
     Box<Expr> AddOp Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="6")]
+    #[precedence(level="5")]
     #[assoc(side="left")]
     Box<Expr> BitShiftOp Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="7")]
+    #[precedence(level="6")]
     #[assoc(side="left")]
     Box<Expr> RelOp Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="8")]
+    #[precedence(level="7")]
     #[assoc(side="left")]
     Box<Expr> RelOp2 Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="9")]
+    #[precedence(level="8")]
     #[assoc(side="left")]
     Box<Expr> AndOp Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="10")]
+    #[precedence(level="9")]
     #[assoc(side="left")]
     Box<Expr> OrOp Box<Expr> => Expr::Op(<>),
 
-    #[precedence(level="11")]
+    #[precedence(level="10")]
     #[assoc(side="right")]
     <condition: Box<Expr>> <qmark: SpannedLocation<"?">>
     <if_true: Box<Expr>> <colon: SpannedLocation<":">> <if_false: Box<Expr>> =>
@@ -246,7 +242,25 @@ ForInExpr: ForInExpr =
 ControlStatement: ControlStatement = {
     SpannedLocation<"break"> => ControlStatement::Break(<>),
     SpannedLocation<"continue"> => ControlStatement::Continue(<>),
-    <ret_span: SpannedLocation<"return">> <value: Expr?> => ControlStatement::Break(ret_span),
+    SpannedLocation<"return"> Expr? => ControlStatement::Return(<>),
+}
+
+FnDecl = {
+    SpannedLocation<"fn"> IdExpression SpannedLocation<"("> FnParams SpannedLocation<")"> FnBody?,
+}
+
+FnParams = JoinComma<PositionalParam, DefaultParam>;
+
+DefaultParam = IdExpression SpannedLocation<":"> TypeRef SpannedLocation<"="> Expr;
+
+PositionalParam = IdExpression SpannedLocation<":"> TypeRef ;
+
+TypeRef = {
+    IdExpression,
+}
+
+FnBody: FnBody = {
+    SpannedLocation<"{"> Statement* Expr? SpannedLocation<"}"> => FnBody::from((<>))
 }
 
 extern {
@@ -298,6 +312,7 @@ extern {
         "return" => Token {token: Tk::Return, data: <&'input str>},
         "true" => Token {token: Tk::True, data: <&'input str>},
         "false" => Token {token: Tk::False, data: <&'input str>},
+        "fn" => Token {token: Tk::Fn, data: <&'input str>},
         "number" => Token {token: Tk::Number, data: <&'input str>},
         "identifier" => Token {token: Tk::Id, data: <&'input str>},
         "single line string" => Token {token: Tk::String, data: <&'input str>},

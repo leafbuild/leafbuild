@@ -21,8 +21,8 @@ pub trait Loc {
 }
 
 /// A spanned ast structure; holds data about where in the file a certain ast element is.
-#[derive(PartialOrd, Eq, PartialEq, new)]
-pub struct Spanned<T>(T, Span);
+#[derive(PartialOrd, Eq, PartialEq, Loc, new)]
+pub struct Spanned<T>(pub T, #[whole_span] pub Span);
 
 impl<T> Deref for Spanned<T> {
     type Target = T;
@@ -61,20 +61,6 @@ where
     fn clone_from(&mut self, source: &Self) {
         self.0 = source.0.clone();
         self.1 = source.1;
-    }
-}
-
-impl<T> Loc for Spanned<T> {
-    fn get_start(&self) -> usize {
-        self.1.get_start()
-    }
-
-    fn get_end(&self) -> usize {
-        self.1.get_end()
-    }
-
-    fn get_rng(&self) -> Location {
-        self.1.get_rng()
     }
 }
 
@@ -151,34 +137,21 @@ pub enum Expr {
     },
 }
 
-impl Expr {}
-
 /// A property access expression
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct PropertyAccess {
-    #[start_span]
-    base: Box<Expr>,
-    dot_span: Span,
-    #[end_span]
-    property_name: Spanned<String>,
-}
-
-impl PropertyAccess {
-    /// Reference to the base expression
+    /// The base expression
     /// ```text
     /// object . property_name
     /// ^^^^^^
     /// ```
-    #[must_use]
-    pub const fn get_base(&self) -> &Expr {
-        &self.base
-    }
-
-    /// Return the name of the property
-    #[must_use]
-    pub const fn get_property(&self) -> &Spanned<String> {
-        &self.property_name
-    }
+    #[start_span]
+    pub base: Box<Expr>,
+    /// The span of the `.` token
+    pub dot_span: Span,
+    /// The name of the property and the associated span
+    #[end_span]
+    pub property_name: Spanned<String>,
 }
 
 /// A binary operation
@@ -240,27 +213,25 @@ impl UnaryOpcode {}
 /// A function call
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct FuncCall {
+    /// The base expression we are calling
     #[start_span]
-    func_base: Box<Expr>,
-    left_paren: Span,
-    func_args: FuncCallArgs,
+    pub func_base: Box<Expr>,
+    /// The span of the `(` token
+    pub left_paren: Span,
+    /// The arguments
+    pub func_args: FuncCallArgs,
+    /// The span of the `)` token
     #[end_span]
-    right_paren: Span,
-}
-
-impl FuncCall {
-    /// Returns the function arguments
-    #[must_use]
-    pub const fn get_args(&self) -> &FuncCallArgs {
-        &self.func_args
-    }
+    pub right_paren: Span,
 }
 
 /// The arguments passed to a function / method in a function / method call
 #[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
 pub struct FuncCallArgs {
-    positional_args: Vec<PositionalArg>,
-    named_args: Vec<NamedExpr>,
+    /// The positional arguments
+    pub positional_args: Vec<PositionalArg>,
+    /// The named arguments
+    pub named_args: Vec<NamedExpr>,
 }
 
 impl From<(Vec<PositionalArg>, Vec<NamedExpr>)> for FuncCallArgs {
@@ -272,81 +243,27 @@ impl From<(Vec<PositionalArg>, Vec<NamedExpr>)> for FuncCallArgs {
     }
 }
 
-impl FuncCallArgs {
-    /// Creates a new instance only with positional arguments
-    #[must_use]
-    pub fn new_only_positional(positional_args: Vec<PositionalArg>) -> Self {
-        Self::new(positional_args, vec![])
-    }
-
-    /// Creates a new instance only with named arguments
-    #[must_use]
-    pub fn new_only_named(named_args: Vec<NamedExpr>) -> Self {
-        Self::new(vec![], named_args)
-    }
-
-    /// Creates a new instance with no arguments(used where the function was called without any arguments)
-    #[must_use]
-    pub fn empty() -> Self {
-        Self::new(vec![], vec![])
-    }
-
-    /// Returns a reference to the vector of positional arguments
-    #[must_use]
-    pub const fn get_positional_args(&self) -> &Vec<PositionalArg> {
-        &self.positional_args
-    }
-
-    /// Returns a reference to the vector of named arguments
-    #[must_use]
-    pub const fn get_named_args(&self) -> &Vec<NamedExpr> {
-        &self.named_args
-    }
-}
-
 /// A positional argument
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
-pub struct PositionalArg {
-    #[whole_span]
-    value: Expr,
-}
-
-impl PositionalArg {
-    /// Returns the expression of this positional argument.
-    #[must_use]
-    pub const fn get_value(&self) -> &Expr {
-        &self.value
-    }
-}
+pub struct PositionalArg(#[whole_span] pub Expr);
 
 impl From<Expr> for PositionalArg {
-    fn from(b: Expr) -> Self {
-        Self { value: b }
+    fn from(expr: Expr) -> Self {
+        Self(expr)
     }
 }
 
 /// A named expression. Is created from `name = value`.
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct NamedExpr {
+    /// The name, along with the associated span.
     #[start_span]
-    name: Spanned<String>,
-    eq_span: Span,
+    pub name: Spanned<String>,
+    /// The span of the `=` token
+    pub eq_span: Span,
+    /// The value of the expression
     #[end_span]
-    value: Expr,
-}
-
-impl NamedExpr {
-    /// Returns a reference to the name.
-    #[must_use]
-    pub const fn get_name(&self) -> &String {
-        &self.name.0
-    }
-
-    /// Returns a reference to the value expression.
-    #[must_use]
-    pub const fn get_value(&self) -> &Expr {
-        &self.value
-    }
+    pub value: Expr,
 }
 
 impl From<(Spanned<String>, Span, Expr)> for NamedExpr {
@@ -365,65 +282,31 @@ impl From<(Spanned<String>, Span, Expr)> for NamedExpr {
 /// base_expression . method_name ( arguments )
 /// ```
 /// Where `base_expression . method_name` make a [`PropertyAccess`] expression.
-// TODO: refactor this
 #[derive(Debug, Clone, PartialOrd, Eq, PartialEq, Loc, new)]
 pub struct MethodCall {
+    /// The method property this method call references
     #[start_span]
-    method_property: PropertyAccess,
-    paren_open: Span,
-    args: FuncCallArgs,
-    #[end_span]
-    paren_close: Span,
-}
-
-impl MethodCall {
-    /// Base expression, the one you call the method on.
-    #[must_use]
-    pub const fn get_base_expr(&self) -> &Expr {
-        &self.method_property.base
-    }
-
-    /// The name of the method.
-    #[must_use]
-    pub const fn get_name(&self) -> &Spanned<String> {
-        self.method_property.get_property()
-    }
-
+    pub method_property: PropertyAccess,
+    /// The span of the `(` token
+    pub paren_open: Span,
     /// The arguments
-    #[must_use]
-    pub const fn get_args(&self) -> &FuncCallArgs {
-        &self.args
-    }
+    pub args: FuncCallArgs,
+    /// The span of the `)` token
+    #[end_span]
+    pub paren_close: Span,
 }
 
 /// An assignment
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Assignment {
+    /// The expression to get a mutable reference from and use with the `AtrOp`
     #[start_span]
-    bound_name: Expr,
-    op: AtrOp,
+    pub bound_name: Expr,
+    /// The attribution operation: `=`, `+=`, `-=`...
+    pub op: AtrOp,
+    /// The expression of the value to assign
     #[end_span]
-    value: Expr,
-}
-
-impl Assignment {
-    /// The bound name expression
-    #[must_use]
-    pub const fn get_bound(&self) -> &Expr {
-        &self.bound_name
-    }
-
-    /// The operation
-    #[must_use]
-    pub const fn get_op(&self) -> &AtrOp {
-        &self.op
-    }
-
-    /// The value expression
-    #[must_use]
-    pub const fn get_value(&self) -> &Expr {
-        &self.value
-    }
+    pub value: Expr,
 }
 
 /// A declaration
@@ -433,32 +316,16 @@ impl Assignment {
 /// ```
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Declaration {
+    /// The span of the `let` token
     #[start_span]
-    let_tok: Span,
-    name: Spanned<String>,
-    eq: Span,
+    pub let_tok: Span,
+    /// The name of the variable it is declaring
+    pub name: Spanned<String>,
+    /// The span of the `=` token
+    pub eq: Span,
+    /// The expression of the value to assign
     #[end_span]
-    value: Expr,
-}
-
-impl Declaration {
-    /// Returns a reference to the name
-    #[must_use]
-    pub const fn get_name(&self) -> &String {
-        &self.name.0
-    }
-
-    /// Returns a reference to the name span
-    #[must_use]
-    pub const fn get_name_loc(&self) -> &Span {
-        &self.name.1
-    }
-
-    /// Returns a reference to the value expression
-    #[must_use]
-    pub const fn get_value(&self) -> &Expr {
-        &self.value
-    }
+    pub value: Expr,
 }
 
 /// An assignment operation
@@ -481,91 +348,55 @@ pub enum AtrOp {
 /// An `if expr { statements }` structure
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct If {
+    /// The span of the `if` token
     #[start_span]
-    if_tok: Span,
-    condition: Expr,
-    left_brace: Span,
-    statements: Vec<Statement>,
+    pub if_tok: Span,
+    /// The condition expression
+    pub condition: Expr,
+    /// The span of the `{` token
+    pub left_brace: Span,
+    /// The statements
+    pub statements: Vec<Statement>,
+    /// The span of the `}` token
     #[end_span]
-    right_brace: Span,
-}
-
-impl If {
-    /// The condition of this if
-    #[must_use]
-    pub const fn get_condition(&self) -> &Expr {
-        &self.condition
-    }
-
-    /// The statements to execute if the condition is true
-    #[must_use]
-    pub const fn get_statements(&self) -> &Vec<Statement> {
-        &self.statements
-    }
+    pub right_brace: Span,
 }
 
 /// An `else <if>` structure
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct ElseIf {
+    /// The span of the `else` token
     #[start_span]
-    else_tok: Span,
+    pub else_tok: Span,
+    /// The underlying `If`
     #[end_span]
-    if_: If,
-}
-
-impl ElseIf {
-    ///
-    #[must_use]
-    pub const fn get_if(&self) -> &If {
-        &self.if_
-    }
+    pub if_: If,
 }
 
 /// An `else { statements }` structure
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct Else {
+    /// The span of the `else` token
     #[start_span]
-    else_tok: Span,
-    left_brace: Span,
-    statements: Vec<Statement>,
+    pub else_tok: Span,
+    /// The span of the `{` token
+    pub left_brace: Span,
+    /// The statements
+    pub statements: Vec<Statement>,
+    /// The span of the `}` token
     #[end_span]
-    right_brace: Span,
-}
-
-impl Else {
-    /// The statements of this else block
-    #[must_use]
-    pub const fn get_statements(&self) -> &Vec<Statement> {
-        &self.statements
-    }
+    pub right_brace: Span,
 }
 
 /// A conditional statement
 #[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
 pub struct ConditionalStatement {
-    initial_if: If,
-    else_ifs: Vec<ElseIf>,
-    else_: Option<Else>,
-}
-
-impl ConditionalStatement {
     /// The first `if`
-    #[must_use]
-    pub const fn get_initial_if(&self) -> &If {
-        &self.initial_if
-    }
-
+    pub initial_if: If,
     /// All `else if`s
-    #[must_use]
-    pub const fn get_else_ifs(&self) -> &Vec<ElseIf> {
-        &self.else_ifs
-    }
-
+    pub else_ifs: Vec<ElseIf>,
     /// The `else`
-    #[must_use]
-    pub const fn get_else(&self) -> &Option<Else> {
-        &self.else_
-    }
+    pub else_: Option<Else>,
 }
 
 impl Loc for ConditionalStatement {
@@ -587,59 +418,88 @@ impl Loc for ConditionalStatement {
 /// A repetitive statement (`foreach`)
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct RepetitiveStatement {
+    /// The span of the `foreach` token
     #[start_span]
-    foreach_tok: Span,
-    for_in_expr: ForInExpr,
-    left_brace: Span,
-    statements: Vec<Statement>,
-    #[end_span]
-    right_brace: Span,
-}
-
-impl RepetitiveStatement {
+    pub foreach_tok: Span,
     /// The `... in ...` expression
-    #[must_use]
-    pub const fn get_for_in_expr(&self) -> &ForInExpr {
-        &self.for_in_expr
-    }
+    pub for_in_expr: ForInExpr,
+    /// The span of the `{` token
+    pub left_brace: Span,
     /// The statements
-    #[must_use]
-    pub const fn get_statements(&self) -> &Vec<Statement> {
-        &self.statements
-    }
+    pub statements: Vec<Statement>,
+    /// The span of the `}` token
+    #[end_span]
+    pub right_brace: Span,
 }
 
 /// The `name in expression` expression found in the foreach.
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
 pub struct ForInExpr {
+    /// The name of the variable used to iterate
     #[start_span]
-    name: Spanned<String>,
-    in_tok: Span,
+    pub name: Spanned<String>,
+    /// The span of the `in` token
+    pub in_tok: Span,
+    /// The expression to iterate over
     #[end_span]
-    expr: Expr,
-}
-
-impl ForInExpr {
-    /// The name
-    #[must_use]
-    pub const fn get_name(&self) -> &Spanned<String> {
-        &self.name
-    }
-
-    /// The expression
-    #[must_use]
-    pub const fn get_expr(&self) -> &Expr {
-        &self.expr
-    }
+    pub expr: Expr,
 }
 
 /// A control statement.
-#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
 pub enum ControlStatement {
     /// `continue`
-    Continue(#[whole_span] Span),
+    Continue(Span),
     /// `break`
-    Break(#[whole_span] Span),
+    Break(Span),
+    /// `return ...`
+    Return(Span, Option<Expr>),
+}
+
+impl Loc for ControlStatement {
+    fn get_start(&self) -> usize {
+        match self {
+            Self::Continue(s) | Self::Break(s) | Self::Return(s, ..) => s.get_start(),
+        }
+    }
+
+    fn get_end(&self) -> usize {
+        match self {
+            Self::Return(s, None) | Self::Continue(s) | Self::Break(s) => s.get_end(),
+            Self::Return(_, Some(expr)) => expr.get_end(),
+        }
+    }
+}
+
+/// The body of a function
+#[derive(Debug, Clone)]
+pub struct FnBody {
+    /// The span of the `{` token
+    pub left_brace: Span,
+    /// The statements of this function
+    pub statements: Vec<Statement>,
+    /// The tail return expression, similar to rust's
+    pub tail_expr: Option<Expr>,
+    /// The span of the `}` token
+    pub right_brace: Span,
+}
+
+impl From<(Span, Vec<Statement>, Option<Expr>, Span)> for FnBody {
+    fn from(
+        (left_brace, statements, tail_expr, right_brace): (
+            Span,
+            Vec<Statement>,
+            Option<Expr>,
+            Span,
+        ),
+    ) -> Self {
+        Self {
+            left_brace,
+            statements,
+            tail_expr,
+            right_brace,
+        }
+    }
 }
 
 /// A statement.
@@ -700,14 +560,7 @@ where
 /// The whole build definition
 #[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct BuildDefinition {
+    /// The statements
     #[whole_span]
-    statements: Vec<Statement>,
-}
-
-impl BuildDefinition {
-    /// Returns a reference to the statements
-    #[must_use]
-    pub const fn get_statements(&self) -> &Vec<Statement> {
-        &self.statements
-    }
+    pub statements: Vec<Statement>,
 }
