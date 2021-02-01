@@ -1,0 +1,766 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js coal">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>The Leaf Build System</title>
+        
+        <meta name="robots" content="noindex" />
+        
+        
+
+
+        <!-- Custom HTML head -->
+        
+
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        
+        <link rel="stylesheet" href="css/print.css" media="print">
+        
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "coal" : "coal";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('coal')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="quick_start.html"><strong aria-hidden="true">2.</strong> Quick Start</a></li><li class="chapter-item expanded "><a href="supported_languages.html"><strong aria-hidden="true">3.</strong> Supported Languages</a></li><li class="chapter-item expanded "><a href="syntax.html"><strong aria-hidden="true">4.</strong> Syntax</a></li><li class="chapter-item expanded "><a href="project_model.html"><strong aria-hidden="true">5.</strong> Project Model</a></li><li class="chapter-item expanded affix "><li class="part-title">Developer resources</li><li class="chapter-item expanded "><a href="dev/setup.html"><strong aria-hidden="true">6.</strong> Setting up for development</a></li><li class="chapter-item expanded "><a href="dev/terminology.html"><strong aria-hidden="true">7.</strong> Terminology</a></li><li class="chapter-item expanded "><a href="dev/architecture-overview.html"><strong aria-hidden="true">8.</strong> Architecture</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="dev/leafbuild-ast.html"><strong aria-hidden="true">8.1.</strong> leafbuild-ast</a></li><li class="chapter-item "><a href="dev/leafbuild-parser.html"><strong aria-hidden="true">8.2.</strong> leafbuild-parser</a></li><li class="chapter-item "><a href="dev/leafbuild-interpreter.html"><strong aria-hidden="true">8.3.</strong> leafbuild-interpreter</a></li><li class="chapter-item "><a href="dev/leafbuild-ninja-be.html"><strong aria-hidden="true">8.4.</strong> leafbuild-ninja-be</a></li><li class="chapter-item "><a href="dev/leafbuild-make-be.html"><strong aria-hidden="true">8.5.</strong> leafbuild-make-be</a></li><li class="chapter-item "><a href="dev/leafbuild-ml.html"><strong aria-hidden="true">8.6.</strong> leafbuild-ml</a></li><li class="chapter-item "><a href="dev/leafbuild-cmakeml.html"><strong aria-hidden="true">8.7.</strong> leafbuild-cmakeml</a></li><li class="chapter-item "><a href="dev/leafbuild-mesonml.html"><strong aria-hidden="true">8.8.</strong> leafbuild-mesonml</a></li></ol></li><li class="chapter-item expanded "><a href="dev/documentation.html"><strong aria-hidden="true">9.</strong> The Documentation</a><a class="toggle"><div>❱</div></a></li><li><ol class="section"><li class="chapter-item "><a href="dev/highlighter.html"><strong aria-hidden="true">9.1.</strong> Highlighter</a></li></ol></li><li class="chapter-item expanded "><a href="dev/root_makefile_recipes.html"><strong aria-hidden="true">10.</strong> Root makefile recipes</a></li><li class="chapter-item expanded "><a href="validation_checks.html"><strong aria-hidden="true">11.</strong> Validation checks</a></li><li class="chapter-item expanded affix "><li class="part-title">Others</li><li class="chapter-item expanded "><a href="motivation.html"><strong aria-hidden="true">12.</strong> Motivation</a></li><li class="chapter-item expanded "><a href="roadmap.html"><strong aria-hidden="true">13.</strong> Roadmap</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">The Leaf Build System</h1>
+
+                    <div class="right-buttons">
+                        
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#introduction" id="introduction">Introduction</a></h1>
+<h2><a class="header" href="#so-what-is-leafbuild" id="so-what-is-leafbuild">So, what is <code>leafbuild</code>?</a></h2>
+<p><code>leafbuild</code> is an open-source C/C++ meta build system.
+It was designed as an alternative to <code>cmake</code> and <code>meson</code>.</p>
+<p>Both the build system and the docs are WIP; keep this in mind.</p>
+<h2><a class="header" href="#what-backends-will-it-be-able-use" id="what-backends-will-it-be-able-use">What backends will it be able use?</a></h2>
+<p><code>ninja</code>, <code>make</code>(not implemented yet).</p>
+<h1><a class="header" href="#quick-start" id="quick-start">Quick Start</a></h1>
+<p>Still a work in progress; as of now it’s not really useful unless you are
+a developer of the build system.</p>
+<p>If you are interested in contributing, see the
+<a href="dev/setup.html">developer resources section of this book</a>.</p>
+<h1><a class="header" href="#supported-languages" id="supported-languages">Supported Languages</a></h1>
+<p>The build system supports the following languages:</p>
+<ul>
+<li><a href="supported_languages.html#c">C</a></li>
+<li><a href="supported_languages.html#c-1">C++</a></li>
+<li><a href="supported_languages.html#assembly">Assembly</a></li>
+</ul>
+<h2><a class="header" href="#c" id="c">C</a></h2>
+<h3><a class="header" href="#what-compilers-will-it-be-able-to-use" id="what-compilers-will-it-be-able-to-use">What compilers will it be able to use?</a></h3>
+<p><code>gcc</code>, <code>clang</code> and <code>msvc</code></p>
+<h2><a class="header" href="#c-1" id="c-1">C++</a></h2>
+<h2><a class="header" href="#what-compilers-will-it-be-able-to-use-1" id="what-compilers-will-it-be-able-to-use-1">What compilers will it be able to use?</a></h2>
+<p><code>gcc</code>, <code>clang</code> and <code>msvc</code></p>
+<h2><a class="header" href="#assembly" id="assembly">Assembly</a></h2>
+<h3><a class="header" href="#what-assemblers-will-it-be-able-to-use" id="what-assemblers-will-it-be-able-to-use">What assemblers will it be able to use?</a></h3>
+<p><code>gas</code> and <code>nasm</code></p>
+<h1><a class="header" href="#syntax" id="syntax">Syntax</a></h1>
+<p>The full syntax reference.</p>
+<h2><a class="header" href="#comments" id="comments">Comments</a></h2>
+<p>Same as in C/C++, a single line comment starts with <code>//</code> and goes
+on to the end of the line, and a block comment starts with <code>/*</code>
+and ends with <code>*/</code></p>
+<p>Examples:</p>
+<pre><code class="language-leafbuild">// a single line comment
+
+// another single line comment
+
+/*
+ A block comment
+ that can
+ go on for
+ multiple
+ lines
+ */
+</code></pre>
+<h2><a class="header" href="#values" id="values">Values</a></h2>
+<h3><a class="header" href="#integer-values" id="integer-values">Integer values</a></h3>
+<p>As of now, only 32-bit signed ints are supported.
+Int values work as they do in C/C++:</p>
+<ul>
+<li>prefixed with <code>0</code> means it is an octal number</li>
+<li>prefixed with <code>0x</code> means it is a hex number</li>
+</ul>
+<p>Examples of values:</p>
+<pre><code class="language-leafbuild">0, 1, 2,
+0777, // octal number
+0x12349abcdef, // hex number
+</code></pre>
+<h3><a class="header" href="#booleans" id="booleans">Booleans</a></h3>
+<p><code>true</code> and <code>false</code>, just like in C++, or C with the <code>&lt;stdbool.h&gt;</code> header.</p>
+<pre><code class="language-leafbuild">true, false
+</code></pre>
+<h3><a class="header" href="#string-values" id="string-values">String values</a></h3>
+<p>A simple string begins and ends with <code>'</code>, and may have escaped apostrophes;
+should not contain newlines.
+You can also use multiline strings; those begin and end with <code>'''</code>.</p>
+<p>Examples:</p>
+<pre><code class="language-leafbuild">'A simple single line string',
+
+'A simple string with \'escaped\' apostrophes'
+
+'''A
+multiline
+string
+example
+'''
+</code></pre>
+<h3><a class="header" href="#vectors" id="vectors">Vectors</a></h3>
+<pre><code class="language-leafbuild">{v0, v1, v2, ...}
+</code></pre>
+<p>Where <code>v0</code>, <code>v1</code>, <code>v2</code>, ... are of the same type.</p>
+<h4><a class="header" href="#getting-a-value-out-of-a-vector" id="getting-a-value-out-of-a-vector">Getting a value out of a vector</a></h4>
+<p>Same as in C/C++:</p>
+<pre><code class="language-leafbuild">{1, 2, 3}[0] = 1
+{1, 2, 3}[1] = 2
+{1, 2, 3}[2] = 3
+</code></pre>
+<h3><a class="header" href="#maps" id="maps">Maps</a></h3>
+<pre><code class="language-leafbuild">{k0: v0, k1: v1, k2: v2, ...}
+</code></pre>
+<p>Where <code>v0</code>, <code>v1</code>, <code>v2</code>, ... are of the same type, and <code>k0</code>, <code>k1</code>, <code>k2</code> should be names.
+Example:</p>
+<pre><code class="language-leafbuild">{
+    a: 1,
+    b: 2+3,
+    c: '1',
+    d: '''
+        A
+        B
+        C
+       '''
+}
+</code></pre>
+<h4><a class="header" href="#getting-a-value-out-of-a-map" id="getting-a-value-out-of-a-map">Getting a value out of a map</a></h4>
+<p>Same as with vectors, but pass a string with the key instead of the index.</p>
+<pre><code class="language-leafbuild">{a: 1, b: 2+3, c: 9*10}['a'] = 1
+{a: 1, b: 2+3, c: 9*10}['b'] = 5
+{a: 1, b: 2+3, c: 9*10}['c'] = 90
+</code></pre>
+<h3><a class="header" href="#the-ternary-conditional-operator-" id="the-ternary-conditional-operator-">The ternary conditional operator <code>?:</code></a></h3>
+<p>You can also use C/C++’s ternary conditional operator.
+Examples:</p>
+<pre><code class="language-leafbuild">true ? 1 : 0
+
+false ? 2 + 3 : 4 + 5
+</code></pre>
+<h2><a class="header" href="#variables" id="variables">Variables</a></h2>
+<p>Variables, once assigned a value, will live for as long as the file
+they are declared in is processed.</p>
+<h3><a class="header" href="#declaring" id="declaring">Declaring</a></h3>
+<p>Variables are declared with the <code>let</code> keyword:</p>
+<pre><code class="language-leafbuild">let variable_name = value;
+</code></pre>
+<p>Examples:</p>
+<pre><code class="language-leafbuild">let a = 0;
+let b = 1;
+let c = 'a string';
+let d = '''A
+multiline
+string''';
+let e = a; // e = 0
+</code></pre>
+<h3><a class="header" href="#assigning-a-value-to-a-variable" id="assigning-a-value-to-a-variable">Assigning a value to a variable</a></h3>
+<p>Like in C/C++:</p>
+<pre><code class="language-leafbuild">let a = 0; // declare it
+a = 1; // assign 1 to it
+a += 1; // and add one to it; same as a = a + 1
+a -= 1; // subtract one; same as a = a - 1
+a *= 12; // multiply by 12; same as a = a * 12
+a /= 2; // divide by 2; same as a = a / 2
+a %= 3; // take modulo 3 and assign it back; same as a = a % 3
+</code></pre>
+<p>values cannot change their type, unless the type changes into
+<a href="">the error type</a>, in which case it can be assigned back
+to the type of the original value.</p>
+<h2><a class="header" href="#accessing-properties" id="accessing-properties">Accessing properties</a></h2>
+<p>You can access properties of values like so:</p>
+<pre><code class="language-leafbuild">value.property_name
+</code></pre>
+<h2><a class="header" href="#calling-functions" id="calling-functions">Calling functions</a></h2>
+<p>You can call functions like this:</p>
+<pre><code class="language-leafbuild">function_name(positional_args, kwargs)
+</code></pre>
+<p>The <code>positional_args</code> is a list of comma-separated args, and <code>kwargs</code>
+is a list of comma-separated key-value arguments, the key and value
+being separated by <code>=</code>.</p>
+<p>Examples:</p>
+<pre><code class="language-leafbuild">f(a, b, c: d, e: f)
+// note that you can also have only positional args or kwargs, without needing the extra comma between them
+g(0, a)
+h(a: b, c: d)
+
+project()
+</code></pre>
+<p>You can also have a trailing comma and split function calls over multiple lines:</p>
+<pre><code class="language-leafbuild">f(
+  0,
+  1,
+)
+g(
+  a: b,
+  c: d,
+)
+</code></pre>
+<h2><a class="header" href="#calling-methods" id="calling-methods">Calling methods</a></h2>
+<p>You can call methods like this:</p>
+<pre><code class="language-leafbuild">base_value.method_name(positional_args, kwargs)
+</code></pre>
+<p>Note that <code>method_name(positional_args, kwargs)</code> works the same way functions do,
+so all the rules described in <a href="syntax.html#calling-functions">calling functions</a> apply here
+as well.</p>
+<h1><a class="header" href="#ifconditionals" id="ifconditionals">If(conditionals)</a></h1>
+<p>Work the same as in C/C++, the only difference being you don’t need the parentheses after an <code>if</code>.</p>
+<pre><code class="language-leafbuild">if condition {
+statements
+} else if condition2 {
+statements2
+} else if condition3 {
+statements3
+} /*...*/ {
+/*...*/
+} else {
+// in case all conditions above failed
+}
+</code></pre>
+<h1><a class="header" href="#foreach-and-repetition" id="foreach-and-repetition">Foreach (and repetition)</a></h1>
+<pre><code class="language-leafbuild">foreach x in collection {
+    do_something_with x
+}
+</code></pre>
+<p>Where <code>collection</code> is either:</p>
+<ul>
+<li>A vector and then x is the value of the current element</li>
+<li>A map and then x is a <code>map_pair</code>; this type has 2 properties: <code>key</code> and <code>value</code>.
+The <code>key</code> property is always a string. The <code>value</code> could be anything.</li>
+</ul>
+<h2><a class="header" href="#examples" id="examples">Examples</a></h2>
+<p>Foreach over vector:</p>
+<pre><code class="language-leafbuild">foreach x in {1, 2, 3, 4, 5} {
+    print(x);
+}
+// prints:
+/*
+-- 1
+-- 2
+-- 3
+-- 4
+-- 5
+*/
+</code></pre>
+<p>Foreach over map:</p>
+<pre><code class="language-leafbuild">foreach x in {a: 1, b: 2, c: 3, d: 4, e: 5} {
+    print(key: x.key, value: x.value);
+}
+// prints:
+/*
+-- key: 'a', value: 1
+-- key: 'b', value: 2
+-- key: 'c', value: 3
+-- key: 'd', value: 4
+-- key: 'e', value: 5
+*/
+// not necessarely in this order.
+</code></pre>
+<h1><a class="header" href="#all-statements-end-with-" id="all-statements-end-with-">All statements end with <code>;</code></a></h1>
+<p>Please note that all statements(assignments,
+function calls, method calls) SHOULD end with a <code>;</code>,
+like they do in C/C++.</p>
+<h1><a class="header" href="#project-model" id="project-model">Project Model</a></h1>
+<p>Let’s start with the simplest part of a leaf build system: a module.</p>
+<h2><a class="header" href="#module" id="module">Module</a></h2>
+<p>In a nutshell, a module is any folder that has a <code>build.leaf</code> file directly below it.</p>
+<h2><a class="header" href="#project" id="project">Project</a></h2>
+<p>A project is a module that contains some extra metadata.
+See the <a href="">kwargs of the <code>project()</code> function</a> to find out more.</p>
+<p>The metadata present in the project should apply to all of its submodules.</p>
+<h1><a class="header" href="#the-buildleaf-file" id="the-buildleaf-file">The <code>build.leaf</code> file</a></h1>
+<h1><a class="header" href="#setup" id="setup">Setup</a></h1>
+<p>Most developer actions are managed as make recipes by <a href="https://github.com/sagiegurari/cargo-make">cargo-make</a>;
+to install it, follow <a href="https://github.com/sagiegurari/cargo-make#installation">the guide in the readme</a>.</p>
+<p>They are described in the <code>Makefile.toml</code> file at the root of the repository.
+For a list of them all and what each does, see <a href="dev/root_makefile_recipes.html">root makefile recipes</a>.</p>
+<h1><a class="header" href="#terminology" id="terminology">Terminology</a></h1>
+<p>Some of the terminology used.</p>
+<h2><a class="header" href="#build-system-boundary" id="build-system-boundary">Build system boundary</a></h2>
+<p>Refers to when a child directory of a module / project is managed by a different build system.</p>
+<p>Example:</p>
+<pre><code class="language-text">.
+└── outer
+    ├── build.leaf
+    └── inner
+        └── CMakeLists.txt
+</code></pre>
+<p>And with <code>inner</code> subdir-ed from <code>outer</code></p>
+<pre><code class="language-leafbuild">// outer/build.leaf
+project('outer')
+
+subdir('inner')
+</code></pre>
+<p>Here <code>outer</code> is managed by <code>leafbuild</code> while <code>inner</code> is managed by <code>cmake</code>.
+We call <code>outer</code> the outer directory and <code>inner</code> the inner directory across
+the <code>(&quot;outer&quot;, &quot;outer/inner&quot;)</code> build system boundary.</p>
+<h1><a class="header" href="#architecture-overview" id="architecture-overview">Architecture overview</a></h1>
+<p>There are two main types of components in <code>leafbuild</code>:</p>
+<ul>
+<li><a href="dev/architecture-overview.html#producers">The ones that help produce a <code>LfBuildsys</code></a></li>
+<li><a href="dev/architecture-overview.html#consumers">The ones that consume the <code>LfBuildsys</code></a></li>
+</ul>
+<h1><a class="header" href="#producers" id="producers">Producers</a></h1>
+<p>The components that <em>help produce</em> the <code>LfBuildsys</code> are called <em>producers</em>.
+They all work together, and they are:</p>
+<h2><a class="header" href="#leafbuild-ast" id="leafbuild-ast"><code>leafbuild-ast</code></a></h2>
+<p>Holds the ast structures produced by the <a href="dev/architecture-overview.html#leafbuild-parser"><code>leafbuild-parser</code></a>.
+Further described in <a href="dev/leafbuild-ast.html"><code>leafbuild-ast</code></a>.</p>
+<h2><a class="header" href="#leafbuild-parser" id="leafbuild-parser"><code>leafbuild-parser</code></a></h2>
+<p>Holds the logic to parse input <code>build.leaf</code> files and produces <a href="dev/architecture-overview.html#leafbuild-ast"><code>leafbuild-ast</code></a> structures.
+Further described in <a href="dev/leafbuild-parser.html"><code>leafbuild-parser</code></a></p>
+<h2><a class="header" href="#leafbuild-interpreter" id="leafbuild-interpreter"><code>leafbuild-interpreter</code></a></h2>
+<p>Interprets the <a href="dev/architecture-overview.html#leafbuild-ast"><code>leafbuild-ast</code></a> structures produced by <a href="dev/architecture-overview.html#leafbuild-parser"><code>leafbuild-parser</code></a>
+and outputs the <code>LfBuildsys</code>. This is where most of the magic happens.
+Further described in <a href="dev/leafbuild-interpreter.html"><code>leafbuild-interpreter</code></a></p>
+<h2><a class="header" href="#all-the-middle-layers" id="all-the-middle-layers">All the middle layers</a></h2>
+<p>Middle layers are quite a complicated thing to explain, so you can find more about them <a href="dev/leafbuild-ml.html#what-is-a-middle-layer-in-leafbuild">here</a></p>
+<h1><a class="header" href="#consumers" id="consumers">Consumers</a></h1>
+<p>The components that <em>consume</em> the <code>LfBuildsys</code> are called <em>consumers</em>.</p>
+<h1><a class="header" href="#leafbuild-ast-1" id="leafbuild-ast-1"><code>leafbuild-ast</code></a></h1>
+<p>Holds ast structures of <code>build.leaf</code> files.</p>
+<p>TBD</p>
+<h1><a class="header" href="#leafbuild-parser-1" id="leafbuild-parser-1"><code>leafbuild-parser</code></a></h1>
+<p>Uses <code>lalrpop</code>(the grammar is available <a href="https://github.com/leafbuild/leafbuild/blob/master/leafbuild-parser/src/leafparser.lalrpop">here</a>). TBD</p>
+<h1><a class="header" href="#leafbuild-interpreter-1" id="leafbuild-interpreter-1"><code>leafbuild-interpreter</code></a></h1>
+<p>Turns an ast defined in <a href="dev/leafbuild-ast.html"><code>leafbuild-ast</code></a> produced by
+<a href="dev/leafbuild-parser.html"><code>leafbuild-parser</code></a> into a <code>LfBuildsys</code>, by running
+the instructions in the AST to configure the buildsystem.</p>
+<p>TBD</p>
+<h1><a class="header" href="#leafbuild-ninja-be" id="leafbuild-ninja-be"><code>leafbuild-ninja-be</code></a></h1>
+<p>The ninja generator-backend.
+TBD</p>
+<h1><a class="header" href="#leafbuild-make-be" id="leafbuild-make-be"><code>leafbuild-make-be</code></a></h1>
+<p>The <code>make</code> generator-backend.
+TBD</p>
+<h1><a class="header" href="#leafbuild-ml" id="leafbuild-ml"><code>leafbuild-ml</code></a></h1>
+<h1><a class="header" href="#what-is-a-middle-layer-in-leafbuild" id="what-is-a-middle-layer-in-leafbuild">What is a middle layer in <code>leafbuild</code>?</a></h1>
+<p>Most C/C++ build systems are isolated, in the sense that you cannot
+use multiple build systems in the same codebase, and when you have
+a dependency that you <em>need</em> to build which uses another build system
+than the one you use, it gets a lot harder to get them to talk to each other.</p>
+<p>So a middle layer is a layer that goes between <code>leafbuild</code> and <em>some</em> other
+build systems. Read this document carefully if you want to write your own.</p>
+<h1><a class="header" href="#conventions" id="conventions">Conventions</a></h1>
+<ol>
+<li>Across <a href="dev/terminology.html#build-system-boundary">build system boundaries</a>, the build directory at
+least somewhat resembles the directory structure of the source directory.Across
+<a href="dev/terminology.html#build-system-boundary">build system boundaries</a>, output directories
+of sibling projects &amp; modules are <em>always</em> siblings, output directories of
+parent / child projects and modules have to at least somewhat resemble
+that parent / child relationship. More about this <a href="dev/leafbuild-ml.html#output-directory-resemblance">here</a>.</li>
+<li>Across <a href="dev/terminology.html#build-system-boundary">build system boundaries</a>, the build system that
+manages the outer directory is responsible for creating a directory for the build
+system that manages the inner directory in it’s own designated space.</li>
+<li>If you recognize an added subdirectory as your own, you should handle it.
+<em>Only and only</em> otherwise should you invoke the middle layers to handle it.</li>
+</ol>
+<h1><a class="header" href="#output-directory-resemblance" id="output-directory-resemblance">Output directory resemblance</a></h1>
+<p>TBD</p>
+<h1><a class="header" href="#how-leafbuild-ml-works" id="how-leafbuild-ml-works">How <code>leafbuild-ml</code> works</a></h1>
+<p>It simply exposes a trait: <code>MiddleLayer</code> that other crates implement, and perform
+a little linker magic to make <code>leafbuild-ml</code> aware of those implementations.</p>
+<p>The <code>MiddleLayer</code> trait is pretty simple:</p>
+<pre><code class="language-rust norun noplayground">use leafbuild_core::lf_buildsys::LfBuildsys;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
+
+/// A simple result type with all the possible errors a middle layer might throw
+pub type Result&lt;T&gt; = std::result::Result&lt;T, MiddleLayerError&gt;;
+
+/// A middle layer trait
+pub trait MiddleLayer {
+    /// Try to recognize a given `add_subdir()`-ed directory.
+    /// This usually should just check that `path` contains a
+    /// given file meaningful to the build system of this middle
+    /// layer.
+    ///
+    /// For example, for cmake: check that `path/CMakeLists.txt` exists.
+    /// For meson, check that `path/meson.build` exists, etc.
+    fn recognize(&amp;self, path: &amp;Path) -&gt; RecognizeResult;
+
+    /// Invokes the inner build system and returns the changes that should be made
+    /// to the [`LfBuildsys`]
+    /// # Errors
+    /// Anything that can go wrong. Though the build will fail if this returns `Err`.
+    fn handle&lt;'buildsys&gt;(
+        &amp;self,
+        buildsys: &amp;'buildsys LfBuildsys&lt;'buildsys&gt;,
+        boundary_details: BuildsysBoundaryDetails,
+    ) -&gt; Result&lt;BuildsysChanges&gt;;
+}
+
+/// Whether the middle layer recognizes the directory or not
+#[derive(Debug, Copy, Clone)]
+pub enum RecognizeResult {
+    /// When it was recognized
+    Recognized,
+    /// When it was not recognized
+    NotRecognized,
+}
+
+/// The data passed across a
+/// [build system boundary](https://leafbuild.github.com/dev/terminology.html#build-system-boundary)
+#[derive(Debug)]
+pub struct BuildsysBoundaryDetails&lt;'boundary&gt; {
+    /// The source root
+    pub source_root: &amp;'boundary Path,
+    /// The output root
+    pub output_root: &amp;'boundary Path,
+
+    /// The source folder that was `add_subdir()`-ed, and checked
+    /// previously with [`MiddleLayer::recognize`]
+    pub source_folder: PathBuf,
+    /// The output folder assigned to this subdirectory for the
+    /// inner build system to write files to.
+    pub output_folder: PathBuf,
+
+    /// The &quot;arguments&quot; passed to the inner build system.
+    /// In cmake they are variables that should
+    /// be `set()` before invoking the `CMakeLists.txt`,
+    /// while in meson they are global variables.
+    ///
+    /// Since meson takes types *somewhat* seriously,
+    /// they should be converted.
+    pub arguments: HashMap&lt;String, String&gt;,
+    // will maybe add more
+}
+
+/// The build system changes that are to be applied to
+/// a [`LfBuildsys`] after [`MiddleLayer::handle`]
+/// executed.
+#[derive(Copy, Clone, Debug, Default)]
+pub struct BuildsysChanges {}
+
+/// Errors that can occur during a middle layer's execution.
+#[derive(Error, Debug)]
+pub enum MiddleLayerError {
+    /// Any other error
+    #[error(&quot;Other error: {0}&quot;)]
+    Other(#[from] Box&lt;dyn std::error::Error&gt;),
+}
+</code></pre>
+<h1><a class="header" href="#leafbuild-cmakeml" id="leafbuild-cmakeml"><code>leafbuild-cmakeml</code></a></h1>
+<p>CMake middle layer.
+TBD</p>
+<h1><a class="header" href="#leafbuild-mesonml" id="leafbuild-mesonml"><code>leafbuild-mesonml</code></a></h1>
+<p>Meson middle layer.</p>
+<h1><a class="header" href="#the-documentation-repo" id="the-documentation-repo">The documentation repo</a></h1>
+<p>The <code>leafbuild.github.io</code> repo was created from the <code>doc/book</code> directory.
+The <code>doc/book</code> directory is generated from <code>doc/src</code> and <code>doc/book.toml</code> by <a href="https://github.com/rust-lang/mdBook">mdbook</a>.</p>
+<p>If you want to see the changes after you made them, make sure you have mdbook installed. </p>
+<p>Running <code>makers doc-build</code> from the root of the repo will automatically
+generate <code>doc/book</code> with all of its contents.</p>
+<p>If you run <code>makers doc-serve</code> from the root of the repo, you will have a
+local instance of the doc site at <a href="http://localhost:3000">http://localhost:3000</a>.</p>
+<p>After you are happy with the changes, submit a PR on
+<a href="https://github.com/leafbuild/leafbuild/tree/master">the <code>master</code> branch</a>,
+and mention you changed the documentation, so the site can be rebuilt.</p>
+<p>Please use reference-style links for all links to the main repo.</p>
+<p>You can use <code>rust</code> and <code>leafbuild</code> for syntax highlighting.
+Also the <code>leafbuild</code> language declaration for <code>highlight.js</code> can be found <a href="https://github.com/leafbuild/leafbuild/blob/master/doc/leafbuild_highlight.js">here</a>. </p>
+<h1><a class="header" href="#the-syntax-highlighter" id="the-syntax-highlighter">The syntax highlighter</a></h1>
+<p>Syntax highlighting is available in the docs with:</p>
+<pre><code>```leafbuild
+// ....
+```</code></pre>
+<p>The highlighter also includes the <code>rust</code> and <code>bash</code> languages.</p>
+<p>You can find the highlight.js definition for <code>leafbuild</code> in <code>doc/leafbuild_highlight.js</code>.</p>
+<h1><a class="header" href="#root-makefile-recipes" id="root-makefile-recipes">Root makefile recipes</a></h1>
+<p>They can be invoked via</p>
+<pre><code class="language-sh">cargo make &lt;recipe_name&gt;
+# or
+makers &lt;recipe_name&gt; 
+</code></pre>
+<h2><a class="header" href="#format" id="format"><code>format</code></a></h2>
+<p>Formats all the source files.</p>
+<h2><a class="header" href="#fmtcheck" id="fmtcheck"><code>fmtcheck</code></a></h2>
+<p>Checks formatting of all the source files and exits with non-zero if they’re not formatted properly.</p>
+<h2><a class="header" href="#clean" id="clean"><code>clean</code></a></h2>
+<p>Calls cargo clean, removing all built artifacts.</p>
+<h2><a class="header" href="#build" id="build"><code>build</code></a></h2>
+<p>Builds the <code>leafbuild</code> executable.</p>
+<h2><a class="header" href="#lint" id="lint"><code>lint</code></a></h2>
+<p>Calls our good friend <code>clippy</code> to help improve code.</p>
+<h2><a class="header" href="#check" id="check"><code>check</code></a></h2>
+<p>Checks the database, by first formatting, then invoking clippy and testing.
+This should usually be invoked before a commit.</p>
+<h2><a class="header" href="#doc-build" id="doc-build"><code>doc-build</code></a></h2>
+<p>Invokes <code>mdbook</code> to build <code>doc/book</code> from <code>doc/src</code>.</p>
+<h2><a class="header" href="#doc-serve" id="doc-serve"><code>doc-serve</code></a></h2>
+<p>Invokes <code>mdbook</code> to serve the built files on <a href="http://localhost:3000">localhost:3000</a>.</p>
+<h2><a class="header" href="#doc-nuke" id="doc-nuke"><code>doc-nuke</code></a></h2>
+<p>Cleans up the currently-built book in <code>doc/book</code>.</p>
+<h2><a class="header" href="#doc-push" id="doc-push"><code>doc-push</code></a></h2>
+<p>Pushes the built doc to <a href="https://github.com/leafbuild/leafbuild.github.io">the docs repo</a>.</p>
+<h2><a class="header" href="#doc-build-highlighter" id="doc-build-highlighter"><code>doc-build-highlighter</code></a></h2>
+<p>Builds the syntax highlighter from the highlight.js repo with <code>doc/leafbuild_highlight.js</code>.
+More about the highlighter <a href="dev/highlighter.html">here</a>.</p>
+<h1><a class="header" href="#validation-checks-performed-by-leafbuild" id="validation-checks-performed-by-leafbuild">Validation checks performed by <code>leafbuild</code></a></h1>
+<h2><a class="header" href="#all-the-referenced-source-files-exist" id="all-the-referenced-source-files-exist">All the referenced source files exist</a></h2>
+<h1><a class="header" href="#motivation" id="motivation">Motivation</a></h1>
+<p>I decided to create <code>leafbuild</code> because I am not happy with what
+is already there:</p>
+<ul>
+<li>cmake(I don’t like the docs at all)</li>
+<li>meson:</li>
+</ul>
+<blockquote>
+<p>Meson is an open source build system meant to be both extremely fast, and,
+even more importantly, as user friendly as possible.</p>
+<p>— <cite><a href="https://mesonbuild.com/index.html#overview">Meson overview</a></cite></p>
+</blockquote>
+<p>Well it’s not really that fast. In fact it takes about 1.5 - 2 seconds to
+<em>only print the version</em> in a new session, which I find outrageous.</p>
+<p>So in the end I ended up creating my own build system.</p>
+<h1><a class="header" href="#roadmap" id="roadmap">Roadmap</a></h1>
+<style>
+table {
+    width: 100%;
+}
+
+h3 {
+    padding-left: 20px;
+}
+</style>
+<p>The current state of the implementation, along with future plans.</p>
+<table>
+<tr>
+<td><div>
+<h3><a class="header" href="#syntax-1" id="syntax-1">Syntax</a></h3>
+<ul>
+<li><input disabled="" type="checkbox"/>
+Comments</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Variable declaration</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Variable assignment</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Function calls</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Method calls</li>
+<li><input disabled="" type="checkbox" checked=""/>
+If expressions</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Ternary expressions</li>
+<li><input disabled="" type="checkbox" checked=""/>
+Loops</li>
+</ul>
+</div></td>
+<td><div>
+<h3><a class="header" href="#functions" id="functions">Functions</a></h3>
+</div></td> 
+</tr>
+<tr>
+<td><div>
+<h3><a class="header" href="#types-methods--properties" id="types-methods--properties">Types, methods &amp; properties</a></h3>
+</div></td>
+<td><div>
+<h3><a class="header" href="#documentation" id="documentation">Documentation</a></h3>
+</div></td>
+</tr>
+</table>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+
+        
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>
