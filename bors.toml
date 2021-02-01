@@ -4,5 +4,6 @@ status = [
     "rust-ci (stable, macOS-latest)",
     "rust-ci (nightly, ubuntu-latest)",
     "rust-ci (nightly, windows-latest)",
-    "rust-ci (nightly, macOS-latest)"
+    "rust-ci (nightly, macOS-latest)",
+    "rust-fmtcheck"
 ]
