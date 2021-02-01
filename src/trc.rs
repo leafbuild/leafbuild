@@ -1,7 +1,7 @@
 //! Module containing logic to format [`tracing`] events.
 use ansi_term::{Color, Style};
 use itertools::Itertools;
-use leafbuild_core::prelude::{AndThenDo, SomeNoneIfOwned};
+use leafbuild_core::prelude::{AndThenDo, TakeIfUnlessOwned};
 use leafbuild_interpreter::LfModName;
 use std::error::Error;
 use std::fmt::Debug;
@@ -158,12 +158,14 @@ where
     where
         Sink: FnMut(String) -> Result<(), io::Error>,
     {
-        let s = level.format_with_style_if(self.cfg.ansi, |s| match level {
-            tracing::Level::TRACE => s.fg(Color::Cyan),
-            tracing::Level::DEBUG => s.fg(Color::Green),
-            tracing::Level::INFO => s.fg(Color::White),
-            tracing::Level::WARN => s.fg(Color::Yellow),
-            tracing::Level::ERROR => s.fg(Color::Red),
+        let s = level.format_with_style_if(self.cfg.ansi, |s| {
+            s.fg(match level {
+                tracing::Level::TRACE => Color::Cyan,
+                tracing::Level::DEBUG => Color::Green,
+                tracing::Level::INFO => Color::White,
+                tracing::Level::WARN => Color::Yellow,
+                tracing::Level::ERROR => Color::Red,
+            })
         });
         sink(s)
     }
@@ -331,7 +333,7 @@ where
         let data = ext.get_mut::<Data>().unwrap();
         data.kvs
             .iter()
-            .find_map(|(name, value)| value.some_if_owned(*name == "path"))
+            .find_map(|(name, value)| value.as_str().take_if_owned(|_| *name == "path"))
             .and_then_do(|path| {
                 ext.insert(LeafbuildSpanExtension {
                     modname: LfModName::new(path),

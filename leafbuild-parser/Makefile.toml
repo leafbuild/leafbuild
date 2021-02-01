@@ -18,7 +18,7 @@ args = ["build"]
 
 [tasks.test]
 command = "cargo"
-args = ["test"]
+args = ["test", "--package", "$PACKAGE_NAME"]
 dependencies = ["build"]
 
 [tasks.lint]

@@ -43,7 +43,7 @@ impl<'frame> NameLookup<'frame> {
     #[must_use]
     pub fn lookup_variable(&'frame self, name: &str) -> Option<&'frame dyn Value<'frame>> {
         let v = self.variables.get(name);
-        v.map(|it| -> &'frame dyn Value<'frame> { &**it })
+        v.map(|it| &**it)
     }
     /// Returns the value of a variable in this name lookup with the given name (mutable variant)
     #[must_use]

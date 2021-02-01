@@ -2,7 +2,7 @@ use leafbuild_ast::ast::{Atom, Expr};
 use leafbuild_ast::token_data::NumVal;
 
 use crate::env::FileFrame;
-use crate::internal::values::types::ValueType;
+use crate::internal::values::types::Ty;
 use crate::internal::values::{BoolWrap, I32Wrap, I64Wrap, U32Wrap, U64Wrap, Value};
 use leafbuild_ast::Span;
 
@@ -108,9 +108,9 @@ impl AsBoxedValue for bool {
 
 enum BinOpApplyError {
     IncompatibleOperands {
-        left: ValueType,
+        left: Ty,
         left_span: Span,
-        right: ValueType,
+        right: Ty,
         right_span: Span,
     },
 }

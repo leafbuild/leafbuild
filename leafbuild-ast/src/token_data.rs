@@ -86,23 +86,17 @@ impl FromStr for NumVal {
 impl NumVal {
     fn parse_hex(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
         // s = "0x.."
-        tp.create_from_str(
-            s.trim_start_matches("0x").trim_end_matches(Self::is_suffix),
-            16,
-        )
+        tp.create_from_str(s[2..].trim_end_matches(Self::is_suffix), 16)
     }
 
     fn parse_bin(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
         // s = "0b..."
-        tp.create_from_str(
-            s.trim_start_matches("0b").trim_end_matches(Self::is_suffix),
-            2,
-        )
+        tp.create_from_str(s[2..].trim_end_matches(Self::is_suffix), 2)
     }
 
     fn parse_oct(s: &str, tp: Tp) -> Result<Self, ParseIntError> {
         // s = "0..."
-        let s = s.trim_start_matches('0').trim_end_matches(Self::is_suffix);
+        let s = s[1..].trim_end_matches(Self::is_suffix);
         if s.is_empty() {
             return Ok(tp.zero());
         }

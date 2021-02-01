@@ -15,11 +15,11 @@ mod let_;
 pub use also::*;
 pub use let_::*;
 
-mod some_none_if;
-pub use some_none_if::*;
+mod take_if_unless;
+pub use take_if_unless::*;
 
-mod some_none_if_owned;
-pub use some_none_if_owned::*;
+mod take_if_unless_owned;
+pub use take_if_unless_owned::*;
 
 mod and_then_do;
 pub use and_then_do::*;

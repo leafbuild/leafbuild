@@ -1,3 +1,5 @@
+#![crate_type = "bin"]
+
 use clap::Clap;
 use leafbuild::cli::Cli;
 use leafbuild::trc::{Config, LeafbuildTrcLayer};

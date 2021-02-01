@@ -3,6 +3,7 @@
     <option name="command" value="run --package leafbuild --bin leafbuild -- trace --debug build -d ." />
     <option name="workingDirectory" value="file://$PROJECT_DIR$/testenv" />
     <option name="channel" value="DEFAULT" />
+    <option name="requiredFeatures" value="false" />
     <option name="allFeatures" value="false" />
     <option name="emulateTerminal" value="true" />
     <option name="backtrace" value="SHORT" />

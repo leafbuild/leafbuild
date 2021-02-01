@@ -1,13 +1,18 @@
 //! Defines and implements traits for the [`Span`] data type
-use derive_new::new;
 use std::fmt;
 use std::ops::Range;
 
 /// A span in the source code
-#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq, new)]
+#[derive(Copy, Clone, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Span {
     start: usize,
     end: usize,
+}
+
+impl From<(usize, usize)> for Span {
+    fn from((start, end): (usize, usize)) -> Self {
+        Self { start, end }
+    }
 }
 
 impl fmt::Debug for Span {

@@ -38,6 +38,12 @@ impl<T> DerefMut for Spanned<T> {
     }
 }
 
+impl<T> AsRef<T> for Spanned<T> {
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
 impl<T> fmt::Debug for Spanned<T>
 where
     T: fmt::Debug,
@@ -91,7 +97,7 @@ pub enum Expr {
     /// A unary operation
     UnaryOp(#[start_span] UnaryOpcode, #[end_span] Box<Expr>),
     /// A function call
-    FuncCall(#[whole_span] FuncCall),
+    FnCall(#[whole_span] FnCall),
     /// A method call
     MethodCall(#[whole_span] MethodCall),
     /// A property access operation
@@ -212,14 +218,14 @@ impl UnaryOpcode {}
 
 /// A function call
 #[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
-pub struct FuncCall {
+pub struct FnCall {
     /// The base expression we are calling
     #[start_span]
     pub func_base: Box<Expr>,
     /// The span of the `(` token
     pub left_paren: Span,
     /// The arguments
-    pub func_args: FuncCallArgs,
+    pub func_args: FnCallArgs,
     /// The span of the `)` token
     #[end_span]
     pub right_paren: Span,
@@ -227,14 +233,14 @@ pub struct FuncCall {
 
 /// The arguments passed to a function / method in a function / method call
 #[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
-pub struct FuncCallArgs {
+pub struct FnCallArgs {
     /// The positional arguments
     pub positional_args: Vec<PositionalArg>,
     /// The named arguments
     pub named_args: Vec<NamedExpr>,
 }
 
-impl From<(Vec<PositionalArg>, Vec<NamedExpr>)> for FuncCallArgs {
+impl From<(Vec<PositionalArg>, Vec<NamedExpr>)> for FnCallArgs {
     fn from((positional_args, named_args): (Vec<PositionalArg>, Vec<NamedExpr>)) -> Self {
         Self {
             positional_args,
@@ -290,7 +296,7 @@ pub struct MethodCall {
     /// The span of the `(` token
     pub paren_open: Span,
     /// The arguments
-    pub args: FuncCallArgs,
+    pub args: FnCallArgs,
     /// The span of the `)` token
     #[end_span]
     pub paren_close: Span,
@@ -446,7 +452,7 @@ pub struct ForInExpr {
 }
 
 /// A control statement.
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
+#[derive(Clone, Debug, PartialOrd, Eq, PartialEq)]
 pub enum ControlStatement {
     /// `continue`
     Continue(Span),
@@ -472,15 +478,17 @@ impl Loc for ControlStatement {
 }
 
 /// The body of a function
-#[derive(Debug, Clone)]
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
 pub struct FnBody {
     /// The span of the `{` token
+    #[start_span]
     pub left_brace: Span,
     /// The statements of this function
     pub statements: Vec<Statement>,
     /// The tail return expression, similar to rust's
     pub tail_expr: Option<Expr>,
     /// The span of the `}` token
+    #[end_span]
     pub right_brace: Span,
 }
 
@@ -502,8 +510,170 @@ impl From<(Span, Vec<Statement>, Option<Expr>, Span)> for FnBody {
     }
 }
 
+/// A type ref
+#[derive(Clone, Debug, Loc, Eq, PartialEq)]
+pub enum TypeRef {
+    /// A type referred like `type_name`, such as `int`, `float`, `Project`
+    Named {
+        /// The name of the type
+        #[whole_span]
+        ty_name: Spanned<String>,
+    },
+    /// A type referred like `type_name<generic_1, generic_2, ...>`
+    GenericNamed {
+        /// The name of the base type
+        #[start_span]
+        ty_name: Spanned<String>,
+        /// The generic types
+        #[end_span]
+        generics: TypeRefGenerics,
+    },
+    /// Function type
+    Fn {
+        /// The span of the `fn` token
+        #[start_span]
+        fn_span: Span,
+        /// The span of the `(` token
+        left_paren: Span,
+
+        /// The types
+        tys: Vec<TypeRef>,
+
+        /// The span of the `)` token
+        #[end_span]
+        right_paren: Span,
+    },
+}
+
+impl From<Spanned<String>> for TypeRef {
+    fn from(ty_name: Spanned<String>) -> Self {
+        Self::Named { ty_name }
+    }
+}
+
+/// The type ref generics
+#[derive(Clone, Debug, Loc, Eq, PartialEq)]
+pub struct TypeRefGenerics {
+    /// The span of the `<` token
+    #[start_span]
+    pub less_than: Span,
+
+    /// The list of generic types
+    pub tys: Vec<TypeRef>,
+
+    /// The span of the `>` token
+    #[end_span]
+    pub greater_than: Span,
+}
+
+/// A positional parameter
+#[derive(Clone, Debug, Loc, Eq, PartialEq)]
+pub struct PositionalParam {
+    /// The name of the param
+    #[start_span]
+    pub name: Spanned<String>,
+    /// The span of the `:` token
+    pub colon: Span,
+    /// The type of the param
+    #[end_span]
+    pub ty: TypeRef,
+}
+
+impl From<(Spanned<String>, Span, TypeRef)> for PositionalParam {
+    fn from((name, colon, ty): (Spanned<String>, Span, TypeRef)) -> Self {
+        Self { name, colon, ty }
+    }
+}
+
+/// A parameter with a default value
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DefaultParam {
+    /// The name of the param
+    pub name: Spanned<String>,
+    /// The span of the `:` token
+    pub colon: Span,
+    /// The type of the param
+    pub ty: TypeRef,
+    /// The span of the `=` token
+    pub eq: Span,
+    /// The expression to evaluate for the default value
+    pub value: Expr,
+}
+
+impl From<(Spanned<String>, Span, TypeRef, Span, Expr)> for DefaultParam {
+    fn from((name, colon, ty, eq, value): (Spanned<String>, Span, TypeRef, Span, Expr)) -> Self {
+        Self {
+            name,
+            colon,
+            ty,
+            eq,
+            value,
+        }
+    }
+}
+
+/// A function declaration
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
+pub struct FnDecl {
+    /// The span of the `fn` token
+    #[start_span]
+    pub fn_span: Span,
+    /// The name of the function
+    pub name: Spanned<String>,
+
+    /// The span of the `(` token
+    pub left_paren: Span,
+
+    /// The positional parameters
+    pub positional_params: Vec<PositionalParam>,
+    /// The default parameters
+    pub default_params: Vec<DefaultParam>,
+
+    /// The span of the `)` token
+    pub right_paren: Span,
+
+    /// The function body
+    #[end_span]
+    pub body: FnBody,
+}
+
+type FnDeclTuple = (
+    Span,
+    Spanned<String>,
+    Span,
+    (Vec<PositionalParam>, Vec<DefaultParam>),
+    Span,
+    FnBody,
+);
+
+impl From<FnDeclTuple> for FnDecl {
+    fn from(
+        (fn_span, name, left_paren, (positional_params, default_params), right_paren, body): FnDeclTuple,
+    ) -> Self {
+        Self {
+            fn_span,
+            name,
+            left_paren,
+            positional_params,
+            default_params,
+            right_paren,
+            body,
+        }
+    }
+}
+
+/// A language item
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
+pub enum LangItem {
+    /// A function declaration
+    FnDecl(#[whole_span] FnDecl),
+
+    /// Statement
+    Statement(#[whole_span] Statement),
+}
+
 /// A statement.
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Clone, Debug, Loc, PartialOrd, Eq, PartialEq, new)]
 pub enum Statement {
     /// Executes an expression, calling functions and methods that may or may not have side effects.
     ExecExpr(#[whole_span] Expr),
@@ -560,7 +730,7 @@ where
 /// The whole build definition
 #[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct BuildDefinition {
-    /// The statements
+    /// The items
     #[whole_span]
-    pub statements: Vec<Statement>,
+    pub items: Vec<LangItem>,
 }

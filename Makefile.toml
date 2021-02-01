@@ -39,6 +39,7 @@ cwd = "doc"
 workspace = false
 command = "mdbook"
 args = ["build"]
+dependencies = ["doc-build-highlighter"]
 
 [tasks.doc-serve]
 install_crate = "mdbook"
@@ -46,28 +47,13 @@ cwd = "doc"
 workspace = false
 command = "mdbook"
 args = ["serve"]
+dependencies = ["doc-build"]
 
 [tasks.doc-nuke]
 cwd = "doc"
 workspace = false
 command = "rm"
 args = ["-rf", "book"]
-
-[tasks.doc-push]
-cwd = "doc/book"
-workspace = false
-script = [
-    '''
-    git init
-    git remote add origin git@github.com:leafbuild/leafbuild.github.io.git
-    git add -A
-    git commit -S -a -m "Update docs"
-    git push -f origin master
-    '''
-]
-dependencies = [
-    "doc-build"
-]
 
 [tasks.doc-build-highlighter]
 cwd = "doc"
@@ -83,14 +69,8 @@ script = [
     '''
 ]
 
-[tasks.setup-dev-env]
-install_crate = "rusty-hook"
-install_crate_args = ["--git",  "https://github.com/swellaby/rusty-hook", "--branch", "master"]
-workspace = false
-command = "rusty-hook"
-args = ["init"]
-
 [tasks.setup-docs-env]
+workspec = false
 script = [
     '''
     mkdir -p doc/hl_clone
@@ -113,7 +93,7 @@ workspace = false
 command = "cargo"
 args = [
     "run",
-    "--package", "leafbuild-git-utils",
+    "--package", "leafbuild-ghk",
     "--bin", "verify_commit_message",
     "--",
     # Check for files in the root directory
@@ -122,6 +102,4 @@ args = [
 
 [tasks.ci-flow]
 workspace = false
-dependencies = [
-    "check"
-]
+dependencies = ["check"]

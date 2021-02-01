@@ -1,7 +1,13 @@
-//! Module holding the 'module' function
-use crate::env::FileFrame;
-use crate::internal::values::{I32Wrap, Value};
-
-pub fn module<'file_frame>(file_frame: &'file_frame mut FileFrame) -> Box<dyn Value<'static>> {
+#[allow(clippy::needless_pass_by_value)]
+fn module<'file_frame>(
+    file_frame: &'file_frame mut FileFrame,
+    args: FnArgsData,
+) -> Box<dyn Value<'static>> {
     Box::new(I32Wrap(0))
 }
+
+const fn module_ret_ty() -> Ty {
+    Ty::BuiltinObject(BuiltinTy::Module)
+}
+
+add_builtin_function! {"module", module, module_ret_ty, MODULE_FUNC, "The `module` function declaration"}
