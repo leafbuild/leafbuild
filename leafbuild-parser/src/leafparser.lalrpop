@@ -70,20 +70,20 @@ Str = SpannedNonterminal<StrTok>;
 
 pub BuildDefinition = <LangItem*>;
 Statement: Statement = {
-    <Expr> ";" => Statement::ExecExpr(<>),
-    <Assignment> ";" => Statement::Assignment(<>),
-    <Declaration> ";" => Statement::Declaration(<>),
+    <ExecExprStatement> => Statement::ExecExpr(<>),
+    <Assignment> => Statement::Assignment(<>),
+    <Declaration> => Statement::Declaration(<>),
     <ConditionalStatement> => Statement::Conditional(<>),
-    <ControlStatement> ";" => Statement::Control(<>),
-    <RepetitiveStatement> => Statement::Repetitive(<>),
+    <ControlStatement> => Statement::Control(<>),
+    <ForeachStatement> => Statement::Foreach(<>),
 }
 
 FnArgs: FnCallArgs =
-    JoinComma<PositionalFuncArg, NamedExpr>
+    JoinComma<PositionalFnArg, NamedExpr>
         => FnCallArgs::from(<>);
 
 
-PositionalFuncArg: PositionalArg = Expr => PositionalArg::from(<>);
+PositionalFnArg: PositionalArg = Expr => PositionalArg::from(<>);
 
 NamedExpr: NamedExpr = IdExpression SL<"="> Expr => NamedExpr::from((<>));
 
@@ -131,6 +131,10 @@ AndOp: Opcode = SL<"and"> => Opcode::And(<>);
 
 OrOp: Opcode = SL<"or"> => Opcode::Or(<>);
 
+ExecExprStatement: ExprStatement = {
+    Expr SL<";"> => ExprStatement::from((<>)),
+}
+
 Expr: Expr = {
     #[precedence(level="0")]
     IdExpression => Expr::Atom(Atom::Id(<>)),
@@ -154,7 +158,9 @@ Expr: Expr = {
 
     #[precedence(level="1")]
     <base: Box<Expr>> <open_bracket: SL<"[">> <index: Box<Expr>> <close_bracket: SL<"]">> =>
-            Expr::Indexed {base, open_bracket, index, close_bracket},
+            =>
+            =>
+            Expr::Indexed {base, left_bracket:open_bracket, index, right_bracket:close_bracket},
 
     // #[precedence(level="1")]
     // TODO: Property access
@@ -208,9 +214,9 @@ Expr: Expr = {
 //	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
 //}
 
-Declaration: Declaration = SL<"let"> IdExpression SL<"="> Expr => Declaration::new(<>);
+Declaration: Declaration = SL<"let"> IdExpression SL<"="> Expr SL<";"> => Declaration::from((<>));
 
-Assignment: Assignment = Expr AtrOp Expr => Assignment::new(<>);
+Assignment: Assignment = Expr AtrOp Expr SL<";"> => Assignment::from((<>));
 
 AtrOp: AtrOp = {
     SL<"="> => AtrOp::Atr(<>),
@@ -236,17 +242,17 @@ ElseIf: ElseIf = SL<"else"> If => ElseIf::new(<>);
 
 Else: Else = SL<"else"> SL<"{"> Statement* SL<"}"> => Else::new(<>);
 
-RepetitiveStatement: RepetitiveStatement =
+ForeachStatement: ForeachStatement =
     SL<"foreach"> ForInExpr SL<"{"> Statement* SL<"}"> =>
-        RepetitiveStatement::new(<>);
+        ForeachStatement::from((<>));
 
 ForInExpr: ForInExpr =
     IdExpression SL<"in"> Expr => ForInExpr::new(<>);
 
 ControlStatement: ControlStatement = {
-    SL<"break"> => ControlStatement::Break(<>),
-    SL<"continue"> => ControlStatement::Continue(<>),
-    SL<"return"> Expr? => ControlStatement::Return(<>),
+    SL<"break"> SL<";"> => ControlStatement::Break(<>),
+    SL<"continue"> SL<";"> => ControlStatement::Continue(<>),
+    SL<"return"> Expr? SL<";"> => ControlStatement::Return(<>),
 }
 
 FnDecl: FnDecl = {

@@ -4,7 +4,8 @@ use crate::token_data::NumVal;
 use std::fmt;
 use std::ops::{Deref, DerefMut, Range};
 
-type Location = Range<usize>;
+/// A location in the source code
+pub type Location = Range<usize>;
 
 /// Can get the location of something in a source file.
 pub trait Loc {
@@ -21,7 +22,7 @@ pub trait Loc {
 }
 
 /// A spanned ast structure; holds data about where in the file a certain ast element is.
-#[derive(PartialOrd, Eq, PartialEq, Loc, new)]
+#[derive(Clone, PartialOrd, Eq, PartialEq, Loc, new)]
 pub struct Spanned<T>(pub T, #[whole_span] pub Span);
 
 impl<T> Deref for Spanned<T> {
@@ -56,22 +57,8 @@ where
     }
 }
 
-impl<T> Clone for Spanned<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        Self(self.0.clone(), self.1)
-    }
-
-    fn clone_from(&mut self, source: &Self) {
-        self.0 = source.0.clone();
-        self.1 = source.1;
-    }
-}
-
 /// A small building block for expressions
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub enum Atom {
     /// A number
     Number(#[whole_span] Spanned<NumVal>),
@@ -88,7 +75,7 @@ pub enum Atom {
 }
 
 /// An expression
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub enum Expr {
     /// A single atom
     Atom(#[whole_span] Atom),
@@ -106,12 +93,12 @@ pub enum Expr {
     Paren {
         /// Span of left, opening parenthesis
         #[start_span]
-        lparen: Span,
+        left_paren: Span,
         /// Expression
         expr: Box<Expr>,
         /// Span of right, closing parenthesis
         #[end_span]
-        rparen: Span,
+        right_paren: Span,
     },
     /// An array/map indexing expression (`base [ index ]`)
     Indexed {
@@ -119,12 +106,12 @@ pub enum Expr {
         #[start_span]
         base: Box<Expr>,
         /// The span of the left, opening bracket
-        open_bracket: Span,
+        left_bracket: Span,
         /// The index expression
         index: Box<Expr>,
         /// The span of the right, closing bracket
         #[end_span]
-        close_bracket: Span,
+        right_bracket: Span,
     },
     /// A ternary conditional expression
     Ternary {
@@ -144,7 +131,7 @@ pub enum Expr {
 }
 
 /// A property access expression
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct PropertyAccess {
     /// The base expression
     /// ```text
@@ -161,7 +148,7 @@ pub struct PropertyAccess {
 }
 
 /// A binary operation
-#[derive(Copy, Clone, Debug, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Copy, Clone, Debug, Loc, Eq, PartialEq, new)]
 pub enum Opcode {
     /// `*`
     Mul(#[whole_span] Span),
@@ -202,7 +189,7 @@ pub enum Opcode {
 impl Opcode {}
 
 /// An unary operation
-#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Copy, Clone, Loc, Eq, PartialEq, new)]
 pub enum UnaryOpcode {
     /// `+`
     Plus(#[whole_span] Span),
@@ -217,22 +204,22 @@ pub enum UnaryOpcode {
 impl UnaryOpcode {}
 
 /// A function call
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct FnCall {
     /// The base expression we are calling
     #[start_span]
-    pub func_base: Box<Expr>,
+    pub fn_base: Box<Expr>,
     /// The span of the `(` token
     pub left_paren: Span,
     /// The arguments
-    pub func_args: FnCallArgs,
+    pub fn_args: FnCallArgs,
     /// The span of the `)` token
     #[end_span]
     pub right_paren: Span,
 }
 
 /// The arguments passed to a function / method in a function / method call
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Eq, PartialEq, new)]
 pub struct FnCallArgs {
     /// The positional arguments
     pub positional_args: Vec<PositionalArg>,
@@ -250,7 +237,7 @@ impl From<(Vec<PositionalArg>, Vec<NamedExpr>)> for FnCallArgs {
 }
 
 /// A positional argument
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct PositionalArg(#[whole_span] pub Expr);
 
 impl From<Expr> for PositionalArg {
@@ -260,7 +247,7 @@ impl From<Expr> for PositionalArg {
 }
 
 /// A named expression. Is created from `name = value`.
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq)]
 pub struct NamedExpr {
     /// The name, along with the associated span.
     #[start_span]
@@ -288,31 +275,62 @@ impl From<(Spanned<String>, Span, Expr)> for NamedExpr {
 /// base_expression . method_name ( arguments )
 /// ```
 /// Where `base_expression . method_name` make a [`PropertyAccess`] expression.
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, Loc, new)]
+#[derive(Debug, Clone, Eq, PartialEq, Loc)]
 pub struct MethodCall {
     /// The method property this method call references
     #[start_span]
     pub method_property: PropertyAccess,
     /// The span of the `(` token
-    pub paren_open: Span,
+    pub left_paren: Span,
     /// The arguments
     pub args: FnCallArgs,
     /// The span of the `)` token
     #[end_span]
-    pub paren_close: Span,
+    pub right_paren: Span,
 }
 
 /// An assignment
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq)]
 pub struct Assignment {
     /// The expression to get a mutable reference from and use with the `AtrOp`
     #[start_span]
-    pub bound_name: Expr,
+    pub bound_expr: Expr,
     /// The attribution operation: `=`, `+=`, `-=`...
     pub op: AtrOp,
     /// The expression of the value to assign
-    #[end_span]
     pub value: Expr,
+    /// The span of the `;` token
+    #[end_span]
+    pub semicolon: Span,
+}
+
+impl From<(Expr, AtrOp, Expr, Span)> for Assignment {
+    fn from((bound_expr, op, value, semicolon): (Expr, AtrOp, Expr, Span)) -> Self {
+        Self {
+            bound_expr,
+            op,
+            value,
+            semicolon,
+        }
+    }
+}
+
+/// Execute an expression, such as a function / method call.
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
+pub struct ExprStatement {
+    /// The expression to execute
+    #[start_span]
+    pub expr: Expr,
+
+    /// Span of the `;` token
+    #[end_span]
+    pub semicolon: Span,
+}
+
+impl From<(Expr, Span)> for ExprStatement {
+    fn from((expr, semicolon): (Expr, Span)) -> Self {
+        Self { expr, semicolon }
+    }
 }
 
 /// A declaration
@@ -320,7 +338,7 @@ pub struct Assignment {
 /// ```text
 /// let name = value
 /// ```
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct Declaration {
     /// The span of the `let` token
     #[start_span]
@@ -330,12 +348,28 @@ pub struct Declaration {
     /// The span of the `=` token
     pub eq: Span,
     /// The expression of the value to assign
-    #[end_span]
     pub value: Expr,
+    /// The span of the `;` token
+    #[end_span]
+    pub semicolon: Span,
+}
+
+impl From<(Span, Spanned<String>, Span, Expr, Span)> for Declaration {
+    fn from(
+        (let_tok, name, eq, value, semicolon): (Span, Spanned<String>, Span, Expr, Span),
+    ) -> Self {
+        Self {
+            let_tok,
+            name,
+            eq,
+            value,
+            semicolon,
+        }
+    }
 }
 
 /// An assignment operation
-#[derive(Debug, Copy, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Copy, Clone, Loc, Eq, PartialEq, new)]
 pub enum AtrOp {
     /// `=`
     Atr(#[whole_span] Span),
@@ -352,7 +386,7 @@ pub enum AtrOp {
 }
 
 /// An `if expr { statements }` structure
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct If {
     /// The span of the `if` token
     #[start_span]
@@ -369,7 +403,7 @@ pub struct If {
 }
 
 /// An `else <if>` structure
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct ElseIf {
     /// The span of the `else` token
     #[start_span]
@@ -380,7 +414,7 @@ pub struct ElseIf {
 }
 
 /// An `else { statements }` structure
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct Else {
     /// The span of the `else` token
     #[start_span]
@@ -395,7 +429,7 @@ pub struct Else {
 }
 
 /// A conditional statement
-#[derive(Debug, Clone, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Eq, PartialEq, new)]
 pub struct ConditionalStatement {
     /// The first `if`
     pub initial_if: If,
@@ -422,8 +456,8 @@ impl Loc for ConditionalStatement {
 }
 
 /// A repetitive statement (`foreach`)
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
-pub struct RepetitiveStatement {
+#[derive(Debug, Clone, Loc, Eq, PartialEq)]
+pub struct ForeachStatement {
     /// The span of the `foreach` token
     #[start_span]
     pub foreach_tok: Span,
@@ -438,8 +472,28 @@ pub struct RepetitiveStatement {
     pub right_brace: Span,
 }
 
+impl From<(Span, ForInExpr, Span, Vec<Statement>, Span)> for ForeachStatement {
+    fn from(
+        (foreach_tok, for_in_expr, left_brace, statements, right_brace): (
+            Span,
+            ForInExpr,
+            Span,
+            Vec<Statement>,
+            Span,
+        ),
+    ) -> Self {
+        Self {
+            foreach_tok,
+            for_in_expr,
+            left_brace,
+            statements,
+            right_brace,
+        }
+    }
+}
+
 /// The `name in expression` expression found in the foreach.
-#[derive(Debug, Clone, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Debug, Clone, Loc, Eq, PartialEq, new)]
 pub struct ForInExpr {
     /// The name of the variable used to iterate
     #[start_span]
@@ -452,29 +506,14 @@ pub struct ForInExpr {
 }
 
 /// A control statement.
-#[derive(Clone, Debug, PartialOrd, Eq, PartialEq)]
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
 pub enum ControlStatement {
-    /// `continue`
-    Continue(Span),
-    /// `break`
-    Break(Span),
-    /// `return ...`
-    Return(Span, Option<Expr>),
-}
-
-impl Loc for ControlStatement {
-    fn get_start(&self) -> usize {
-        match self {
-            Self::Continue(s) | Self::Break(s) | Self::Return(s, ..) => s.get_start(),
-        }
-    }
-
-    fn get_end(&self) -> usize {
-        match self {
-            Self::Return(s, None) | Self::Continue(s) | Self::Break(s) => s.get_end(),
-            Self::Return(_, Some(expr)) => expr.get_end(),
-        }
-    }
+    /// `continue;`
+    Continue(#[start_span] Span, #[end_span] Span),
+    /// `break;`
+    Break(#[start_span] Span, #[end_span] Span),
+    /// `return ...;`
+    Return(#[start_span] Span, Option<Expr>, #[end_span] Span),
 }
 
 /// The body of a function
@@ -673,10 +712,10 @@ pub enum LangItem {
 }
 
 /// A statement.
-#[derive(Clone, Debug, Loc, PartialOrd, Eq, PartialEq, new)]
+#[derive(Clone, Debug, Loc, Eq, PartialEq, new)]
 pub enum Statement {
     /// Executes an expression, calling functions and methods that may or may not have side effects.
-    ExecExpr(#[whole_span] Expr),
+    ExecExpr(#[whole_span] ExprStatement),
     /// Declares a variable
     Declaration(#[whole_span] Declaration),
     /// Assigns to a variable.
@@ -686,7 +725,7 @@ pub enum Statement {
     /// A control statement
     Control(#[whole_span] ControlStatement),
     /// A repetitive statement
-    Repetitive(#[whole_span] RepetitiveStatement),
+    Foreach(#[whole_span] ForeachStatement),
 }
 
 impl<T> Loc for Vec<T>

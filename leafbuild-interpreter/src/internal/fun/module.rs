@@ -6,8 +6,15 @@ fn module<'file_frame>(
     Box::new(I32Wrap(0))
 }
 
-const fn module_ret_ty() -> Ty {
-    Ty::BuiltinObject(BuiltinTy::Module)
+fn module_fn_ty() -> FnTy {
+    FnTy {
+        positional_params: vec![FnPositionalTy {
+            name: String::from("name"),
+            ty: Ty::Str,
+        }],
+        default_params: vec![],
+        ret_ty: Box::new(Ty::BuiltinObject(BuiltinTy::Module)),
+    }
 }
 
-add_builtin_function! {"module", module, module_ret_ty, MODULE_FUNC, "The `module` function declaration"}
+add_builtin_function! {"module", module, module_fn_ty, MODULE_FUNC, "The `module` function declaration"}

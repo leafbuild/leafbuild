@@ -38,7 +38,7 @@
 #[macro_use]
 extern crate derive_new;
 #[macro_use]
-extern crate leafbuild_derive;
+pub extern crate leafbuild_derive;
 
 pub mod ast;
 pub mod span;

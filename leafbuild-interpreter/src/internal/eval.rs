@@ -2,73 +2,71 @@ use leafbuild_ast::ast::{Atom, Expr};
 use leafbuild_ast::token_data::NumVal;
 
 use crate::env::FileFrame;
-use crate::internal::values::types::Ty;
-use crate::internal::values::{BoolWrap, I32Wrap, I64Wrap, U32Wrap, U64Wrap, Value};
-use leafbuild_ast::Span;
-
-pub(super) enum CannotEvaluateError {
-    NotImplemented,
-}
-
-pub(super) enum CannotEvaluateMutError {
-    NotImplemented,
-}
+use crate::internal::values::{
+    BoolWrap, I32Wrap, I64Wrap, LiveVal, U32Wrap, U64Wrap, ValRefMut, Value,
+};
 
 pub(super) trait Eval {
-    fn eval_in_context<'frame>(
-        &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
-        Err(CannotEvaluateError::NotImplemented)
-    }
+    fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame>;
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
-        Err(CannotEvaluateMutError::NotImplemented)
-    }
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> ValRefMut<'frame>;
 }
 
 impl Eval for Expr {
-    fn eval_in_context<'frame>(
-        &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
-        // match self {
-        //     Expr::Atom(atom) => atom.eval_in_context(frame),
-        //     Expr::Op(left, opcode, right) => {
-        //         let left = left.eval_in_context(frame)?;
-        //         let right = right.eval_in_context(frame)?;
-        //         opcode.apply_to(left, right)
-        //     }
-        //     Expr::UnaryOp(_, _) => {}
-        //     Expr::FuncCall(_) => {}
-        //     Expr::MethodCall(_) => {}
-        //     Expr::PropertyAccess(_) => {}
-        //     Expr::Paren { .. } => {}
-        //     Expr::Indexed { .. } => {}
-        //     Expr::Ternary { .. } => {}
-        // }
-        unimplemented!()
+    fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame> {
+        match self {
+            Self::Atom(atom) => atom.eval_in_context(frame),
+            Self::Op(left, opcode, right) => {
+                let left = left.eval_in_context(frame);
+                let right = right.eval_in_context(frame);
+                // opcode.apply_to(frame, left, right)
+                unimplemented!()
+            }
+            Self::UnaryOp(opcode, expr) => {
+                let v = expr.eval_in_context(frame);
+                // opcode.apply_to(frame, v)
+                unimplemented!()
+            }
+            Self::FnCall(call) => {
+                unimplemented!()
+            }
+            Self::MethodCall(_) => {
+                unimplemented!()
+            }
+            Self::PropertyAccess(_) => {
+                unimplemented!()
+            }
+            Self::Paren { .. } => {
+                unimplemented!()
+            }
+            Self::Indexed { .. } => {
+                unimplemented!()
+            }
+            Self::Ternary { .. } => {
+                unimplemented!()
+            }
+        }
     }
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
-        Err(CannotEvaluateMutError::NotImplemented)
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> &'frame mut dyn Value<'frame> {
+        unimplemented!()
     }
 }
 
 impl Eval for Atom {
     fn eval_in_context<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> Box<dyn Value<'frame>> {
         match self {
-            Self::Number(num) => Ok(num.as_boxed_value()),
-            Self::Bool(bool) => Ok(bool.as_boxed_value()),
+            Self::Number(num) => num.as_boxed_value(),
+            Self::Bool(bool) => bool.as_boxed_value(),
             // Atom::Str(_) => {}
             // Atom::Id(_) => {}
             // Atom::ArrayLit(_, _, _) => {}
@@ -79,8 +77,8 @@ impl Eval for Atom {
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> &'frame mut dyn Value<'frame> {
         unimplemented!()
     }
 }
@@ -103,25 +101,5 @@ impl AsBoxedValue for NumVal {
 impl AsBoxedValue for bool {
     fn as_boxed_value<'frame>(&self) -> Box<dyn Value<'frame>> {
         Box::new(BoolWrap(*self))
-    }
-}
-
-enum BinOpApplyError {
-    IncompatibleOperands {
-        left: Ty,
-        left_span: Span,
-        right: Ty,
-        right_span: Span,
-    },
-}
-
-trait BinOpApplyTo {
-    fn apply_to<'frame>(
-        &self,
-        frame: &'frame FileFrame,
-        left: Box<dyn Value<'frame>>,
-        right: Box<dyn Value<'frame>>,
-    ) -> Result<Box<dyn Value<'frame>>, BinOpApplyError> {
-        unimplemented!()
     }
 }

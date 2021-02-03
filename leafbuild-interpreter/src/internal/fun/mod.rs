@@ -1,5 +1,5 @@
 use crate::env::FileFrame;
-use crate::internal::values::types::Ty;
+use crate::internal::values::types::{FnTy, Ty, FnPositionalTy};
 use crate::internal::values::{BuiltinTy, I32Wrap, Value};
 use std::collections::BTreeMap;
 use std::fmt;
@@ -9,7 +9,7 @@ use std::fmt;
 pub struct BuiltinFun {
     name: &'static str,
     fun_handle: FunHandleType,
-    ret_ty: fn() -> Ty,
+    fn_ty: fn() -> FnTy,
 }
 
 type FunHandleType =
@@ -33,7 +33,7 @@ impl fmt::Debug for BuiltinFun {
 pub static BUILTIN_FUNCTIONS: [BuiltinFun] = [..];
 
 macro_rules! add_builtin_function {
-    ($name:literal, $function_name:expr, $ret_ty:expr, $static_name:ident, $documentation:literal) => {
+    ($name:literal, $function_name:expr, $fn_ty:expr, $static_name:ident, $documentation:literal) => {
         #[linkme::distributed_slice(crate::internal::fun::BUILTIN_FUNCTIONS)]
         #[used]
         #[no_mangle]
@@ -42,9 +42,13 @@ macro_rules! add_builtin_function {
             crate::internal::fun::BuiltinFun {
                 name: $name,
                 fun_handle: $function_name,
-                ret_ty: $ret_ty,
+                fn_ty: $fn_ty,
             };
     };
+}
+
+fn find_builtin_function(function_name: &str) -> Option<&'static BuiltinFun> {
+    BUILTIN_FUNCTIONS.iter().find(|it| it.name == function_name)
 }
 
 include! {"module.rs"}

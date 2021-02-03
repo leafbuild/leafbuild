@@ -6,8 +6,15 @@ fn project<'file_frame>(
     Box::new(I32Wrap(0))
 }
 
-const fn project_ret_ty() -> Ty {
-    Ty::BuiltinObject(BuiltinTy::Project)
+fn project_fn_ty() -> FnTy {
+    FnTy {
+        positional_params: vec![FnPositionalTy {
+            name: String::from("name"),
+            ty: Ty::Str,
+        }],
+        default_params: vec![],
+        ret_ty: Box::new(Ty::BuiltinObject(BuiltinTy::Project)),
+    }
 }
 
-add_builtin_function! {"project", project, project_ret_ty, PROJECT_FUNC, "The `project` function declaration"}
+add_builtin_function! {"project", project, project_fn_ty, PROJECT_FUNC, "The `project` function declaration"}
