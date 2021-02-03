@@ -149,12 +149,24 @@ impl From<Expr> for IrAstExpr {
                 index,
                 right_bracket,
             } => Self::Indexed {
-                base: Box::new(IrExpr::from(base)),
+                base: Box::new(IrExpr::from(*base)),
                 left_bracket,
-                index: Box::new(IrExpr::from(index)),
+                index: Box::new(IrExpr::from(*index)),
                 right_bracket,
             },
-            Expr::Ternary { .. } => {}
+            Expr::Ternary {
+                condition,
+                qmark,
+                if_true,
+                colon,
+                if_false,
+            } => Self::Ternary {
+                condition: Box::new(IrExpr::from(*condition)),
+                qmark,
+                if_true: Box::new(IrExpr::from(*if_true)),
+                colon,
+                if_false: Box::new(IrExpr::from(*if_false)),
+            },
         }
     }
 }
@@ -1288,7 +1300,7 @@ impl From<LangItem> for IrAstLangItem {
 // Statement
 //
 #[derive(Loc, Clone, Debug, Eq, PartialEq)]
-pub struct IrStatement(pub IrAstStatement, pub IrStatementData);
+pub struct IrStatement(#[whole_span] pub IrAstStatement, pub IrStatementData);
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct IrStatementData;
 
