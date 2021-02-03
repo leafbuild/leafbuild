@@ -76,9 +76,7 @@ pub fn parse<'input>(
     source: &'input str,
     errors: &mut Vec<ErrorRecovery<usize, Token<'input>, GrmError>>,
 ) -> Result<ast::BuildDefinition, ParseError<usize, Token<'input>, GrmError>> {
-    leafparser::BuildDefinitionParser::new()
-        .parse(source, errors, lexer::Lexer::new(source))
-        .map(ast::BuildDefinition::new)
+    leafparser::BuildDefinitionParser::new().parse(source, errors, lexer::Lexer::new(source))
 }
 
 /// A grammar error, happened while parsing.

@@ -1,7 +1,7 @@
-use leafbuild_ast::ast::{Atom, Expr};
 use leafbuild_ast::token_data::NumVal;
 
 use crate::env::FileFrame;
+use crate::internal::repr::{IrAtom, IrExpr};
 use crate::internal::values::{
     BoolWrap, I32Wrap, I64Wrap, LiveVal, U32Wrap, U64Wrap, ValRefMut, Value,
 };
@@ -15,70 +15,28 @@ pub(super) trait Eval {
     ) -> ValRefMut<'frame>;
 }
 
-impl Eval for Expr {
+impl Eval for IrExpr {
     fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame> {
-        match self {
-            Self::Atom(atom) => atom.eval_in_context(frame),
-            Self::Op(left, opcode, right) => {
-                let left = left.eval_in_context(frame);
-                let right = right.eval_in_context(frame);
-                // opcode.apply_to(frame, left, right)
-                unimplemented!()
-            }
-            Self::UnaryOp(opcode, expr) => {
-                let v = expr.eval_in_context(frame);
-                // opcode.apply_to(frame, v)
-                unimplemented!()
-            }
-            Self::FnCall(call) => {
-                unimplemented!()
-            }
-            Self::MethodCall(_) => {
-                unimplemented!()
-            }
-            Self::PropertyAccess(_) => {
-                unimplemented!()
-            }
-            Self::Paren { .. } => {
-                unimplemented!()
-            }
-            Self::Indexed { .. } => {
-                unimplemented!()
-            }
-            Self::Ternary { .. } => {
-                unimplemented!()
-            }
-        }
+        unimplemented!()
     }
 
     fn eval_in_context_mut<'frame>(
         &self,
         frame: &'_ mut FileFrame<'frame, '_>,
-    ) -> &'frame mut dyn Value<'frame> {
+    ) -> ValRefMut<'frame> {
         unimplemented!()
     }
 }
 
-impl Eval for Atom {
-    fn eval_in_context<'frame>(
-        &self,
-        frame: &'_ mut FileFrame<'frame, '_>,
-    ) -> Box<dyn Value<'frame>> {
-        match self {
-            Self::Number(num) => num.as_boxed_value(),
-            Self::Bool(bool) => bool.as_boxed_value(),
-            // Atom::Str(_) => {}
-            // Atom::Id(_) => {}
-            // Atom::ArrayLit(_, _, _) => {}
-            // Atom::MapLit(_, _, _) => {}
-            _ => unimplemented!(),
-        }
+impl Eval for IrAtom {
+    fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame> {
+        unimplemented!()
     }
 
     fn eval_in_context_mut<'frame>(
         &self,
         frame: &'_ mut FileFrame<'frame, '_>,
-    ) -> &'frame mut dyn Value<'frame> {
+    ) -> ValRefMut<'frame> {
         unimplemented!()
     }
 }

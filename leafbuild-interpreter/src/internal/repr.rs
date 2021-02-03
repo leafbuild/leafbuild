@@ -13,6 +13,25 @@ use leafbuild_ast::ast::*;
 use leafbuild_ast::leafbuild_derive::Loc;
 use leafbuild_ast::token_data::NumVal;
 use leafbuild_ast::Span;
+use std::ops::{Deref, DerefMut};
+
+macro_rules! impl_deref {
+    ($name:ident, $deref_target:ident) => {
+        impl Deref for $name {
+            type Target = $deref_target;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+
+        impl DerefMut for $name {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.0
+            }
+        }
+    };
+}
 
 //
 //  Atom
@@ -30,6 +49,8 @@ pub enum IrAstAtom {
     ArrayLit(#[start_span] Span, Vec<IrExpr>, #[end_span] Span),
     MapLit(#[start_span] Span, Vec<IrNamedExpr>, #[end_span] Span),
 }
+
+impl_deref! {IrAtom, IrAstAtom}
 
 impl From<Atom> for IrAtom {
     fn from(atom: Atom) -> Self {
@@ -77,7 +98,7 @@ pub enum IrAstExpr {
     Op(#[whole_span] Box<IrExpr>, Opcode, #[end_span] Box<IrExpr>),
     UnaryOp(#[start_span] UnaryOpcode, #[end_span] Box<IrExpr>),
     FnCall(#[whole_span] IrFnCall),
-    MethodCall(#[whole_span] IrMethodCall),
+    MethodCall(#[whole_span] Box<IrMethodCall>),
     PropertyAccess(#[whole_span] IrPropertyAccess),
     Paren {
         #[start_span]
@@ -105,6 +126,8 @@ pub enum IrAstExpr {
     },
 }
 
+impl_deref! {IrExpr, IrAstExpr}
+
 impl From<Expr> for IrExpr {
     fn from(expr: Expr) -> Self {
         Self::from((IrAstExpr::from(expr), IrExprData::default()))
@@ -121,7 +144,7 @@ impl From<Expr> for IrAstExpr {
     fn from(expr: Expr) -> Self {
         match expr {
             Expr::Atom(atom) => {
-                Self::Atom(IrAtom::from((IrAstAtom::from(atom), Default::default())))
+                Self::Atom(IrAtom::from((IrAstAtom::from(atom), IrAtomData::default())))
             }
             Expr::Op(left, op, right) => Self::Op(
                 Box::new(IrExpr::from(*left)),
@@ -130,7 +153,9 @@ impl From<Expr> for IrAstExpr {
             ),
             Expr::UnaryOp(op, expr) => Self::UnaryOp(op, Box::new(IrExpr::from(*expr))),
             Expr::FnCall(fn_call) => Self::FnCall(IrFnCall::from(fn_call)),
-            Expr::MethodCall(method_call) => Self::MethodCall(IrMethodCall::from(method_call)),
+            Expr::MethodCall(method_call) => {
+                Self::MethodCall(Box::new(IrMethodCall::from(method_call)))
+            }
             Expr::PropertyAccess(property_access) => {
                 Self::PropertyAccess(IrPropertyAccess::from(property_access))
             }
@@ -193,6 +218,8 @@ pub struct IrAstPropertyAccess {
     pub property_name: Spanned<String>,
 }
 
+impl_deref! {IrPropertyAccess, IrAstPropertyAccess}
+
 impl From<PropertyAccess> for IrPropertyAccess {
     fn from(property_access: PropertyAccess) -> Self {
         Self::from((
@@ -244,6 +271,8 @@ pub struct IrAstFnCall {
     pub right_paren: Span,
 }
 
+impl_deref! {IrFnCall, IrAstFnCall}
+
 impl From<FnCall> for IrFnCall {
     fn from(fn_call: FnCall) -> Self {
         Self::from((IrAstFnCall::from(fn_call), IrFnCallData::default()))
@@ -288,6 +317,8 @@ pub struct IrAstFnCallArgs {
     pub named_args: Vec<IrNamedExpr>,
 }
 
+impl_deref! {IrFnCallArgs, IrAstFnCallArgs}
+
 impl From<FnCallArgs> for IrFnCallArgs {
     fn from(args: FnCallArgs) -> Self {
         Self::from((IrAstFnCallArgs::from(args), IrFnCallArgsData::default()))
@@ -326,9 +357,11 @@ pub struct IrPositionalArg(
     pub IrPositionalArgData,
 );
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
-pub struct IrPositionalArgData();
+pub struct IrPositionalArgData;
 #[derive(Loc, Debug, Clone, Eq, PartialEq)]
 pub struct IrAstPositionalArg(#[whole_span] pub IrExpr);
+
+impl_deref! {IrPositionalArg, IrAstPositionalArg}
 
 impl From<PositionalArg> for IrPositionalArg {
     fn from(arg: PositionalArg) -> Self {
@@ -366,6 +399,8 @@ pub struct IrAstNamedExpr {
     #[end_span]
     pub value: IrExpr,
 }
+
+impl_deref! {IrNamedExpr, IrAstNamedExpr}
 
 impl From<NamedExpr> for IrNamedExpr {
     fn from(expr: NamedExpr) -> Self {
@@ -412,6 +447,8 @@ pub struct IrAstMethodCall {
     pub right_paren: Span,
 }
 
+impl_deref! {IrMethodCall, IrAstMethodCall}
+
 impl From<MethodCall> for IrMethodCall {
     fn from(method_call: MethodCall) -> Self {
         Self::from((
@@ -436,7 +473,7 @@ impl From<MethodCall> for IrAstMethodCall {
             right_paren,
         }: MethodCall,
     ) -> Self {
-        IrAstMethodCall {
+        Self {
             method_property: IrPropertyAccess::from(method_property),
             left_paren,
             args: IrFnCallArgs::from(args),
@@ -461,6 +498,8 @@ pub struct IrAstAssignment {
     #[end_span]
     pub semicolon: Span,
 }
+
+impl_deref! {IrAssignment, IrAstAssignment}
 
 impl From<Assignment> for IrAssignment {
     fn from(assignment: Assignment) -> Self {
@@ -515,6 +554,8 @@ pub struct IrAstExprStatement {
     pub semicolon: Span,
 }
 
+impl_deref! {IrExprStatement, IrAstExprStatement}
+
 impl From<ExprStatement> for IrExprStatement {
     fn from(expr_statement: ExprStatement) -> Self {
         Self::from((
@@ -557,6 +598,8 @@ pub struct IrAstDeclaration {
     #[end_span]
     pub semicolon: Span,
 }
+
+impl_deref! {IrDeclaration, IrAstDeclaration}
 
 impl From<Declaration> for IrDeclaration {
     fn from(declaration: Declaration) -> Self {
@@ -612,6 +655,8 @@ pub struct IrAstIf {
     pub right_brace: Span,
 }
 
+impl_deref! {IrIf, IrAstIf}
+
 impl From<If> for IrIf {
     fn from(if_: If) -> Self {
         Self::from((IrAstIf::from(if_), IrIfData::default()))
@@ -661,6 +706,8 @@ pub struct IrAstElseIf {
     pub if_: IrIf,
 }
 
+impl_deref! {IrElseIf, IrAstElseIf}
+
 impl From<ElseIf> for IrElseIf {
     fn from(else_if: ElseIf) -> Self {
         Self::from((IrAstElseIf::from(else_if), IrElseIfData::default()))
@@ -698,6 +745,8 @@ pub struct IrAstElse {
     #[end_span]
     pub right_brace: Span,
 }
+
+impl_deref! {IrElse, IrAstElse}
 
 impl From<Else> for IrElse {
     fn from(else_: Else) -> Self {
@@ -747,6 +796,8 @@ pub struct IrAstConditionalStatement {
     pub else_: Option<IrElse>,
 }
 
+impl_deref! {IrConditionalStatement, IrAstConditionalStatement}
+
 impl Loc for IrAstConditionalStatement {
     fn get_start(&self) -> usize {
         self.initial_if.get_start()
@@ -789,7 +840,7 @@ impl From<ConditionalStatement> for IrAstConditionalStatement {
         Self {
             initial_if: IrIf::from(initial_if),
             else_ifs: else_ifs.into_iter().map_into::<IrElseIf>().collect(),
-            else_: else_.map(|it| IrElse::from(it)),
+            else_: else_.map(IrElse::from),
         }
     }
 }
@@ -815,6 +866,8 @@ pub struct IrAstForeachStatement {
     #[end_span]
     pub right_brace: Span,
 }
+
+impl_deref! {IrForeachStatement, IrAstForeachStatement}
 
 impl From<ForeachStatement> for IrForeachStatement {
     fn from(foreach_statement: ForeachStatement) -> Self {
@@ -868,6 +921,8 @@ pub struct IrAstForInExpr {
     pub expr: IrExpr,
 }
 
+impl_deref! {IrForInExpr, IrAstForInExpr}
+
 impl From<ForInExpr> for IrForInExpr {
     fn from(for_in_expr: ForInExpr) -> Self {
         Self::from((
@@ -908,8 +963,10 @@ pub struct IrControlStatementData(pub Option<Ty>);
 pub enum IrAstControlStatement {
     Continue(#[start_span] Span, #[end_span] Span),
     Break(#[start_span] Span, #[end_span] Span),
-    Return(#[start_span] Span, Option<IrExpr>, #[end_span] Span),
+    Return(#[start_span] Span, Option<Box<IrExpr>>, #[end_span] Span),
 }
+
+impl_deref! {IrControlStatement, IrAstControlStatement}
 
 impl From<ControlStatement> for IrControlStatement {
     fn from(control_statement: ControlStatement) -> Self {
@@ -933,9 +990,11 @@ impl From<ControlStatement> for IrAstControlStatement {
                 Self::Continue(continue_, semicolon)
             }
             ControlStatement::Break(break_, semicolon) => Self::Break(break_, semicolon),
-            ControlStatement::Return(return_, ret_expr, semicolon) => {
-                Self::Return(return_, ret_expr.map(|it| IrExpr::from(it)), semicolon)
-            }
+            ControlStatement::Return(return_, ret_expr, semicolon) => Self::Return(
+                return_,
+                ret_expr.map(|it| Box::new(IrExpr::from(it))),
+                semicolon,
+            ),
         }
     }
 }
@@ -956,6 +1015,8 @@ pub struct IrAstFnBody {
     #[end_span]
     pub right_brace: Span,
 }
+
+impl_deref! {IrFnBody, IrAstFnBody}
 
 impl From<FnBody> for IrFnBody {
     fn from(fn_body: FnBody) -> Self {
@@ -981,7 +1042,7 @@ impl From<FnBody> for IrAstFnBody {
         Self {
             left_brace,
             statements: statements.into_iter().map_into::<IrStatement>().collect(),
-            tail_expr: tail_expr.map(|it| IrExpr::from(it)),
+            tail_expr: tail_expr.map(IrExpr::from),
             right_brace,
         }
     }
@@ -1017,6 +1078,8 @@ pub enum IrAstTypeRef {
         right_paren: Span,
     },
 }
+
+impl_deref! {IrTypeRef, IrAstTypeRef}
 
 impl From<TypeRef> for IrTypeRef {
     fn from(type_ref: TypeRef) -> Self {
@@ -1070,6 +1133,8 @@ pub struct IrAstTypeRefGenerics {
     pub greater_than: Span,
 }
 
+impl_deref! {IrTypeRefGenerics, IrAstTypeRefGenerics}
+
 impl From<TypeRefGenerics> for IrTypeRefGenerics {
     fn from(type_ref_generics: TypeRefGenerics) -> Self {
         Self::from((
@@ -1121,6 +1186,8 @@ pub struct IrAstPositionalParam {
     pub ty: IrTypeRef,
 }
 
+impl_deref! {IrPositionalParam, IrAstPositionalParam}
+
 impl From<PositionalParam> for IrPositionalParam {
     fn from(param: PositionalParam) -> Self {
         Self::from((
@@ -1164,6 +1231,8 @@ pub struct IrAstDefaultParam {
     #[end_span]
     pub value: IrExpr,
 }
+
+impl_deref! {IrDefaultParam, IrAstDefaultParam}
 
 impl From<DefaultParam> for IrDefaultParam {
     fn from(param: DefaultParam) -> Self {
@@ -1221,6 +1290,8 @@ pub struct IrAstFnDecl {
     pub body: IrFnBody,
 }
 
+impl_deref! {IrFnDecl, IrAstFnDecl}
+
 impl From<FnDecl> for IrFnDecl {
     fn from(fn_decl: FnDecl) -> Self {
         Self::from((IrAstFnDecl::from(fn_decl), IrFnDeclData::default()))
@@ -1272,8 +1343,10 @@ pub struct IrLangItemData;
 #[derive(Loc, Clone, Debug, Eq, PartialEq)]
 pub enum IrAstLangItem {
     FnDecl(#[whole_span] IrFnDecl),
-    Statement(#[whole_span] IrStatement),
+    Statement(#[whole_span] Box<IrStatement>),
 }
+
+impl_deref! {IrLangItem, IrAstLangItem}
 
 impl From<LangItem> for IrLangItem {
     fn from(lang_item: LangItem) -> Self {
@@ -1291,7 +1364,9 @@ impl From<LangItem> for IrAstLangItem {
     fn from(lang_item: LangItem) -> Self {
         match lang_item {
             LangItem::FnDecl(fn_decl) => Self::FnDecl(IrFnDecl::from(fn_decl)),
-            LangItem::Statement(statement) => Self::Statement(IrStatement::from(statement)),
+            LangItem::Statement(statement) => {
+                Self::Statement(Box::new(IrStatement::from(statement)))
+            }
         }
     }
 }
@@ -1308,11 +1383,13 @@ pub struct IrStatementData;
 pub enum IrAstStatement {
     ExecExpr(#[whole_span] IrExprStatement),
     Declaration(#[whole_span] IrDeclaration),
-    Assignment(#[whole_span] IrAssignment),
+    Assignment(#[whole_span] Box<IrAssignment>),
     Conditional(#[whole_span] IrConditionalStatement),
     Control(#[whole_span] IrControlStatement),
     Foreach(#[whole_span] IrForeachStatement),
 }
+
+impl_deref! {IrStatement, IrAstStatement}
 
 impl From<Statement> for IrStatement {
     fn from(statement: Statement) -> Self {
@@ -1331,12 +1408,56 @@ impl From<Statement> for IrAstStatement {
         match statement {
             Statement::ExecExpr(exec) => Self::ExecExpr(IrExprStatement::from(exec)),
             Statement::Declaration(decl) => Self::Declaration(IrDeclaration::from(decl)),
-            Statement::Assignment(assignment) => Self::Assignment(IrAssignment::from(assignment)),
+            Statement::Assignment(assignment) => {
+                Self::Assignment(Box::new(IrAssignment::from(assignment)))
+            }
             Statement::Conditional(conditional) => {
                 Self::Conditional(IrConditionalStatement::from(conditional))
             }
             Statement::Control(control) => Self::Control(IrControlStatement::from(control)),
             Statement::Foreach(foreach) => Self::Foreach(IrForeachStatement::from(foreach)),
+        }
+    }
+}
+
+//
+// Build definition
+//
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
+pub struct IrBuildDefinition(
+    #[whole_span] pub IrAstBuildDefinition,
+    pub IrBuildDefinitionData,
+);
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct IrBuildDefinitionData;
+
+#[derive(Loc, Clone, Debug, Eq, PartialEq)]
+pub struct IrAstBuildDefinition {
+    #[whole_span]
+    pub items: Vec<IrLangItem>,
+}
+
+impl_deref! {IrBuildDefinition, IrAstBuildDefinition}
+
+impl From<BuildDefinition> for IrBuildDefinition {
+    fn from(build_definition: BuildDefinition) -> Self {
+        Self::from((
+            IrAstBuildDefinition::from(build_definition),
+            IrBuildDefinitionData::default(),
+        ))
+    }
+}
+
+impl From<(IrAstBuildDefinition, IrBuildDefinitionData)> for IrBuildDefinition {
+    fn from((ast, data): (IrAstBuildDefinition, IrBuildDefinitionData)) -> Self {
+        Self(ast, data)
+    }
+}
+
+impl From<BuildDefinition> for IrAstBuildDefinition {
+    fn from(BuildDefinition { items }: BuildDefinition) -> Self {
+        Self {
+            items: items.into_iter().map_into::<IrLangItem>().collect(),
         }
     }
 }

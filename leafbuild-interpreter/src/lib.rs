@@ -32,6 +32,7 @@
     clippy::nursery
 )]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::wildcard_imports)]
 
 //! Interprets the [`ast`][leafbuild_ast] produced by [`leafbuild_parser`], which it is also
 //! responsible of getting.

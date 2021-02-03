@@ -773,3 +773,9 @@ pub struct BuildDefinition {
     #[whole_span]
     pub items: Vec<LangItem>,
 }
+
+impl From<Vec<LangItem>> for BuildDefinition {
+    fn from(items: Vec<LangItem>) -> Self {
+        Self { items }
+    }
+}

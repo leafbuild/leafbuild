@@ -68,7 +68,7 @@ StrTok: String = {
 
 Str = SpannedNonterminal<StrTok>;
 
-pub BuildDefinition = <LangItem*>;
+pub BuildDefinition: BuildDefinition = <LangItem*> => BuildDefinition::from(<>);
 Statement: Statement = {
     <ExecExprStatement> => Statement::ExecExpr(<>),
     <Assignment> => Statement::Assignment(<>),
@@ -157,8 +157,8 @@ Expr: Expr = {
     Box<Expr> SL<"("> FnArgs SL<")"> => Expr::FnCall(FnCall::new(<>)),
 
     #[precedence(level="1")]
-    <base: Box<Expr>> <open_bracket: SL<"[">> <index: Box<Expr>> <close_bracket: SL<"]">> =>
-            Expr::Indexed {base, left_bracket:open_bracket, index, right_bracket:close_bracket},
+    <base: Box<Expr>> <left_bracket: SL<"[">> <index: Box<Expr>> <right_bracket: SL<"]">> =>
+            Expr::Indexed {base, left_bracket, index, right_bracket},
 
     // #[precedence(level="1")]
     // TODO: Property access
