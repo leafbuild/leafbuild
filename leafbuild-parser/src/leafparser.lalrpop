@@ -13,8 +13,8 @@ grammar<'input, 'err>(
     errors: &'err mut Vec<ErrorRecovery<usize, lexer::Token<'input>, GrmError>>,
 );
 
-SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::new(start, end));
-SpannedLocation<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::new(start, end);
+SpannedNonterminal<Rule>: Spanned<Rule> = <start: @L> <rule: Rule> <end: @R> => Spanned::new(rule, Span::from((start, end)));
+SL<Rule>: Span = <start: @L> <rule: Rule> <end: @R> => Span::from((start, end));
 Box<Rule>: Box<Rule> = <rule: Rule> => Box::new(rule);
 
 SingleComma: () = ",";
@@ -49,7 +49,7 @@ IdExpression = SpannedNonterminal<IdExpressionUnspanned>;
 
 NumTok: NumVal =
     <start: @L> <num: "number"> <end: @R> =>?
-        NumVal::from_str(num).map_err(|e| GrmError::from((e, Span::new(start, end))).into());
+        NumVal::from_str(num).map_err(|e| GrmError::from((e, Span::from((start, end)))).into());
 
 Num = SpannedNonterminal<NumTok>;
 
@@ -68,70 +68,72 @@ StrTok: String = {
 
 Str = SpannedNonterminal<StrTok>;
 
-UnaryNot: UnaryOpcode = SpannedLocation<"not"> => UnaryOpcode::Not(<>);
-
-pub BuildDefinition = <Statement*>;
+pub BuildDefinition: BuildDefinition = <LangItem*> => BuildDefinition::from(<>);
 Statement: Statement = {
-    <Expr> ";" => Statement::ExecExpr(<>),
-    <Assignment> ";" => Statement::Assignment(<>),
-    <Declaration> ";" => Statement::Declaration(<>),
+    <ExecExprStatement> => Statement::ExecExpr(<>),
+    <Assignment> => Statement::Assignment(<>),
+    <Declaration> => Statement::Declaration(<>),
     <ConditionalStatement> => Statement::Conditional(<>),
-    //<statement ControlStatement> => AstStatement::Control(statement),
-    <RepetitiveStatement> => Statement::Repetitive(<>),
+    <ControlStatement> => Statement::Control(<>),
+    <ForeachStatement> => Statement::Foreach(<>),
 }
 
-FuncArgs: FuncCallArgs =
-    JoinComma<PositionalFuncArg, NamedExpr>
-        => FuncCallArgs::from(<>);
+FnArgs: FnCallArgs =
+    JoinComma<PositionalFnArg, NamedExpr>
+        => FnCallArgs::from(<>);
 
 
-PositionalFuncArg: PositionalArg = Expr => PositionalArg::from(<>);
+PositionalFnArg: PositionalArg = Expr => PositionalArg::from(<>);
 
-NamedExpr: NamedExpr = IdExpression SpannedLocation<"="> Expr => NamedExpr::from((<>));
+NamedExpr: NamedExpr = IdExpression SL<"="> Expr => NamedExpr::from((<>));
 
 UnaryPlusMinusOpcode: UnaryOpcode = {
-    SpannedLocation<"-"> => UnaryOpcode::Minus(<>),
-    SpannedLocation<"+"> => UnaryOpcode::Plus(<>),
+    SL<"-"> => UnaryOpcode::Minus(<>),
+    SL<"+"> => UnaryOpcode::Plus(<>),
 }
 
 UnaryLogicalAndBitwiseNot: UnaryOpcode = {
-    SpannedLocation<"not"> => UnaryOpcode::Not(<>),
-    SpannedLocation<"~"> => UnaryOpcode::BitwiseNot(<>),
+    SL<"not"> => UnaryOpcode::Not(<>),
+    SL<"~"> => UnaryOpcode::BitwiseNot(<>),
 }
 
 MulOp: Opcode = {
-    SpannedLocation<"*"> => Opcode::Mul(<>),
-    SpannedLocation<"/"> => Opcode::Div(<>),
-    SpannedLocation<"%"> => Opcode::Mod(<>),
+    SL<"*"> => Opcode::Mul(<>),
+    SL<"/"> => Opcode::Div(<>),
+    SL<"%"> => Opcode::Mod(<>),
 }
 
 AddOp: Opcode = {
-    SpannedLocation<"+"> => Opcode::Add(<>),
-    SpannedLocation<"-"> => Opcode::Sub(<>),
+    SL<"+"> => Opcode::Add(<>),
+    SL<"-"> => Opcode::Sub(<>),
 }
 
 BitShiftOp: Opcode = {
-    SpannedLocation<"<<"> => Opcode::LBitshift(<>),
-    SpannedLocation<">>"> => Opcode::RBitshift(<>),
+    SL<"<<"> => Opcode::LBitshift(<>),
+    SL<">>"> => Opcode::RBitshift(<>),
 }
 
 RelOp: Opcode = {
-    SpannedLocation<">"> => Opcode::G(<>),
-    SpannedLocation<"<"> => Opcode::L(<>),
-    SpannedLocation<">="> => Opcode::GE(<>),
-    SpannedLocation<"<="> => Opcode::LE(<>),
-    SpannedLocation<"in"> => Opcode::In(<>),
-    SpannedLocation<("not" "in")> => Opcode::NotIn(<>),
+    SL<">"> => Opcode::G(<>),
+    SL<"<"> => Opcode::L(<>),
+    SL<">="> => Opcode::GE(<>),
+    SL<"<="> => Opcode::LE(<>),
+    SL<"in"> => Opcode::In(<>),
+    SL<("not" "in")> => Opcode::NotIn(<>),
 }
 
 RelOp2: Opcode = {
-    SpannedLocation<"=="> => Opcode::Equal(<>),
-    SpannedLocation<"!="> => Opcode::NE(<>),
+    SL<"=="> => Opcode::Equal(<>),
+    SL<"!="> => Opcode::NE(<>),
 }
 
-AndOp: Opcode = SpannedLocation<"and"> => Opcode::And(<>);
+AndOp: Opcode = SL<"and"> => Opcode::And(<>);
 
-OrOp: Opcode = SpannedLocation<"or"> => Opcode::Or(<>);
+OrOp: Opcode = SL<"or"> => Opcode::Or(<>);
+
+ExecExprStatement: ExprStatement = {
+    Expr SL<";"> => ExprStatement::from((<>)),
+}
 
 Expr: Expr = {
     #[precedence(level="0")]
@@ -140,17 +142,23 @@ Expr: Expr = {
     Num => Expr::Atom(Atom::Number(<>)),
 
     #[precedence(level="0")]
+    Str => Expr::Atom(Atom::Str(<>)),
+
+    #[precedence(level="0")]
+    BoolLit=> Expr::Atom(Atom::Bool(<>)),
+
+    #[precedence(level="0")]
     ArrayLit,
 
     #[precedence(level="0")]
     MapLit,
 
     #[precedence(level="1")]
-    Box<Expr> SpannedLocation<"("> FuncArgs SpannedLocation<")"> => Expr::FuncCall(FuncCall::new(<>)),
+    Box<Expr> SL<"("> FnArgs SL<")"> => Expr::FnCall(FnCall::new(<>)),
 
     #[precedence(level="1")]
-    <base: Box<Expr>> <open_bracket: SpannedLocation<"[">> <index: Box<Expr>> <close_bracket: SpannedLocation<"]">> =>
-            Expr::Indexed {base, open_bracket, index, close_bracket},
+    <base: Box<Expr>> <left_bracket: SL<"[">> <index: Box<Expr>> <right_bracket: SL<"]">> =>
+            Expr::Indexed {base, left_bracket, index, right_bracket},
 
     // #[precedence(level="1")]
     // TODO: Property access
@@ -191,8 +199,8 @@ Expr: Expr = {
 
     #[precedence(level="10")]
     #[assoc(side="right")]
-    <condition: Box<Expr>> <qmark: SpannedLocation<"?">>
-    <if_true: Box<Expr>> <colon: SpannedLocation<":">> <if_false: Box<Expr>> =>
+    <condition: Box<Expr>> <qmark: SL<"?">>
+    <if_true: Box<Expr>> <colon: SL<":">> <if_false: Box<Expr>> =>
         Expr::Ternary{condition, qmark, if_true, colon, if_false},
 };
 
@@ -204,63 +212,71 @@ Expr: Expr = {
 //	<property_access:MemberAccess> "(" <args:FuncArgs> ")" <end: @R> => AstMethodCall::new(property_access, args, end),
 //}
 
-Declaration: Declaration = SpannedLocation<"let"> IdExpression SpannedLocation<"="> Expr => Declaration::new(<>);
+Declaration: Declaration = SL<"let"> IdExpression SL<"="> Expr SL<";"> => Declaration::from((<>));
 
-Assignment: Assignment = Expr AtrOp Expr => Assignment::new(<>);
+Assignment: Assignment = Expr AtrOp Expr SL<";"> => Assignment::from((<>));
 
 AtrOp: AtrOp = {
-    SpannedLocation<"="> => AtrOp::Atr(<>),
-    SpannedLocation<"+="> => AtrOp::AddAtr(<>),
-    SpannedLocation<"-="> => AtrOp::SubAtr(<>),
-    SpannedLocation<"*="> => AtrOp::MulAtr(<>),
-    SpannedLocation<"/="> => AtrOp::DivAtr(<>),
-    SpannedLocation<"%="> => AtrOp::ModAtr(<>),
+    SL<"="> => AtrOp::Atr(<>),
+    SL<"+="> => AtrOp::AddAtr(<>),
+    SL<"-="> => AtrOp::SubAtr(<>),
+    SL<"*="> => AtrOp::MulAtr(<>),
+    SL<"/="> => AtrOp::DivAtr(<>),
+    SL<"%="> => AtrOp::ModAtr(<>),
 }
 
 ArrayLit: Expr =
-    <left_brace: SpannedLocation<"[">> <args: Comma<Expr>> <right_brace: SpannedLocation<"]">> =>
+    <left_brace: SL<"[">> <args: Comma<Expr>> <right_brace: SL<"]">> =>
         Expr::Atom(Atom::ArrayLit(left_brace, args, right_brace));
 
-MapLit: Expr = SpannedLocation<"{"> Comma<NamedExpr> SpannedLocation<"}"> => Expr::Atom(Atom::MapLit(<>));
+MapLit: Expr = SL<"{"> Comma<NamedExpr> SL<"}"> => Expr::Atom(Atom::MapLit(<>));
 
 #[inline]
 ConditionalStatement: ConditionalStatement = If ElseIf* Else? => ConditionalStatement::new(<>);
 
-If: If = SpannedLocation<"if"> Expr SpannedLocation<"{"> Statement* SpannedLocation<"}"> => If::new(<>);
+If: If = SL<"if"> Expr SL<"{"> Statement* SL<"}"> => If::new(<>);
 
-ElseIf: ElseIf = SpannedLocation<"else"> If => ElseIf::new(<>);
+ElseIf: ElseIf = SL<"else"> If => ElseIf::new(<>);
 
-Else: Else = SpannedLocation<"else"> SpannedLocation<"{"> Statement* SpannedLocation<"}"> => Else::new(<>);
+Else: Else = SL<"else"> SL<"{"> Statement* SL<"}"> => Else::new(<>);
 
-RepetitiveStatement: RepetitiveStatement =
-    SpannedLocation<"foreach"> ForInExpr SpannedLocation<"{"> Statement* SpannedLocation<"}"> =>
-        RepetitiveStatement::new(<>);
+ForeachStatement: ForeachStatement =
+    SL<"foreach"> ForInExpr SL<"{"> Statement* SL<"}"> =>
+        ForeachStatement::from((<>));
 
 ForInExpr: ForInExpr =
-    IdExpression SpannedLocation<"in"> Expr => ForInExpr::new(<>);
+    IdExpression SL<"in"> Expr => ForInExpr::new(<>);
 
 ControlStatement: ControlStatement = {
-    SpannedLocation<"break"> => ControlStatement::Break(<>),
-    SpannedLocation<"continue"> => ControlStatement::Continue(<>),
-    SpannedLocation<"return"> Expr? => ControlStatement::Return(<>),
+    SL<"break"> SL<";"> => ControlStatement::Break(<>),
+    SL<"continue"> SL<";"> => ControlStatement::Continue(<>),
+    SL<"return"> Expr? SL<";"> => ControlStatement::Return(<>),
 }
 
-FnDecl = {
-    SpannedLocation<"fn"> IdExpression SpannedLocation<"("> FnParams SpannedLocation<")"> FnBody?,
+FnDecl: FnDecl = {
+    SL<"fn"> IdExpression SL<"(">
+        FnParams
+    SL<")">
+    FnBody => FnDecl::from((<>)),
 }
 
 FnParams = JoinComma<PositionalParam, DefaultParam>;
 
-DefaultParam = IdExpression SpannedLocation<":"> TypeRef SpannedLocation<"="> Expr;
+DefaultParam: DefaultParam = IdExpression SL<":"> TypeRef SL<"="> Expr => DefaultParam::from((<>));
 
-PositionalParam = IdExpression SpannedLocation<":"> TypeRef ;
+PositionalParam: PositionalParam = IdExpression SL<":"> TypeRef => PositionalParam::from((<>));
 
-TypeRef = {
-    IdExpression,
+TypeRef: TypeRef = {
+    IdExpression=> TypeRef::from(<>),
 }
 
 FnBody: FnBody = {
-    SpannedLocation<"{"> Statement* Expr? SpannedLocation<"}"> => FnBody::from((<>))
+    SL<"{"> Statement* Expr? SL<"}"> => FnBody::from((<>))
+}
+
+LangItem: LangItem = {
+    FnDecl => LangItem::FnDecl(<>),
+    Statement => LangItem::Statement(<>)
 }
 
 extern {

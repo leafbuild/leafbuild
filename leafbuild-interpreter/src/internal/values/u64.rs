@@ -1,4 +1,8 @@
 #[derive(Copy, Clone, Debug, PartialOrd, PartialEq, Ord, Eq, Default, Hash)]
 pub struct U64Wrap(pub u64);
 
-impl_value_num! {U64Wrap, U64}
+impl<'a> Value<'a> for U64Wrap {
+    fn get_type(&self) -> Ty {
+        Ty::U64
+    }
+}

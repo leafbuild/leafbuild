@@ -1,56 +1,16 @@
 pub mod types;
 
+use crate::env::FileFrame;
+use crate::internal::values::types::{TyBlueprint, TyProperty};
 use leafbuild_ast::Span;
+use once_cell::sync::Lazy;
+use std::borrow::Cow;
+use std::fmt;
 use std::fmt::Debug;
-use thiserror::Error;
-use types::ValueType;
-
-#[derive(Error, Debug)]
-pub enum GetPropertyError {
-    #[error("no such property `{name}` on a value of type {root_type:?}")]
-    NoSuchProperty {
-        root_type: ValueType,
-        root_span: Span,
-        dot_span: Span,
-        name: String,
-        name_span: Span,
-    },
-}
-
-#[derive(Error, Debug)]
-pub enum GetIndexedError {
-    #[error("type cannot be indexed")]
-    TypeCannotBeIndexed {
-        root_type: ValueType,
-        root_span: Span,
-        lbrace_span: Span,
-        index_type: ValueType,
-        rbrace_span: Span,
-    },
-    #[error("index is of wrong type(`{index_type:?}`) on root type `{root_type:?}`")]
-    IndexOfWrongType {
-        root_type: ValueType,
-        root_span: Span,
-        lbrace_span: Span,
-        index_type: ValueType,
-        rbrace_span: Span,
-    },
-}
-
-#[derive(Error, Debug)]
-pub enum InvokeMethodError {
-    #[error("no such method `{name}` on a value of type {root_type:?}")]
-    NoSuchMethod {
-        root_type: ValueType,
-        root_span: Span,
-        dot_span: Span,
-        name: String,
-        name_span: Span,
-    },
-}
+use types::Ty;
 
 pub trait Value<'a>: Debug {
-    fn get_type(&self) -> ValueType;
+    fn get_type(&self) -> Ty;
 
     fn get_property(
         &self,
@@ -58,7 +18,9 @@ pub trait Value<'a>: Debug {
         dot_span: Span,
         property_name: &str,
         property_name_span: Span,
-    ) -> Result<&'a dyn Value<'a>, GetPropertyError>;
+    ) -> ValRef<'a> {
+        unreachable!()
+    }
 
     fn get_property_mut(
         &mut self,
@@ -66,7 +28,9 @@ pub trait Value<'a>: Debug {
         dot_span: Span,
         property_name: &str,
         property_name_span: Span,
-    ) -> Result<&'a mut dyn Value<'a>, GetPropertyError>;
+    ) -> ValRefMut<'a> {
+        unreachable!()
+    }
 
     fn get_indexed(
         &self,
@@ -74,7 +38,9 @@ pub trait Value<'a>: Debug {
         left_brace: Span,
         index_value: &dyn Value,
         right_brace: Span,
-    ) -> Result<&'a dyn Value<'a>, GetIndexedError>;
+    ) -> ValRef<'a> {
+        unreachable!()
+    }
 
     fn get_indexed_mut(
         &mut self,
@@ -82,21 +48,28 @@ pub trait Value<'a>: Debug {
         left_brace: Span,
         index_value: &dyn Value,
         right_brace: Span,
-    ) -> Result<&'a mut dyn Value<'a>, GetIndexedError>;
+    ) -> ValRefMut<'a> {
+        unreachable!()
+    }
 
     fn invoke_method(
         &self,
+        file_frame: &mut FileFrame,
         this_span: Span,
         dot_span: Span,
         method_name: &str,
         method_name_span: Span,
-    ) -> Result<Box<dyn Value<'static>>, InvokeMethodError>;
+    ) -> Val {
+        unreachable!()
+    }
 }
 
-#[macro_use]
-mod num;
-include! {"i32.rs"}
-include! {"i64.rs"}
-include! {"u32.rs"}
-include! {"u64.rs"}
-include! {"bool.rs"}
+pub type Val = LiveVal<'static>;
+pub type LiveVal<'life> = Box<dyn Value<'life>>;
+pub type ValRef<'a> = &'a dyn Value<'a>;
+pub type ValRefMut<'a> = &'a mut dyn Value<'a>;
+
+// primitives
+include! {"primitives.rs"}
+// builtin object types
+include! {"builtin.rs"}

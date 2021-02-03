@@ -1,22 +1,18 @@
 pub mod eval;
 pub(super) mod fun;
+pub(super) mod repr;
 pub(super) mod values;
 
 use crate::env::FileFrame;
-use crate::internal::eval::Eval;
+use crate::internal::repr::IrBuildDefinition;
 use leafbuild_ast::ast::{BuildDefinition, Loc, Statement};
 
-pub(super) fn run_build_def<'frame>(
-    frame: &'frame mut FileFrame<'frame>,
-    build_def: BuildDefinition,
-) {
-    build_def
-        .statements
-        .iter()
-        .for_each(|statement| run_statement(frame, statement))
+#[allow(clippy::needless_pass_by_value)]
+pub(super) fn run_build_def(frame: &mut FileFrame, build_def: BuildDefinition) {
+    let build_def = IrBuildDefinition::from(build_def);
 }
 
-fn run_statement<'frame>(frame: &'frame mut FileFrame<'_>, statement: &Statement) {
+fn run_statement(frame: &mut FileFrame, statement: &Statement) {
     trace!(
         "Executing statement at {:?}\nStatement = {:#?}",
         statement.get_rng(),
@@ -24,12 +20,12 @@ fn run_statement<'frame>(frame: &'frame mut FileFrame<'_>, statement: &Statement
     );
     match statement {
         Statement::ExecExpr(ref exp) => {
-            exp.eval_in_context(frame);
+            // exp.expr.eval_in_context(frame);
         }
         Statement::Declaration(decl) => {}
         Statement::Assignment(_)
         | Statement::Conditional(_)
         | Statement::Control(_)
-        | Statement::Repetitive(_) => {}
+        | Statement::Foreach(_) => {}
     }
 }

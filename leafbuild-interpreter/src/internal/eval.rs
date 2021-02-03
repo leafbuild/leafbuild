@@ -1,86 +1,42 @@
-use leafbuild_ast::ast::{Atom, Expr};
 use leafbuild_ast::token_data::NumVal;
 
 use crate::env::FileFrame;
-use crate::internal::values::types::ValueType;
-use crate::internal::values::{BoolWrap, I32Wrap, I64Wrap, U32Wrap, U64Wrap, Value};
-use leafbuild_ast::Span;
-
-pub(super) enum CannotEvaluateError {
-    NotImplemented,
-}
-
-pub(super) enum CannotEvaluateMutError {
-    NotImplemented,
-}
+use crate::internal::repr::{IrAtom, IrExpr};
+use crate::internal::values::{
+    BoolWrap, I32Wrap, I64Wrap, LiveVal, U32Wrap, U64Wrap, ValRefMut, Value,
+};
 
 pub(super) trait Eval {
-    fn eval_in_context<'frame>(
-        &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
-        Err(CannotEvaluateError::NotImplemented)
-    }
+    fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame>;
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
-        Err(CannotEvaluateMutError::NotImplemented)
-    }
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> ValRefMut<'frame>;
 }
 
-impl Eval for Expr {
-    fn eval_in_context<'frame>(
-        &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
-        // match self {
-        //     Expr::Atom(atom) => atom.eval_in_context(frame),
-        //     Expr::Op(left, opcode, right) => {
-        //         let left = left.eval_in_context(frame)?;
-        //         let right = right.eval_in_context(frame)?;
-        //         opcode.apply_to(left, right)
-        //     }
-        //     Expr::UnaryOp(_, _) => {}
-        //     Expr::FuncCall(_) => {}
-        //     Expr::MethodCall(_) => {}
-        //     Expr::PropertyAccess(_) => {}
-        //     Expr::Paren { .. } => {}
-        //     Expr::Indexed { .. } => {}
-        //     Expr::Ternary { .. } => {}
-        // }
+impl Eval for IrExpr {
+    fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame> {
         unimplemented!()
     }
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
-        Err(CannotEvaluateMutError::NotImplemented)
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> ValRefMut<'frame> {
+        unimplemented!()
     }
 }
 
-impl Eval for Atom {
-    fn eval_in_context<'frame>(
-        &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<Box<dyn Value<'frame>>, CannotEvaluateError> {
-        match self {
-            Self::Number(num) => Ok(num.as_boxed_value()),
-            Self::Bool(bool) => Ok(bool.as_boxed_value()),
-            // Atom::Str(_) => {}
-            // Atom::Id(_) => {}
-            // Atom::ArrayLit(_, _, _) => {}
-            // Atom::MapLit(_, _, _) => {}
-            _ => unimplemented!(),
-        }
+impl Eval for IrAtom {
+    fn eval_in_context<'frame>(&self, frame: &'_ mut FileFrame<'frame, '_>) -> LiveVal<'frame> {
+        unimplemented!()
     }
 
     fn eval_in_context_mut<'frame>(
         &self,
-        frame: &'frame mut FileFrame<'_>,
-    ) -> Result<&'frame mut dyn Value<'frame>, CannotEvaluateMutError> {
+        frame: &'_ mut FileFrame<'frame, '_>,
+    ) -> ValRefMut<'frame> {
         unimplemented!()
     }
 }
@@ -103,25 +59,5 @@ impl AsBoxedValue for NumVal {
 impl AsBoxedValue for bool {
     fn as_boxed_value<'frame>(&self) -> Box<dyn Value<'frame>> {
         Box::new(BoolWrap(*self))
-    }
-}
-
-enum BinOpApplyError {
-    IncompatibleOperands {
-        left: ValueType,
-        left_span: Span,
-        right: ValueType,
-        right_span: Span,
-    },
-}
-
-trait BinOpApplyTo {
-    fn apply_to<'frame>(
-        &self,
-        frame: &'frame FileFrame,
-        left: Box<dyn Value<'frame>>,
-        right: Box<dyn Value<'frame>>,
-    ) -> Result<Box<dyn Value<'frame>>, BinOpApplyError> {
-        unimplemented!()
     }
 }

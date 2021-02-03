@@ -13,6 +13,7 @@ thiserror = "1.0"
 tracing = "0.1"
 itertools = "0.10"
 linkme = "0.2"
+once_cell = "1.5"
 
 leafbuild-core = { path = "../leafbuild-core", version = "0.1.0" }
 leafbuild-parser = { path = "../leafbuild-parser", version = "0.1.0" }

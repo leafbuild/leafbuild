@@ -32,14 +32,13 @@
     clippy::nursery
 )]
 #![allow(clippy::module_name_repetitions)]
+#![allow(clippy::wildcard_imports)]
 
 //! Interprets the [`ast`][leafbuild_ast] produced by [`leafbuild_parser`], which it is also
 //! responsible of getting.
 //!
 //! Everything you need to do is invoke `run` on a directory and watch the magic happen, at least
 //! until you get the result back.
-//! The interpreter module
-//! Handles everything related to interpreting the source AST.
 
 #[macro_use]
 extern crate tracing;
@@ -114,8 +113,14 @@ pub fn execute_on<'a>(
             let fid = handle
                 .buildsys
                 .register_new_file(root_path.to_string_lossy().to_string(), content);
-            let mut frame = env::FileFrame::new(fid, mod_path);
+            let mut frame = env::FileFrame {
+                file_id: fid,
+                mod_name: mod_path,
+                handle,
+                __phantom: std::marker::PhantomData,
+            };
             internal::run_build_def(&mut frame, build_definition);
+            drop(frame);
         }
         Err(error) => {
             handle.buildsys.register_file_and_report(
@@ -128,5 +133,5 @@ pub fn execute_on<'a>(
 
     info!("Leaving folder {:?}", root_path);
 
-    Ok(&mut *handle)
+    Ok(handle)
 }

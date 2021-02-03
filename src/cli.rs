@@ -140,12 +140,10 @@ pub fn run(cli: Cli) {
                         .file_name()
                         .map(|it| it.to_string_lossy().to_string())
                         .or_else(|| {
-                            Some(
-                                std::env::current_dir()
-                                    .ok()?
-                                    .file_name()
-                                    .map(|it| it.to_string_lossy().to_string())?,
-                            )
+                            std::env::current_dir()
+                                .ok()?
+                                .file_name()
+                                .map(|it| it.to_string_lossy().to_string())
                         })
                         .unwrap_or_else(|| ".".into()),
                 ),

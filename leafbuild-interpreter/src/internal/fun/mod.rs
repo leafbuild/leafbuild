@@ -1,12 +1,23 @@
 use crate::env::FileFrame;
-use crate::internal::values::Value;
+use crate::internal::values::types::{FnTy, Ty, FnPositionalTy};
+use crate::internal::values::{BuiltinTy, I32Wrap, Value};
+use std::collections::BTreeMap;
 use std::fmt;
 
 /// The `BuiltinFun` declaration
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct BuiltinFun {
     name: &'static str,
-    fun_handle: for<'file_frame> fn(&'file_frame mut FileFrame) -> Box<dyn Value<'static>>,
+    fun_handle: FunHandleType,
+    fn_ty: fn() -> FnTy,
+}
+
+type FunHandleType =
+    for<'file_frame> fn(&'file_frame mut FileFrame, FnArgsData) -> Box<dyn Value<'static>>;
+
+struct FnArgsData {
+    positional_args: Vec<Box<dyn Value<'static>>>,
+    kwargs: BTreeMap<String, Box<dyn Value<'static>>>,
 }
 
 impl fmt::Debug for BuiltinFun {
@@ -22,7 +33,7 @@ impl fmt::Debug for BuiltinFun {
 pub static BUILTIN_FUNCTIONS: [BuiltinFun] = [..];
 
 macro_rules! add_builtin_function {
-    ($name:literal, $function_name:expr, $static_name:ident, $documentation:literal) => {
+    ($name:literal, $function_name:expr, $fn_ty:expr, $static_name:ident, $documentation:literal) => {
         #[linkme::distributed_slice(crate::internal::fun::BUILTIN_FUNCTIONS)]
         #[used]
         #[no_mangle]
@@ -31,12 +42,16 @@ macro_rules! add_builtin_function {
             crate::internal::fun::BuiltinFun {
                 name: $name,
                 fun_handle: $function_name,
+                fn_ty: $fn_ty,
             };
     };
 }
 
-pub mod module;
-add_builtin_function! {"module", module::module, MODULE_FUNC, "The `module` function declaration"}
+fn find_builtin_function(function_name: &str) -> Option<&'static BuiltinFun> {
+    BUILTIN_FUNCTIONS.iter().find(|it| it.name == function_name)
+}
 
-pub mod project;
-add_builtin_function! {"project", project::project, PROJECT_FUNC, "The `project` function declaration"}
+include! {"module.rs"}
+include! {"project.rs"}
+include! {"executable.rs"}
+include! {"library.rs"}
