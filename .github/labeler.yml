@@ -4,12 +4,11 @@ test:
 documentation:
   - any: ['doc/src/**/*.md', 'doc/book.toml', 'doc/leafbuild_highlight.js']
 
-ast: 'leafbuild-ast/**/*'
+syntax: 'leafbuild-syntax/**/*'
 cmake-ml: 'leafbuild-cmakeml/**/*'
 core: 'leafbuild-core/**/*'
 derive: 'leafbuild-derive/**/*'
 interpreter: 'leafbuild-interpreter/**/*'
 meson-ml: 'leafbuild-mesonml/**/*'
 core-ml: 'leafbuild-ml/**/*'
-parser: 'leafbuild-parser/**/*'
 premake-ml: 'leafbuild-premakeml/**/*'
