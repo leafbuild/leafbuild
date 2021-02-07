@@ -17,3 +17,4 @@ linkme = "0.2"
 leafbuild-core = { path = "../leafbuild-core", version = "0.1.0" }
 leafbuild-parser = { path = "../leafbuild-parser", version = "0.1.0" }
 leafbuild-ast = { path = "../leafbuild-ast", version = "0.1.0" }
+leafbuild-syntax = { path = "../leafbuild-syntax", version = "0.1.0" }

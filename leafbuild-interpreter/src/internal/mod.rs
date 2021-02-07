@@ -6,6 +6,7 @@ use crate::env::FileFrame;
 use crate::internal::eval::Eval;
 use leafbuild_ast::ast::{BuildDefinition, Loc, Statement};
 
+#[allow(clippy::needless_pass_by_value)]
 pub(super) fn run_build_def<'frame>(
     frame: &'frame mut FileFrame<'frame>,
     build_def: BuildDefinition,

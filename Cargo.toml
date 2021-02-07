@@ -49,6 +49,7 @@ leafbuild-core = { path = "leafbuild-core", version = "0.1.0" }
 leafbuild-derive = { path = "leafbuild-derive", version = "0.1.0" }
 leafbuild-ast = { path = "leafbuild-ast", version = "0.1.0" }
 leafbuild-parser = { path = "leafbuild-parser", version = "0.1.0" }
+leafbuild-syntax = { path = "leafbuild-syntax", version = "0.1.0" }
 leafbuild-interpreter = { path = "leafbuild-interpreter", version = "0.1.0" }
 
 [dependencies.leafbuild-ml]
@@ -77,6 +78,7 @@ default-members = [
     "leafbuild-derive",
     "leafbuild-ast",
     "leafbuild-parser",
+    "leafbuild-syntax",
     "leafbuild-interpreter",
 ]
 members = [
@@ -84,6 +86,7 @@ members = [
     "leafbuild-derive",
     "leafbuild-ast",
     "leafbuild-parser",
+    "leafbuild-syntax",
     "leafbuild-interpreter",
 
     "leafbuild-ml",

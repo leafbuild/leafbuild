@@ -1,0 +1,15 @@
+[package]
+name = "leafbuild-syntax"
+version = "0.1.0"
+authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rowan = "0.12"
+drop_bomb = "0.1.4"
+logos = "0.12"
+itertools = "0.10"
+
+leafbuild-core = { path = "../leafbuild-core", version = "0.1.0" }
