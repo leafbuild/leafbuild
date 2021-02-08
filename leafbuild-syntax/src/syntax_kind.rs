@@ -194,6 +194,12 @@ pub enum SyntaxKind {
     /// `(a, b, ...)`, including `()`
     Tuple,
 
+    ///
+    ExprBlock,
+
+    ///
+    ConditionalBranch,
+
     /// for the root node
     ROOT,
 }

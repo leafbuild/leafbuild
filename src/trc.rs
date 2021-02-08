@@ -1,7 +1,7 @@
 //! Module containing logic to format [`tracing`] events.
 use ansi_term::{Color, Style};
 use itertools::Itertools;
-use leafbuild_core::prelude::{AndThenDo, SomeNoneIfOwned};
+use leafbuild_core::prelude::{AndThenDo, TakeIfUnlessOwned};
 use leafbuild_interpreter::LfModName;
 use std::error::Error;
 use std::fmt::Debug;
@@ -331,7 +331,7 @@ where
         let data = ext.get_mut::<Data>().unwrap();
         data.kvs
             .iter()
-            .find_map(|(name, value)| value.some_if_owned(*name == "path"))
+            .find_map(|(name, value)| value.take_if_owned(|_| *name == "path"))
             .and_then_do(|path| {
                 ext.insert(LeafbuildSpanExtension {
                     modname: LfModName::new(path),

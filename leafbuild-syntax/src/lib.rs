@@ -56,3 +56,6 @@ impl Language for LeafbuildLanguage {
         rowan::SyntaxKind(kind.into())
     }
 }
+
+#[cfg(test)]
+mod tests;

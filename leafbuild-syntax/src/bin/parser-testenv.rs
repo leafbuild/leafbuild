@@ -3,7 +3,25 @@ use itertools::Itertools;
 fn main() {
     use leafbuild_syntax::parser::*;
 
-    let parsed = parse("let a = ( (), (), \n");
+    let parsed = parse(
+        r#"
+
+    (  )=if (){}
+
+    if ((), ()) {
+
+    }
+    else if (          ()       )
+
+    {
+
+    }
+    else
+    {
+
+    }
+    "#,
+    );
     println!("{:#?}", &parsed);
     println!(
         "{}",
