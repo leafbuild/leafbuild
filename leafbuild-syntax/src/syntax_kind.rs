@@ -147,9 +147,6 @@ pub enum SyntaxKind {
     /// `a[b]`
     IndexedExpr,
 
-    /// `a ? b : c`
-    TernaryExpr,
-
     /// Arguments to function call
     /// `(Expr Comma)* Expr?`
     FuncCallArgs,

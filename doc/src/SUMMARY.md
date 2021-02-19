@@ -8,6 +8,7 @@
 
 # Developer resources
 - [Setting up for development](dev/setup.md)
+- [Syntax reference](dev/syntax_ref.md)
 - [Terminology](dev/terminology.md)
 - [Architecture](dev/architecture-overview.md)
   - [`leafbuild-ast`](dev/leafbuild-ast.md)

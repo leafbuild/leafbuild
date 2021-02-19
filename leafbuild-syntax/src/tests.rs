@@ -77,3 +77,8 @@ fn if_condition_in_expr_stretched() {
 fn declaration() {
     parses_without_errors("let x = ()\n")
 }
+
+#[test]
+fn foreach_basic() {
+    parses_without_errors("foreach () in () {}")
+}

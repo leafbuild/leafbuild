@@ -1,4 +1,5 @@
 //! FIXME: write docs
+
 use std::fmt;
 use std::ops::Range;
 
@@ -85,7 +86,7 @@ enum ParseError {
     Incomplete,
     Error(String, Span),
     UnexpectedToken(String, Span),
-    ExpectedToken(String, Span),
+    ExpectedToken(String, Span, String),
     ExpectedTokens(Vec<String>, Span),
 }
 
@@ -118,7 +119,7 @@ trait Trivia: Copy {
 
 impl<T: Is> Trivia for T {
     fn is_trivia(self) -> bool {
-        self.is(WHITESPACE) || self.is(LINE_COMMENT) || self.is(BLOCK_COMMENT)
+        self.is_any(&[WHITESPACE, LINE_COMMENT, BLOCK_COMMENT])
     }
 
     fn is_newline(self) -> bool {
@@ -152,8 +153,11 @@ impl Parser {
                         p.errors.push((format!("unexpected `{}`", tk), span));
                         break;
                     }
-                    Err(ParseError::ExpectedToken(tk, span)) => {
-                        p.errors.push((format!("expected token {}", tk), span));
+                    Err(ParseError::ExpectedToken(tk, span, found)) => {
+                        p.errors.push((
+                            format!("expected token {}, found token {}", tk, found),
+                            span,
+                        ));
                         break;
                     }
                     Err(ParseError::ExpectedTokens(tokens, span)) => {
@@ -231,20 +235,33 @@ impl Parser {
     }
 
     fn skip_trivia(&mut self) {
-        while self
-            .current()
-            .let_(|it| it.is(WHITESPACE) || it.is(LINE_COMMENT) || it.is(BLOCK_COMMENT))
-        {
+        while self.current().let_(Trivia::is_trivia) {
             self.bump()
         }
     }
 
     fn skip_trivia_and_newlines(&mut self) {
-        while self.current().let_(|it| {
-            it.is(WHITESPACE) || it.is(LINE_COMMENT) || it.is(BLOCK_COMMENT) || it.is(NEWLINE)
-        }) {
+        while self.current().let_(|it| it.is_trivia() || it.is_newline()) {
             self.bump()
         }
+    }
+
+    fn skip_trivia_and_single_newline(&mut self) -> ParseResult {
+        while self.current().is_trivia() {
+            self.bump()
+        }
+
+        if self.bump_if(|it| it.is(NEWLINE)) {
+            Ok(())
+        } else {
+            Err(ParseError::Incomplete)
+        }
+    }
+
+    fn next_nontrivia(&self) -> Option<SyntaxKind> {
+        self.tokens[self.index..]
+            .iter()
+            .find_map(|(it, _, _)| (*it).take_unless(|&it| it.is_trivia()))
     }
 
     fn error(&mut self) {
@@ -263,7 +280,11 @@ impl Parser {
                 format!("Expected {:?}, got {:?}", kind, current),
                 self.current_span(),
             ));
-            self.error()
+            self.error();
+            return self
+                .current()
+                .unwrap()
+                .as_unexpected_token(self.current_span());
         }
         self.builder.finish_node();
         Ok(())
@@ -276,6 +297,7 @@ impl Parser {
             return Err(ParseError::ExpectedToken(
                 kind.token_name(),
                 self.current_span(),
+                self.current().unwrap_or(ERROR).token_name(),
             ));
         }
         Ok(())
@@ -312,6 +334,19 @@ impl Parser {
         f: impl FnOnce(&mut Self) -> ParseResult<T>,
     ) -> ParseResult<T> {
         self.start_node(kind);
+        let r = f(self);
+        self.finish_node();
+
+        r
+    }
+
+    fn parse_node_at<T>(
+        &mut self,
+        checkpoint: Checkpoint,
+        kind: SyntaxKind,
+        f: impl FnOnce(&mut Self) -> ParseResult<T>,
+    ) -> ParseResult<T> {
+        self.start_node_at(checkpoint, kind);
         let r = f(self);
         self.finish_node();
 
@@ -357,29 +392,24 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
     match tok {
         L_PAREN | L_BRACKET | L_BRACE | PLUS | MINUS | NOT_KW | TRUE_KW | FALSE_KW | NUMBER
         | ID | STRING | MULTILINE_STRING => {
-            let assignment_checkpoint = p.builder.checkpoint();
+            let assignment_checkpoint = p.checkpoint();
             parse_expr(p)?;
             p.skip_trivia();
-            let current = p.current();
-            if current.is(PLUS_EQ)
-                || current.is(MINUS_EQ)
-                || current.is(MUL_EQ)
-                || current.is(DIV_EQ)
-                || current.is(MOD_EQ)
-                || current.is(EQ)
+            if p.current()
+                .is_any(&[PLUS_EQ, MINUS_EQ, MUL_EQ, DIV_EQ, MOD_EQ, EQ])
             {
-                p.builder
-                    .start_node_at(assignment_checkpoint, Assignment.into());
-                p.bump();
+                p.parse_node_at(assignment_checkpoint, Assignment, |p| {
+                    // consume the `=` / `+=` / ...
+                    p.bump();
 
-                parse_expr(p)?;
+                    parse_expr(p)?;
 
-                p.parse_newline()?;
-
-                p.builder.finish_node();
+                    p.parse_newline()?;
+                    Ok(())
+                })
+            } else {
+                Ok(())
             }
-
-            Ok(())
         }
         R_PAREN | R_BRACKET | R_BRACE | PLUS_EQ | MINUS_EQ | MUL_EQ | DIV_EQ | MOD_EQ
         | ASTERISK | SLASH | PERCENT | EQ_EQ | GREATER_EQ | GREATER | LESS_EQ | LESS | NOT_EQ
@@ -534,9 +564,40 @@ fn parse_conditional_branch(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_foreach(p: &mut Parser) -> ParseResult {
-    Ok(())
+    assert!(p.current().is(FOREACH_KW));
+    p.parse_node(Foreach, |p| {
+        p.bump(); // FOREACH_KW
+        p.skip_trivia();
+        parse_expr(p).map_incomplete()?;
+        p.skip_trivia();
+        p.parse_single_tok(IN_KW)?;
+        p.skip_trivia();
+        parse_expr(p).map_incomplete()?;
+        p.skip_trivia();
+        parse_expr_block(p).map_incomplete()?;
+        Ok(())
+    })
 }
 
 fn parse_control_stmt(p: &mut Parser) -> ParseResult {
-    Ok(())
+    p.parse_node(ControlStatement, |p| match p.current() {
+        Some(CONTINUE_KW) => {
+            p.bump();
+            Ok(())
+        }
+
+        Some(RETURN_KW) | Some(BREAK_KW) => {
+            p.bump();
+            if p.next_nontrivia().isnt(NEWLINE) {
+                parse_expr(p)?;
+            }
+
+            p.skip_trivia_and_single_newline()?;
+
+            Ok(())
+        }
+
+        Some(thing) => thing.as_unexpected_token(p.current_span()),
+        None => Err(ParseError::Incomplete),
+    })
 }
