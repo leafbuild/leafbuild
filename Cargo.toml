@@ -16,7 +16,6 @@ angry-errors = ["libleaf/angry-errors"]
 [dependencies]
 libleaf = { path = "libleaf" }
 libutils = { path = "libutils" }
-meson = { path = "meson", optional = true }
 clap = "3.0.0-beta.1"
 log = "0.4"
 pretty_env_logger = "0.4"
@@ -26,5 +25,4 @@ members = [
 	"libutils",
 	"libleafcore",
 	"libleaf",
-	"meson",
 ]
