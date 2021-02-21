@@ -1,0 +1,5 @@
+project('outer-project');
+
+bin('outer-executable', 'src/main.cpp');
+
+subdir('mod');

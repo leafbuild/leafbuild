@@ -1,0 +1,7 @@
+project('linking-executable-with-lib');
+
+let static_lib = library('simple-static-lib', static, 'src/lib.cpp', include_dirs: 'src');
+let shared_lib = library('simple-shared-lib', shared, 'src/lib.cpp', include_dirs: 'src', properties: {pic: on});
+
+bin('with-static', 'src/main.cpp', dependencies: {static_lib});
+bin('with-shared', 'src/main.cpp', dependencies: {shared_lib});

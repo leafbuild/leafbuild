@@ -536,6 +536,7 @@ impl<'input> Iterator for Lexer<'input> {
                 Some((i, '>')) => return possibly_eq_after!(self, GE, G, i),
                 Some((i, '<')) => return possibly_eq_after!(self, LE, L, i),
                 Some((i, '=')) => return possibly_eq_after!(self, Equal, Eq, i),
+                Some((i, '!')) => return possibly_eq_after!(self, NE, Not, i),
                 Some((i, chr)) if chr.is_ascii_alphabetic() || chr == '_' => {
                     return Some(self.parse_identifier(i, chr));
                 }

@@ -67,7 +67,6 @@ fn main() {
                                 .about("The exit code of the compilation process")
                                 .long("exit-code")
                                 .takes_value(true)
-                                .long("exit-code")
                                 .required(true)
                         ).arg(
                         Arg::with_name(IN)
@@ -95,7 +94,6 @@ fn main() {
                                 .about("The exit code of the compilation process")
                                 .long("exit-code")
                                 .takes_value(true)
-                                .long("exit-code")
                                 .required(true)
                         ).arg(
                         Arg::with_name(IN)

@@ -1,0 +1,4 @@
+project('simple-library');
+
+lib('simple-library-static', static, 'src/lib.cpp', include_dirs: 'src');
+lib('simple-library-shared', shared, 'src/lib.cpp', include_dirs: 'src', properties: {pic: on});

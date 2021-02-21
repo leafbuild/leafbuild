@@ -1,0 +1,3 @@
+project('simple-binary');
+
+bin('simple-binary', 'src/main.cpp');
