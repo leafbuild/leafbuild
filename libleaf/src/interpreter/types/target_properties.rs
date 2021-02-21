@@ -38,8 +38,8 @@ impl ValueTypeMarker for OnOff {
 
 #[derive(Copy, Clone)]
 pub(crate) struct TargetProperties {
-    pic: OnOff,
-    language: Language,
+    pub pic: OnOff,
+    pub language: Language,
 }
 
 impl ValueTypeMarker for TargetProperties {

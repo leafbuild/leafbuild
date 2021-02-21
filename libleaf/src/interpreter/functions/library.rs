@@ -131,5 +131,13 @@ fn get_library_executor() -> CallExecutor {
 }
 
 fn lib_auto_target_properties(sources: &[String], type_: LibType) -> TargetProperties {
-    Default::default()
+    let mut t = Default::default();
+    if let LibType::Shared = type_ {
+        t = TargetProperties {
+            pic: OnOff::On,
+            ..t
+        };
+    }
+
+    t
 }
