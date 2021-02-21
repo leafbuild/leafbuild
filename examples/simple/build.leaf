@@ -37,3 +37,5 @@ print('also a map', map);
 foreach entry in map {
     print('key', entry.key, 'value', entry.value);
 }
+
+print('Something', key: 'something');

@@ -1,0 +1,16 @@
+project('faulty-code');
+let v = {1,2,3,4} + {5,6,7};
+
+let a = '1' - '2';
+
+primt('...');
+
+print('a is ', a);
+
+if 1 {
+    print('Well no conversion from i32 to bool');
+}
+
+bin('main');
+
+bin('main2', {1,2,3});
