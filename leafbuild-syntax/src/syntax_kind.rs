@@ -126,11 +126,17 @@ pub enum SyntaxKind {
     /// `{a:1,b:2}`
     MapLitExpr,
 
-    /// Number / Bool / Str / Id / ArrayLit / MapLit
-    AtomExpr,
+    /// A string literal
+    StrLit,
+
+    /// Number / Bool / Str / Id / ArrayLit / MapLit / Conditional
+    PrimaryExpr,
+
+    /// `<op> a`
+    PrefixUnaryOpExpr,
 
     /// `a <op> b`
-    BinOpExpr,
+    InfixBinOpExpr,
 
     /// `f()`
     FuncCallExpr,
@@ -147,17 +153,20 @@ pub enum SyntaxKind {
     /// `a[b]`
     IndexedExpr,
 
+    /// `[b]`
+    IndexedExprBraces,
+
     /// Arguments to function call
-    /// `(Expr Comma)* Expr?`
+    /// `(FArg ',')* FArg?`
     FuncCallArgs,
+
+    /// an expression with a key
+    /// `key = expr`
+    KExpr,
 
     /// Positional arg
     /// `expr`
     PositionalArg,
-
-    /// Default arg
-    /// `name = expr`
-    DefaultArg,
 
     /// `name = value`, `name += value`, ...
     Assignment,
@@ -179,13 +188,13 @@ pub enum SyntaxKind {
     /// `<Expr> in <Expr>`
     ForInExpr,
 
-    /// `continue;`, `break;`, `return ...;`
+    /// `continue`, `break ...`, `return ...`
     ControlStatement,
 
-    /// Something like `f();`
+    /// Something like `f()`
     ExprStatement,
 
-    /// `{ <statement>*; <expr>? }`
+    /// `{ <statement>* <expr>? }`
     FnBody,
 
     /// `(a, b, ...)`, including `()`

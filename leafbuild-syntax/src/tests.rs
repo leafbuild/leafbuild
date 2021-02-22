@@ -82,3 +82,18 @@ fn declaration() {
 fn foreach_basic() {
     parses_without_errors("foreach () in () {}")
 }
+
+#[test]
+fn freestanding_expr() {
+    parses_without_errors("1\n")
+}
+
+#[test]
+fn var_assignment_with_proper_expr_as_value() {
+    parses_without_errors("let x = 1\n")
+}
+
+#[test]
+fn precedence_parsing() {
+    parses_without_errors("x = 1 + 2 * 3 % - 4 ( 5 )\n")
+}

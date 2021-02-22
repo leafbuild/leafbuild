@@ -428,26 +428,21 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
 fn parse_expr(p: &mut Parser) -> ParseResult {
     p.skip_to_next_meaningful();
 
-    let current = p.current().ok_or(ParseError::Eof)?;
-    match current {
-        L_PAREN => parse_tuple_expr(p),
-        L_BRACKET => parse_array_expr(p),
-        L_BRACE => parse_expr_block(p),
-        IF_KW => parse_conditional(p),
-
-        // R_PAREN | R_BRACKET | R_BRACE => current.as_unexpected_token(),
-        _ => current.as_unexpected_token(p.current_span()),
-    }
+    parse_precedence_9_expr(p)
 }
 
 fn parse_tuple_expr(p: &mut Parser) -> ParseResult {
-    assert!(p.current().is(L_PAREN));
+    assert!(is_tuple_expr_start(p));
 
     parse_tt(p, TupleExpr, L_PAREN, Some(COMMA), R_PAREN, parse_expr)
 }
 
+fn is_tuple_expr_start(p: &mut Parser) -> bool {
+    p.current().is(L_PAREN)
+}
+
 fn parse_array_expr(p: &mut Parser) -> ParseResult {
-    assert!(p.current().is(L_BRACKET));
+    assert!(is_array_expr_start(p));
 
     parse_tt(
         p,
@@ -457,6 +452,41 @@ fn parse_array_expr(p: &mut Parser) -> ParseResult {
         R_BRACKET,
         parse_expr,
     )
+}
+
+fn is_array_expr_start(p: &mut Parser) -> bool {
+    p.current().is(L_BRACKET)
+}
+
+fn parse_primary(p: &mut Parser) -> ParseResult {
+    p.parse_node(PrimaryExpr, |p| {
+        if is_array_expr_start(p) {
+            parse_array_expr(p)
+        } else if is_tuple_expr_start(p) {
+            parse_tuple_expr(p)
+        } else if is_conditional_start(p) {
+            parse_conditional(p)
+        } else if p.current().is_any(&[NUMBER, ID]) {
+            p.bump();
+            Ok(())
+        } else if is_string_lit(p) {
+            parse_string(p)
+        } else {
+            panic!("Cannot parse primary starting with {:?}", p.current());
+        }
+    })
+}
+
+fn is_string_lit(p: &mut Parser) -> bool {
+    p.current().is_any(&[STRING, MULTILINE_STRING])
+}
+
+fn parse_string(p: &mut Parser) -> ParseResult {
+    assert!(is_string_lit(p));
+    p.parse_node(StrLit, |p| {
+        p.bump();
+        Ok(())
+    })
 }
 
 fn parse_tt(
@@ -498,6 +528,139 @@ fn parse_tt(
     })
 }
 
+fn parse_precedence_1_expr(p: &mut Parser) -> ParseResult {
+    let ck = p.checkpoint();
+    parse_primary(p)?;
+
+    while p.next_nontrivia().is_any(&[L_PAREN, L_BRACKET]) {
+        p.skip_trivia();
+
+        if p.current().is(L_PAREN) {
+            parse_f_call(p, ck)?
+        } else if p.current().is(L_BRACKET) {
+            parse_index_expr(p, ck)?
+        }
+    }
+
+    Ok(())
+}
+
+fn parse_f_call(p: &mut Parser, ck: Checkpoint) -> ParseResult {
+    p.parse_node_at(ck, FuncCallExpr, |p| {
+        parse_tt(p, FuncCallArgs, L_PAREN, Some(COMMA), R_PAREN, parse_farg)
+    })
+}
+
+fn parse_farg(p: &mut Parser) -> ParseResult {
+    if is_kexpr_start(p) {
+        parse_kexpr(p)
+    } else {
+        parse_expr(p)
+    }
+}
+
+fn parse_kexpr(p: &mut Parser) -> ParseResult {
+    assert!(is_kexpr_start(p));
+
+    p.parse_node(KExpr, |p| {
+        p.bump();
+        p.skip_trivia();
+
+        p.parse_single_tok(EQ)?;
+
+        p.skip_trivia();
+
+        parse_expr(p)?;
+
+        Ok(())
+    })
+}
+
+fn is_kexpr_start(p: &mut Parser) -> bool {
+    p.current().is(ID) && p.next_nontrivia().is(EQ)
+}
+
+fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
+    assert!(p.current().is(L_BRACKET));
+    p.parse_node_at(ck, IndexedExpr, |p| {
+        p.parse_node(IndexedExprBraces, |p| {
+            p.bump(); // '['
+            parse_expr(p)?; // expr
+            p.parse_single_tok(R_BRACKET)?;
+
+            Ok(())
+        })
+    })
+}
+
+fn parse_precedence_2_expr(p: &mut Parser) -> ParseResult {
+    if p.current().is_any(&[PLUS, MINUS]) {
+        p.parse_node(PrefixUnaryOpExpr, |p| {
+            p.bump();
+            p.skip_trivia();
+
+            parse_precedence_2_expr(p)
+        })
+    } else {
+        parse_precedence_1_expr(p)
+    }
+}
+
+fn parse_infix_binop(
+    p: &mut Parser,
+    ops: &[SyntaxKind],
+    mut lower: impl FnMut(&mut Parser) -> ParseResult,
+) -> ParseResult {
+    let ck = p.checkpoint();
+    lower(p)?;
+
+    while p.next_meaningful().is_any(ops) {
+        p.skip_to_next_meaningful();
+
+        p.parse_node_at(ck, InfixBinOpExpr, |p| {
+            p.bump();
+            p.skip_to_next_meaningful();
+            lower(p)?;
+
+            Ok(())
+        })?;
+    }
+
+    Ok(())
+}
+
+fn parse_precedence_3_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[ASTERISK, SLASH, PERCENT], parse_precedence_2_expr)
+}
+
+fn parse_precedence_4_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[PLUS, MINUS], parse_precedence_3_expr)
+}
+
+fn parse_precedence_5_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[SHIFT_LEFT, SHIFT_RIGHT], parse_precedence_4_expr)
+}
+
+fn parse_precedence_6_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(
+        p,
+        &[LESS, LESS_EQ, GREATER, GREATER_EQ],
+        parse_precedence_5_expr,
+    )
+}
+
+fn parse_precedence_7_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[EQ_EQ, NOT_EQ], parse_precedence_6_expr)
+}
+
+fn parse_precedence_8_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[AND_KW], parse_precedence_7_expr)
+}
+
+fn parse_precedence_9_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[OR_KW], parse_precedence_8_expr)
+}
+
 fn parse_expr_block(p: &mut Parser) -> ParseResult {
     p.skip_to_next_meaningful();
     parse_tt(p, ExprBlock, L_BRACE, None, R_BRACE, parse_statement)
@@ -527,8 +690,12 @@ fn parse_declaration(p: &mut Parser) -> ParseResult {
     })
 }
 
+fn is_conditional_start(p: &mut Parser) -> bool {
+    p.current().is(IF_KW)
+}
+
 fn parse_conditional(p: &mut Parser) -> ParseResult {
-    assert!(p.current().is(IF_KW));
+    assert!(is_conditional_start(p));
 
     p.parse_node(Conditional, move |p| {
         parse_conditional_branch(p).map_incomplete()?;
