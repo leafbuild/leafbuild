@@ -4,8 +4,8 @@ fn main() {
     use leafbuild_syntax::parser::*;
 
     let parsed = parse(
-        r#"let x = y + z * c + d + {
-            f()
+        r#"let x = y + z * c + - d + {
+            f(1, 2, a = b)
             a
         }
     "#,

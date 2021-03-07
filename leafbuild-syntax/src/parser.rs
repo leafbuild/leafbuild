@@ -1,33 +1,32 @@
-//! FIXME: write docs
+//! # The parser code
+//! Also see [the syntax reference](https://leafbuild.github.io/leafbuild/dev/syntax_ref.html).
 
 use std::fmt;
 use std::ops::Range;
 
-use rowan::{Checkpoint, GreenNode, GreenNodeBuilder};
+use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange};
 
 use crate::lexer::Lexer;
 use crate::syntax_kind::SyntaxKind::{self, *};
 use leafbuild_core::utils::{Let, TakeIfUnless};
 
 ///
-#[derive(Copy, Clone, Default, Ord, PartialOrd, Eq, PartialEq, Hash)]
+#[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
 pub struct Span {
-    start: usize,
-    end: usize,
+    text_range: TextRange,
 }
 
-impl From<Range<usize>> for Span {
-    fn from(range: Range<usize>) -> Self {
+impl From<Range<u32>> for Span {
+    fn from(range: Range<u32>) -> Self {
         Self {
-            start: range.start,
-            end: range.end,
+            text_range: TextRange::new(range.start.into(), range.end.into()),
         }
     }
 }
 
 impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}..{}", self.start, self.end)
+        write!(f, "{:?}", self.text_range)
     }
 }
 
@@ -50,10 +49,12 @@ struct Parser {
 }
 
 /// `is` helper
-trait Is: Sized + Copy {
+pub(crate) trait Is: Sized + Copy {
     fn is(self, kind: SyntaxKind) -> bool;
 
-    fn isnt(self, kind: SyntaxKind) -> bool;
+    fn isnt(self, kind: SyntaxKind) -> bool {
+        !self.is(kind)
+    }
 
     fn is_any(self, kinds: &[SyntaxKind]) -> bool {
         kinds.iter().any(|&it| self.is(it))
@@ -63,10 +64,6 @@ trait Is: Sized + Copy {
 impl Is for SyntaxKind {
     fn is(self, kind: SyntaxKind) -> bool {
         self == kind
-    }
-
-    fn isnt(self, kind: SyntaxKind) -> bool {
-        self != kind
     }
 }
 
@@ -228,7 +225,7 @@ impl Parser {
                 return Some(*kind);
             }
 
-            self.index += 1;
+            self.bump();
         }
 
         None
@@ -260,6 +257,12 @@ impl Parser {
 
     fn next_nontrivia(&self) -> Option<SyntaxKind> {
         self.tokens[self.index..]
+            .iter()
+            .find_map(|(it, _, _)| (*it).take_unless(|&it| it.is_trivia()))
+    }
+
+    fn next_nontrivia_lookahead(&self) -> Option<SyntaxKind> {
+        self.tokens[self.index + 1..]
             .iter()
             .find_map(|(it, _, _)| (*it).take_unless(|&it| it.is_trivia()))
     }
@@ -554,6 +557,7 @@ fn parse_f_call(p: &mut Parser, ck: Checkpoint) -> ParseResult {
 }
 
 fn parse_farg(p: &mut Parser) -> ParseResult {
+    p.skip_to_next_meaningful();
     if is_kexpr_start(p) {
         parse_kexpr(p)
     } else {
@@ -579,7 +583,7 @@ fn parse_kexpr(p: &mut Parser) -> ParseResult {
 }
 
 fn is_kexpr_start(p: &mut Parser) -> bool {
-    p.current().is(ID) && p.next_nontrivia().is(EQ)
+    p.current().is(ID) && p.next_nontrivia_lookahead().is(EQ)
 }
 
 fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
@@ -664,7 +668,6 @@ fn parse_precedence_9_expr(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_expr_block(p: &mut Parser) -> ParseResult {
-    p.skip_to_next_meaningful();
     parse_tt(p, ExprBlock, L_BRACE, None, R_BRACE, parse_statement)
 }
 

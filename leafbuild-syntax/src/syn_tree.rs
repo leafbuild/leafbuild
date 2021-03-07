@@ -1,32 +1,65 @@
 //! Syntax tree types
+use crate::parser::Is;
 use crate::syntax_kind::SyntaxKind::{self, *};
 use crate::LeafbuildLanguage;
+use leafbuild_core::utils::*;
 use leafbuild_derive::ast_node;
+use leafbuild_derive::FakeAstNode;
 use rowan::NodeOrToken;
 
 type SyntaxNode = rowan::SyntaxNode<LeafbuildLanguage>;
 type SyntaxToken = rowan::SyntaxToken<LeafbuildLanguage>;
 type SyntaxElement = NodeOrToken<SyntaxNode, SyntaxToken>;
 
+impl Is for &SyntaxNode {
+    fn is(self, kind: SyntaxKind) -> bool {
+        self.kind().is(kind)
+    }
+}
+
+impl Is for &SyntaxToken {
+    fn is(self, kind: SyntaxKind) -> bool {
+        self.kind().is(kind)
+    }
+}
+
+impl Is for &SyntaxElement {
+    fn is(self, kind: SyntaxKind) -> bool {
+        match self {
+            NodeOrToken::Node(n) => n.is(kind),
+            NodeOrToken::Token(t) => t.is(kind),
+        }
+    }
+}
+
 ///
-pub trait AstNode {
+pub trait CastableFromSyntaxNode {
     ///
     fn cast(syntax: SyntaxNode) -> Option<Self>
     where
         Self: Sized;
+}
 
+///
+pub trait AstNode: CastableFromSyntaxNode {
     ///
     fn syntax(&self) -> &SyntaxNode;
 }
 
 ///
-pub trait CastTo: Sized {
+pub trait FakeAstNode: CastableFromSyntaxNode {}
+
+///
+pub trait CastTo<T>: Sized {
     ///
-    fn cast_to<T: AstNode>(self) -> Option<T>;
+    fn cast_to(self) -> Option<T>;
 }
 
-impl CastTo for SyntaxNode {
-    fn cast_to<T: AstNode>(self) -> Option<T> {
+impl<T> CastTo<T> for SyntaxNode
+where
+    T: CastableFromSyntaxNode,
+{
+    fn cast_to(self) -> Option<T> {
         T::cast(self)
     }
 }
@@ -123,10 +156,27 @@ pub struct IndexExprBraces {
 }
 
 ///
+#[derive(Debug, FakeAstNode)]
+pub enum FuncCallArg {
+    ///
+    #[kind(Expr)]
+    Anonymous(Expr),
+    ///
+    #[kind(KExpr)]
+    Named(KExpr),
+}
+
+///
 #[ast_node(FuncCallArgs)]
 #[derive(Debug)]
 pub struct FuncCallArgs {
     syntax: SyntaxNode,
+}
+
+impl FuncCallArgs {
+    fn args(&self) -> impl Iterator<Item = FuncCallArg> {
+        self.syntax.children().filter_map(|it| it.cast_to())
+    }
 }
 
 ///
@@ -134,6 +184,25 @@ pub struct FuncCallArgs {
 #[derive(Debug)]
 pub struct KExpr {
     syntax: SyntaxNode,
+}
+
+impl KExpr {
+    fn id(&self) -> SyntaxToken {
+        self.syntax.first_token().unwrap()
+    }
+
+    fn eq_token(&self) -> SyntaxToken {
+        self.syntax
+            .children_with_tokens()
+            .find(|it| it.is(EQ))
+            .unwrap()
+            .into_token()
+            .unwrap()
+    }
+
+    fn expr(&self) -> Expr {
+        self.syntax.children().find_map(|it| it.cast_to()).unwrap()
+    }
 }
 
 ///
@@ -242,10 +311,23 @@ pub struct ConditionalBranch {
 }
 
 ///
+#[ast_node(Statement)]
+#[derive(Debug)]
+pub struct Statement {
+    syntax: SyntaxNode,
+}
+
+///
 #[ast_node(LangItem)]
 #[derive(Debug)]
 pub struct LangItem {
     syntax: SyntaxNode,
+}
+
+impl LangItem {
+    fn as_statement(&self) -> Option<Statement> {
+        self.syntax.first_child().unwrap().let_(Statement::cast)
+    }
 }
 
 ///
@@ -264,16 +346,18 @@ impl Root {
 
 ///
 pub fn print(indent: usize, element: SyntaxElement) {
-    let kind: SyntaxKind = element.kind().into();
+    let kind = element.kind();
     print!("{:indent$}", "", indent = indent);
     match element {
         NodeOrToken::Node(node) => {
-            println!("- {:?}", kind);
+            println!("- {:?} {:?}", kind, node.text_range());
             for child in node.children_with_tokens() {
                 print(indent + 2, child);
             }
         }
 
-        NodeOrToken::Token(token) => println!("- {:?} {:?}", token.text(), kind),
+        NodeOrToken::Token(token) => {
+            println!("- {:?} {:?} {:?}", token.text(), kind, token.text_range())
+        }
     }
 }

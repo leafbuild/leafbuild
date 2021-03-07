@@ -29,6 +29,7 @@
 )]
 #![allow(clippy::module_name_repetitions)]
 #![allow(clippy::enum_glob_use)]
+#![allow(clippy::wildcard_imports)]
 
 //! The syntax of `build.leaf` files, along with the lexer and parser.
 //! This uses [rowan](https://github.com/rust-analyzer/rowan).

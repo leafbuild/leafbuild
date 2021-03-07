@@ -1,6 +1,7 @@
 use crate::parser::Span;
 use crate::syntax_kind::SyntaxKind;
 use logos::Logos;
+use leafbuild_core::prelude::Let;
 
 /// The type of the token
 #[derive(Logos, Copy, Clone, Debug, PartialEq, PartialOrd, Eq)]
@@ -180,9 +181,6 @@ impl From<Tk> for SyntaxKind {
 }
 
 /// The token structure
-///
-// Lalrpop throws tokens back if it cannot make sense of them, so this is part of the return type
-// of [`crate::parse`], and so needs to be public.
 #[derive(Debug, Clone, PartialOrd, PartialEq, Eq)]
 struct Token<'data> {
     pub(crate) token: Tk,
@@ -209,7 +207,7 @@ impl<'a> Iterator for Lexer<'a> {
             (
                 token.into(),
                 self.lexer.slice().to_string(),
-                self.lexer.span().into(),
+                self.lexer.span().let_(|it| it.start as u32..it.end as u32).into(),
             )
         })
     }

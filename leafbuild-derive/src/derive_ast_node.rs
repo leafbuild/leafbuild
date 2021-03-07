@@ -16,14 +16,16 @@ pub fn derive_ast_node(
     proc_macro::TokenStream::from(quote! {
         #input_item
 
-        impl #generics AstNode for #name #ty_generics #where_clause {
+        impl #generics CastableFromSyntaxNode for #name #ty_generics #where_clause {
             fn cast(syntax: SyntaxNode) -> Option<Self> where Self: Sized {
                 match syntax.kind() {
                     #attr_data => Some(Self {syntax}),
                     _ => None,
                 }
             }
+        }
 
+        impl #generics AstNode for #name #ty_generics #where_clause {
             fn syntax(&self) -> &SyntaxNode {
                 &self.syntax
             }
