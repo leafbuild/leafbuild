@@ -37,6 +37,7 @@ use rowan::Language;
 
 pub(crate) mod lexer;
 pub mod parser;
+pub mod syn_tree;
 pub mod syntax_kind;
 
 use syntax_kind::SyntaxKind;

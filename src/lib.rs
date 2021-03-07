@@ -56,7 +56,6 @@
 extern crate codespan_reporting;
 #[macro_use]
 extern crate tracing;
-extern crate derive_new;
 extern crate leafbuild_derive;
 extern crate term;
 extern crate thiserror;

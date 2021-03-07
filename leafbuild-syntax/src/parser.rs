@@ -466,6 +466,8 @@ fn parse_primary(p: &mut Parser) -> ParseResult {
             parse_tuple_expr(p)
         } else if is_conditional_start(p) {
             parse_conditional(p)
+        } else if is_expr_block_start(p) {
+            parse_expr_block(p)
         } else if p.current().is_any(&[NUMBER, ID]) {
             p.bump();
             Ok(())
@@ -666,12 +668,14 @@ fn parse_expr_block(p: &mut Parser) -> ParseResult {
     parse_tt(p, ExprBlock, L_BRACE, None, R_BRACE, parse_statement)
 }
 
+fn is_expr_block_start(p: &mut Parser) -> bool {
+    p.current().is(L_BRACE)
+}
+
 fn parse_declaration(p: &mut Parser) -> ParseResult {
     assert!(p.current().is(LET_KW));
-    p.parse_node(Declaration, move |p| {
-        // consume LET_KW
-        p.bump();
-        // skip whitespace / comments
+    p.parse_node(Declaration, |p| {
+        p.bump(); // LET_KW
         p.skip_trivia();
 
         p.parse_single_tok(ID).map_incomplete()?;
@@ -697,7 +701,7 @@ fn is_conditional_start(p: &mut Parser) -> bool {
 fn parse_conditional(p: &mut Parser) -> ParseResult {
     assert!(is_conditional_start(p));
 
-    p.parse_node(Conditional, move |p| {
+    p.parse_node(Conditional, |p| {
         parse_conditional_branch(p).map_incomplete()?;
         while p.next_meaningful().is(ELSE_KW) {
             p.skip_to_next_meaningful();
@@ -718,7 +722,7 @@ fn parse_conditional(p: &mut Parser) -> ParseResult {
 
 fn parse_conditional_branch(p: &mut Parser) -> ParseResult {
     assert!(p.current().is(IF_KW));
-    p.parse_node(ConditionalBranch, move |p| {
+    p.parse_node(ConditionalBranch, |p| {
         // consume the IF_KW
         p.bump();
 
@@ -750,6 +754,7 @@ fn parse_control_stmt(p: &mut Parser) -> ParseResult {
     p.parse_node(ControlStatement, |p| match p.current() {
         Some(CONTINUE_KW) => {
             p.bump();
+            p.skip_trivia_and_single_newline()?;
             Ok(())
         }
 

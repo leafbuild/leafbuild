@@ -121,6 +121,8 @@ pub enum SyntaxKind {
     ERROR,
 
     // composites
+    /// umbrella for any possible expression
+    Expr,
     /// `[1,2,3]`
     ArrayLitExpr,
     /// `{a:1,b:2}`
@@ -194,7 +196,8 @@ pub enum SyntaxKind {
     /// Something like `f()`
     ExprStatement,
 
-    /// `{ <statement>* <expr>? }`
+    /// `{ <statement>* }`, and if last statement is an expression,
+    /// return the value of that expression
     FnBody,
 
     /// `(a, b, ...)`, including `()`
@@ -205,6 +208,9 @@ pub enum SyntaxKind {
 
     ///
     ConditionalBranch,
+
+    ///
+    LangItem,
 
     /// for the root node
     ROOT,

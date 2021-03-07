@@ -49,10 +49,10 @@ Precedence9Expr ::= Precedence8Expr ('or' Precedence8Expr)*
 Expr ::= Precedence10Expr
 
 # Control flow
-Conditional ::= 'if' Expr Block ('else' 'if' Block)* ('else' Block)?
+Conditional ::= 'if' Expr Block ('else' 'if' Expr Block)* ('else' Block)?
 
 # Statements
-Block ::= '{' Statement* Expr? '}'
+Block ::= '{' Statement* '}'
 ExprEvalStatement ::= Expr '\n'
 
 Continue ::= 'continue' '\n'

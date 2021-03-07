@@ -569,7 +569,6 @@ dependencies = [
  "clap 3.0.0-beta.2",
  "codespan-reporting",
  "derivative",
- "derive-new",
  "itertools 0.10.0",
  "lalrpop-util",
  "leafbuild-ast",
@@ -688,6 +687,7 @@ dependencies = [
  "drop_bomb",
  "itertools 0.10.0",
  "leafbuild-core",
+ "leafbuild-derive",
  "logos",
  "rowan",
 ]

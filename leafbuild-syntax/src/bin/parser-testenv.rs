@@ -1,34 +1,16 @@
-use itertools::Itertools;
+use rowan::NodeOrToken;
 
 fn main() {
     use leafbuild_syntax::parser::*;
 
     let parsed = parse(
-        r#"
-
-    (  )=if (){}
-
-    if ((), ()) {
-
-    }
-    else if (          ()       )
-
-    {
-
-    }
-    else
-    {
-
-    }
+        r#"let x = y + z * c + d + {
+            f()
+            a
+        }
     "#,
     );
     println!("{:#?}", &parsed);
-    println!(
-        "{}",
-        parsed
-            .green_node
-            .children()
-            .map(|it| format!("{:#?}", it.as_node().unwrap()))
-            .join(", ")
-    )
+    let node = rowan::SyntaxNode::new_root(parsed.green_node);
+    leafbuild_syntax::syn_tree::print(0, NodeOrToken::Node(node));
 }

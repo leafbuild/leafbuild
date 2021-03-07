@@ -39,7 +39,6 @@ derivative = "2.1"
 chrono = "0.4"
 ansi_term = "0.12"
 atty = "0.2"
-derive-new = "0.5"
 lalrpop-util = "0.19"
 
 tracing = "0.1"

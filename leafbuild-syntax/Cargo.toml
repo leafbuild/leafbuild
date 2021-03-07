@@ -13,3 +13,4 @@ logos = "0.12"
 itertools = "0.10"
 
 leafbuild-core = { path = "../leafbuild-core", version = "0.1.0" }
+leafbuild-derive = { path = "../leafbuild-derive", version = "0.1.0" }
