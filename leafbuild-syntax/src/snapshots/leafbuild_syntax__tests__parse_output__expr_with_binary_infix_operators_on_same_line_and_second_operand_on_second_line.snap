@@ -1,0 +1,72 @@
+---
+source: leafbuild-syntax/src/tests.rs
+expression: "\n        x = 1 +\n        2 +\n        f(\n            4\n        )\n        y = 3 *\n        6 %\n        78\n        "
+
+---
+- ROOT 0..111
+  - "\n" NEWLINE 0..1
+  - "        " WHITESPACE 1..9
+  - Assignment 9..64
+    - Expr 9..10
+      - PrimaryExpr 9..10
+        - "x" ID 9..10
+    - " " WHITESPACE 10..11
+    - "=" EQ 11..12
+    - " " WHITESPACE 12..13
+    - Expr 13..63
+      - InfixBinOpExpr 13..63
+        - InfixBinOpExpr 13..26
+          - PrimaryExpr 13..14
+            - "1" NUMBER 13..14
+          - " " WHITESPACE 14..15
+          - "+" PLUS 15..16
+          - "\n" NEWLINE 16..17
+          - "        " WHITESPACE 17..25
+          - PrimaryExpr 25..26
+            - "2" NUMBER 25..26
+        - " " WHITESPACE 26..27
+        - "+" PLUS 27..28
+        - "\n" NEWLINE 28..29
+        - "        " WHITESPACE 29..37
+        - FuncCallExpr 37..63
+          - PrimaryExpr 37..38
+            - "f" ID 37..38
+          - FuncCallArgs 38..63
+            - "(" L_PAREN 38..39
+            - "\n" NEWLINE 39..40
+            - "            " WHITESPACE 40..52
+            - Expr 52..53
+              - PrimaryExpr 52..53
+                - "4" NUMBER 52..53
+            - "\n" NEWLINE 53..54
+            - "        " WHITESPACE 54..62
+            - ")" R_PAREN 62..63
+    - "\n" NEWLINE 63..64
+  - Assignment 64..103
+    - "        " WHITESPACE 64..72
+    - Expr 72..73
+      - PrimaryExpr 72..73
+        - "y" ID 72..73
+    - " " WHITESPACE 73..74
+    - "=" EQ 74..75
+    - " " WHITESPACE 75..76
+    - Expr 76..102
+      - InfixBinOpExpr 76..102
+        - InfixBinOpExpr 76..89
+          - PrimaryExpr 76..77
+            - "3" NUMBER 76..77
+          - " " WHITESPACE 77..78
+          - "*" ASTERISK 78..79
+          - "\n" NEWLINE 79..80
+          - "        " WHITESPACE 80..88
+          - PrimaryExpr 88..89
+            - "6" NUMBER 88..89
+        - " " WHITESPACE 89..90
+        - "%" PERCENT 90..91
+        - "\n" NEWLINE 91..92
+        - "        " WHITESPACE 92..100
+        - PrimaryExpr 100..102
+          - "78" NUMBER 100..102
+    - "\n" NEWLINE 102..103
+  - "        " WHITESPACE 103..111
+

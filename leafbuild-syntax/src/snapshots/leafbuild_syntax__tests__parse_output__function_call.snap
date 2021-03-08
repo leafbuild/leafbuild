@@ -1,0 +1,43 @@
+---
+source: leafbuild-syntax/src/tests.rs
+expression: "\n        x = f(1, 2, a = b)\n    "
+
+---
+- ROOT 0..32
+  - "\n" NEWLINE 0..1
+  - "        " WHITESPACE 1..9
+  - Assignment 9..28
+    - Expr 9..10
+      - PrimaryExpr 9..10
+        - "x" ID 9..10
+    - " " WHITESPACE 10..11
+    - "=" EQ 11..12
+    - " " WHITESPACE 12..13
+    - Expr 13..27
+      - FuncCallExpr 13..27
+        - PrimaryExpr 13..14
+          - "f" ID 13..14
+        - FuncCallArgs 14..27
+          - "(" L_PAREN 14..15
+          - Expr 15..16
+            - PrimaryExpr 15..16
+              - "1" NUMBER 15..16
+          - "," COMMA 16..17
+          - " " WHITESPACE 17..18
+          - Expr 18..19
+            - PrimaryExpr 18..19
+              - "2" NUMBER 18..19
+          - "," COMMA 19..20
+          - " " WHITESPACE 20..21
+          - KExpr 21..26
+            - "a" ID 21..22
+            - " " WHITESPACE 22..23
+            - "=" EQ 23..24
+            - " " WHITESPACE 24..25
+            - Expr 25..26
+              - PrimaryExpr 25..26
+                - "b" ID 25..26
+          - ")" R_PAREN 26..27
+    - "\n" NEWLINE 27..28
+  - "    " WHITESPACE 28..32
+

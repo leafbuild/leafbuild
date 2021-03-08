@@ -3,13 +3,13 @@ source: leafbuild-syntax/src/tests.rs
 expression: "\n        () = if ()\n        {\n    \n        }\n    \n        else\n        {\n    \n    \n        }\n    "
 
 ---
-- ROOT 0..93
-  - Assignment 0..93
-    - Expr 0..11
-      - PrimaryExpr 0..11
-        - TupleExpr 0..11
-          - "\n" NEWLINE 0..1
-          - "        " WHITESPACE 1..9
+- ROOT 0..97
+  - "\n" NEWLINE 0..1
+  - "        " WHITESPACE 1..9
+  - Assignment 9..93
+    - Expr 9..11
+      - PrimaryExpr 9..11
+        - TupleExpr 9..11
           - "(" L_PAREN 9..10
           - ")" R_PAREN 10..11
     - " " WHITESPACE 11..12
@@ -26,9 +26,9 @@ expression: "\n        () = if ()\n        {\n    \n        }\n    \n        els
                 - TupleExpr 17..19
                   - "(" L_PAREN 17..18
                   - ")" R_PAREN 18..19
-            - ExprBlock 19..44
-              - "\n" NEWLINE 19..20
-              - "        " WHITESPACE 20..28
+            - "\n" NEWLINE 19..20
+            - "        " WHITESPACE 20..28
+            - ExprBlock 28..44
               - "{" L_BRACE 28..29
               - "\n" NEWLINE 29..30
               - "    " WHITESPACE 30..34
@@ -52,4 +52,5 @@ expression: "\n        () = if ()\n        {\n    \n        }\n    \n        els
             - "        " WHITESPACE 83..91
             - "}" R_BRACE 91..92
     - "\n" NEWLINE 92..93
+  - "    " WHITESPACE 93..97
 

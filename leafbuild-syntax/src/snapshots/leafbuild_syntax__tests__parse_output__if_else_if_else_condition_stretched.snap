@@ -3,11 +3,11 @@ source: leafbuild-syntax/src/tests.rs
 expression: "\n        if ()\n    \n        {\n    \n    \n    \n        }\n    \n        else if () {\n    \n    \n        }\n    \n        else {\n    \n    \n        }\n    "
 
 ---
-- ROOT 0..140
-  - Conditional 0..140
-    - ConditionalBranch 0..54
-      - "\n" NEWLINE 0..1
-      - "        " WHITESPACE 1..9
+- ROOT 0..145
+  - "\n" NEWLINE 0..1
+  - "        " WHITESPACE 1..9
+  - Conditional 9..140
+    - ConditionalBranch 9..54
       - "if" IF_KW 9..11
       - " " WHITESPACE 11..12
       - Expr 12..14
@@ -15,11 +15,11 @@ expression: "\n        if ()\n    \n        {\n    \n    \n    \n        }\n    
           - TupleExpr 12..14
             - "(" L_PAREN 12..13
             - ")" R_PAREN 13..14
-      - ExprBlock 14..54
-        - "\n" NEWLINE 14..15
-        - "    " WHITESPACE 15..19
-        - "\n" NEWLINE 19..20
-        - "        " WHITESPACE 20..28
+      - "\n" NEWLINE 14..15
+      - "    " WHITESPACE 15..19
+      - "\n" NEWLINE 19..20
+      - "        " WHITESPACE 20..28
+      - ExprBlock 28..54
         - "{" L_BRACE 28..29
         - "\n" NEWLINE 29..30
         - "    " WHITESPACE 30..34
@@ -44,8 +44,8 @@ expression: "\n        if ()\n    \n        {\n    \n    \n    \n        }\n    
           - TupleExpr 76..78
             - "(" L_PAREN 76..77
             - ")" R_PAREN 77..78
-      - ExprBlock 78..100
-        - " " WHITESPACE 78..79
+      - " " WHITESPACE 78..79
+      - ExprBlock 79..100
         - "{" L_BRACE 79..80
         - "\n" NEWLINE 80..81
         - "    " WHITESPACE 81..85
@@ -69,4 +69,6 @@ expression: "\n        if ()\n    \n        {\n    \n    \n    \n        }\n    
       - "\n" NEWLINE 130..131
       - "        " WHITESPACE 131..139
       - "}" R_BRACE 139..140
+  - "\n" NEWLINE 140..141
+  - "    " WHITESPACE 141..145
 

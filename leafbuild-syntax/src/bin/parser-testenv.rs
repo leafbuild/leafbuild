@@ -6,8 +6,8 @@ fn main() {
     use leafbuild_syntax::parser::*;
 
     let parsed = parse(
-        r#"let x = { 1 + 0 }
-        x + 1
+        r#"x = a
+            [1]
     "#,
     );
     println!("{:#?}", &parsed);

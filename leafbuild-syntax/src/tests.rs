@@ -2,6 +2,22 @@
 // *syntactically*, they should parse.
 // Even if semantically they are void of meaning.
 
+mod parse_failure {
+    fn parse_fails(input: &str) {
+        assert_ne!(crate::parser::parse(input).errors, vec![]);
+    }
+
+    #[test]
+    fn func_call_on_second_line() {
+        parse_fails(
+            r#"
+            x = f
+            (1, 2, a = b)
+            "#,
+        );
+    }
+}
+
 mod parse_output {
     use crate::parser::parse;
     use crate::syn_tree::{self, AstNode, CastableFromSyntaxNode, Root, SyntaxElement};
@@ -75,4 +91,43 @@ mod parse_output {
     parse_test_full!(freestanding_expr, "1\n");
     parse_test_full!(var_assignment_with_proper_expr_as_value, "let x = 1\n");
     parse_test_full!(precedence_parsing, "x = 1 + 2 * 3 % - 4 ( 5 )\n");
+    parse_test_full!(
+        function_call,
+        r#"
+        x = f(1, 2, a = b)
+    "#
+    );
+    parse_test_full!(
+        expr_with_binary_infix_operators_on_same_line_and_second_operand_on_second_line,
+        r#"
+        x = 1 +
+        2 +
+        f(
+            4
+        )
+        y = 3 *
+        6 %
+        78
+        "#
+    );
+    parse_test_full!(
+        expr_with_binary_infix_opeators_on_next_line,
+        r#"
+        x = 1
+        + 2
+        + f(
+            4
+        )
+        y = 3
+        * 6
+        % 78
+        "#
+    );
+    parse_test_full!(
+        index_on_second_line_is_array_lit_expr,
+        r#"
+        x = a
+        [1]
+        "#
+    );
 }

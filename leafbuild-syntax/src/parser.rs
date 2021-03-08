@@ -140,6 +140,7 @@ type ParseResult<T = ()> = std::result::Result<T, ParseError>;
 impl<'input> Parser<'input> {
     fn parse(mut self) -> Parse {
         self.parse_node(ROOT, |p| {
+            p.bump_raw_to_meaningful();
             loop {
                 match parse_lang_item(p) {
                     Err(ParseError::Eof) => break,
@@ -169,6 +170,8 @@ impl<'input> Parser<'input> {
                     }
                 }
             }
+
+            p.bump_raw_to(p.tokens.len());
 
             Ok(())
         })
@@ -318,6 +321,18 @@ impl<'input> Parser<'input> {
     }
 
     #[inline(always)]
+    fn has_newline(&self) -> bool {
+        let idx = self
+            .meaningful
+            .get(self.meaningful_index)
+            .map_or(self.tokens.len(), |&(_, index)| index);
+
+        self.tokens[self.index..idx]
+            .iter()
+            .any(|&(kind, _, _)| kind.is(NEWLINE))
+    }
+
+    #[inline(always)]
     fn next_nontrivia_lookahead(&self) -> Option<SyntaxKind> {
         self.tokens[self.index + 1..]
             .iter()
@@ -391,7 +406,9 @@ impl<'input> Parser<'input> {
         kind: SyntaxKind,
         f: impl FnOnce(&mut Self) -> ParseResult<T>,
     ) -> ParseResult<T> {
-        self.bump_raw_to_meaningful();
+        if kind != ROOT {
+            self.bump_raw_to_meaningful();
+        }
         self.start_node(kind);
         let r = f(self);
         self.finish_node();
@@ -594,7 +611,7 @@ fn parse_precedence_1_expr(p: &mut Parser) -> ParseResult {
     let ck = p.checkpoint();
     parse_primary(p)?;
 
-    while p.current().is_any(&[L_PAREN, L_BRACKET]) {
+    while p.current().is_any(&[L_PAREN, L_BRACKET]) && !p.has_newline() {
         if p.current().is(L_PAREN) {
             parse_f_call(p, ck)?
         } else if p.current().is(L_BRACKET) {
