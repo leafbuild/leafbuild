@@ -1,0 +1,55 @@
+---
+source: leafbuild-syntax/src/tests.rs
+expression: "\n        () = if ()\n        {\n    \n        }\n    \n        else\n        {\n    \n    \n        }\n    "
+
+---
+- ROOT 0..93
+  - Assignment 0..93
+    - Expr 0..11
+      - PrimaryExpr 0..11
+        - TupleExpr 0..11
+          - "\n" NEWLINE 0..1
+          - "        " WHITESPACE 1..9
+          - "(" L_PAREN 9..10
+          - ")" R_PAREN 10..11
+    - " " WHITESPACE 11..12
+    - "=" EQ 12..13
+    - " " WHITESPACE 13..14
+    - Expr 14..92
+      - PrimaryExpr 14..92
+        - Conditional 14..92
+          - ConditionalBranch 14..44
+            - "if" IF_KW 14..16
+            - " " WHITESPACE 16..17
+            - Expr 17..19
+              - PrimaryExpr 17..19
+                - TupleExpr 17..19
+                  - "(" L_PAREN 17..18
+                  - ")" R_PAREN 18..19
+            - ExprBlock 19..44
+              - "\n" NEWLINE 19..20
+              - "        " WHITESPACE 20..28
+              - "{" L_BRACE 28..29
+              - "\n" NEWLINE 29..30
+              - "    " WHITESPACE 30..34
+              - "\n" NEWLINE 34..35
+              - "        " WHITESPACE 35..43
+              - "}" R_BRACE 43..44
+          - "\n" NEWLINE 44..45
+          - "    " WHITESPACE 45..49
+          - "\n" NEWLINE 49..50
+          - "        " WHITESPACE 50..58
+          - "else" ELSE_KW 58..62
+          - "\n" NEWLINE 62..63
+          - "        " WHITESPACE 63..71
+          - ExprBlock 71..92
+            - "{" L_BRACE 71..72
+            - "\n" NEWLINE 72..73
+            - "    " WHITESPACE 73..77
+            - "\n" NEWLINE 77..78
+            - "    " WHITESPACE 78..82
+            - "\n" NEWLINE 82..83
+            - "        " WHITESPACE 83..91
+            - "}" R_BRACE 91..92
+    - "\n" NEWLINE 92..93
+

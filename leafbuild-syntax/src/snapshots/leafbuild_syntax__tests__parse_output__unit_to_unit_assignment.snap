@@ -1,0 +1,22 @@
+---
+source: leafbuild-syntax/src/tests.rs
+expression: "() = ()\n"
+
+---
+- ROOT 0..8
+  - Assignment 0..8
+    - Expr 0..2
+      - PrimaryExpr 0..2
+        - TupleExpr 0..2
+          - "(" L_PAREN 0..1
+          - ")" R_PAREN 1..2
+    - " " WHITESPACE 2..3
+    - "=" EQ 3..4
+    - " " WHITESPACE 4..5
+    - Expr 5..7
+      - PrimaryExpr 5..7
+        - TupleExpr 5..7
+          - "(" L_PAREN 5..6
+          - ")" R_PAREN 6..7
+    - "\n" NEWLINE 7..8
+

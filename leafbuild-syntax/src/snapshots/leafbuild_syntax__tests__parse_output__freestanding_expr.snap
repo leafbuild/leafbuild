@@ -1,0 +1,10 @@
+---
+source: leafbuild-syntax/src/tests.rs
+expression: "1\n"
+
+---
+- ROOT 0..1
+  - Expr 0..1
+    - PrimaryExpr 0..1
+      - "1" NUMBER 0..1
+

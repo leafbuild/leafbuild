@@ -1,0 +1,39 @@
+---
+source: leafbuild-syntax/src/tests.rs
+expression: "() = if () {} else {} \n"
+
+---
+- ROOT 0..23
+  - Assignment 0..23
+    - Expr 0..2
+      - PrimaryExpr 0..2
+        - TupleExpr 0..2
+          - "(" L_PAREN 0..1
+          - ")" R_PAREN 1..2
+    - " " WHITESPACE 2..3
+    - "=" EQ 3..4
+    - " " WHITESPACE 4..5
+    - Expr 5..21
+      - PrimaryExpr 5..21
+        - Conditional 5..21
+          - ConditionalBranch 5..13
+            - "if" IF_KW 5..7
+            - " " WHITESPACE 7..8
+            - Expr 8..10
+              - PrimaryExpr 8..10
+                - TupleExpr 8..10
+                  - "(" L_PAREN 8..9
+                  - ")" R_PAREN 9..10
+            - ExprBlock 10..13
+              - " " WHITESPACE 10..11
+              - "{" L_BRACE 11..12
+              - "}" R_BRACE 12..13
+          - " " WHITESPACE 13..14
+          - "else" ELSE_KW 14..18
+          - " " WHITESPACE 18..19
+          - ExprBlock 19..21
+            - "{" L_BRACE 19..20
+            - "}" R_BRACE 20..21
+    - " " WHITESPACE 21..22
+    - "\n" NEWLINE 22..23
+
