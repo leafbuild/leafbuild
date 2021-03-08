@@ -18,8 +18,8 @@ expression: "if (()) {} else {}"
                   - "(" L_PAREN 4..5
                   - ")" R_PAREN 5..6
             - ")" R_PAREN 6..7
-      - ExprBlock 7..10
-        - " " WHITESPACE 7..8
+      - " " WHITESPACE 7..8
+      - ExprBlock 8..10
         - "{" L_BRACE 8..9
         - "}" R_BRACE 9..10
     - " " WHITESPACE 10..11

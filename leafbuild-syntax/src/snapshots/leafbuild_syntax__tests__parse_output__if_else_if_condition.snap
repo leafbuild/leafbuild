@@ -13,8 +13,8 @@ expression: "if () {} else if () {} else {}"
           - TupleExpr 3..5
             - "(" L_PAREN 3..4
             - ")" R_PAREN 4..5
-      - ExprBlock 5..8
-        - " " WHITESPACE 5..6
+      - " " WHITESPACE 5..6
+      - ExprBlock 6..8
         - "{" L_BRACE 6..7
         - "}" R_BRACE 7..8
     - " " WHITESPACE 8..9
@@ -28,8 +28,8 @@ expression: "if () {} else if () {} else {}"
           - TupleExpr 17..19
             - "(" L_PAREN 17..18
             - ")" R_PAREN 18..19
-      - ExprBlock 19..22
-        - " " WHITESPACE 19..20
+      - " " WHITESPACE 19..20
+      - ExprBlock 20..22
         - "{" L_BRACE 20..21
         - "}" R_BRACE 21..22
     - " " WHITESPACE 22..23

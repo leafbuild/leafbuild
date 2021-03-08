@@ -36,8 +36,8 @@ expression: "x = 1 + 2 * 3 % - 4 ( 5 )\n"
             - FuncCallExpr 18..25
               - PrimaryExpr 18..19
                 - "4" NUMBER 18..19
-              - FuncCallArgs 19..25
-                - " " WHITESPACE 19..20
+              - " " WHITESPACE 19..20
+              - FuncCallArgs 20..25
                 - "(" L_PAREN 20..21
                 - " " WHITESPACE 21..22
                 - Expr 22..23

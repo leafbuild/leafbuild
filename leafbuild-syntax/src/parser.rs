@@ -242,6 +242,13 @@ impl<'input> Parser<'input> {
     }
 
     #[inline(always)]
+    fn bump_raw_to_meaningful(&mut self) {
+        if let Some((_, index)) = self.meaningful.get(self.meaningful_index) {
+            self.bump_raw_to(*index);
+        }
+    }
+
+    #[inline(always)]
     fn bump_if(&mut self, f: impl FnOnce(SyntaxKind) -> bool) -> bool {
         if self.current().map_or(false, f) {
             self.bump();
@@ -313,6 +320,7 @@ impl<'input> Parser<'input> {
             .find_map(|(it, _, _)| (*it).take_unless(|&it| it.is_trivia()))
     }
 
+    #[inline(always)]
     fn error(&mut self) {
         self.builder.token(ERROR.into(), "")
     }
@@ -339,6 +347,7 @@ impl<'input> Parser<'input> {
         Ok(())
     }
 
+    #[inline(always)]
     fn parse_single_tok(&mut self, kind: SyntaxKind) -> ParseResult {
         if !self.bump_if(|it| it.is(kind)) {
             self.error();
@@ -352,18 +361,22 @@ impl<'input> Parser<'input> {
         Ok(())
     }
 
+    #[inline(always)]
     fn start_node(&mut self, kind: SyntaxKind) {
         self.builder.start_node(kind.into())
     }
 
+    #[inline(always)]
     fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
         self.builder.start_node_at(checkpoint, kind.into())
     }
 
+    #[inline(always)]
     fn checkpoint(&mut self) -> Checkpoint {
         self.builder.checkpoint()
     }
 
+    #[inline(always)]
     fn finish_node(&mut self) {
         self.builder.finish_node()
     }
@@ -374,6 +387,7 @@ impl<'input> Parser<'input> {
         kind: SyntaxKind,
         f: impl FnOnce(&mut Self) -> ParseResult<T>,
     ) -> ParseResult<T> {
+        self.bump_raw_to_meaningful();
         self.start_node(kind);
         let r = f(self);
         self.finish_node();

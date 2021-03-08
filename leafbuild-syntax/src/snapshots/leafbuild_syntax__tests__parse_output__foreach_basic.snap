@@ -20,8 +20,8 @@ expression: "foreach () in () {}"
         - TupleExpr 14..16
           - "(" L_PAREN 14..15
           - ")" R_PAREN 15..16
-    - ExprBlock 16..19
-      - " " WHITESPACE 16..17
+    - " " WHITESPACE 16..17
+    - ExprBlock 17..19
       - "{" L_BRACE 17..18
       - "}" R_BRACE 18..19
 
