@@ -243,8 +243,12 @@ impl<'input> Parser<'input> {
 
     #[inline(always)]
     fn bump_raw_to_meaningful(&mut self) {
-        if let Some((_, index)) = self.meaningful.get(self.meaningful_index) {
-            self.bump_raw_to(*index);
+        if let Some(index) = self
+            .meaningful
+            .get(self.meaningful_index)
+            .map(|&(_, index)| index)
+        {
+            self.bump_raw_to(index);
         }
     }
 
