@@ -1,7 +1,7 @@
 use crate::parser::Span;
 use crate::syntax_kind::SyntaxKind;
-use logos::Logos;
 use leafbuild_core::prelude::Let;
+use logos::Logos;
 
 /// The type of the token
 #[derive(Logos, Copy, Clone, Debug, PartialEq, PartialOrd, Eq)]
@@ -200,14 +200,17 @@ impl<'a> Lexer<'a> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = (SyntaxKind, String, Span);
+    type Item = (SyntaxKind, &'a str, Span);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.lexer.next().map(|token| {
             (
                 token.into(),
-                self.lexer.slice().to_string(),
-                self.lexer.span().let_(|it| it.start as u32..it.end as u32).into(),
+                self.lexer.slice(),
+                self.lexer
+                    .span()
+                    .let_(|it| it.start as u32..it.end as u32)
+                    .into(),
             )
         })
     }

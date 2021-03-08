@@ -1,99 +1,78 @@
-fn parses_without_errors(s: &str) {
-    assert_eq!(crate::parser::parse(s).errors, vec![]);
-}
-
 // Those are only *parsing* tests, so as long as they make sense
 // *syntactically*, they should parse.
 // Even if semantically they are void of meaning.
-#[test]
-fn unit_to_unit_assignment() {
-    parses_without_errors("() = ()\n")
-}
 
-#[test]
-fn line_trailing_space() {
-    parses_without_errors("() = () \n")
-}
+mod parse_output {
+    use crate::parser::parse;
+    use crate::syn_tree::{self, AstNode, CastableFromSyntaxNode, Root, SyntaxElement};
+    use crate::LeafbuildLanguage;
+    macro_rules! parse_test {
+        ($name:ident, $s:literal) => {
+            let mut s = String::new();
+            let p = parse($s);
+            assert_eq!(p.errors, vec![]);
+            let node = rowan::SyntaxNode::<LeafbuildLanguage>::new_root(p.green_node);
+            let node: Root = Root::cast(node).unwrap();
+            syn_tree::test_dbg(0, SyntaxElement::Node(node.syntax().clone()), &mut s);
+            insta::assert_snapshot!(stringify!($name), s.as_str(), $s);
+        };
+    }
 
-#[test]
-fn if_condition() {
-    parses_without_errors("if (()) {} else {}")
-}
+    macro_rules! parse_test_full {
+        ($name:ident, $s:literal) => {
+            #[test]
+            fn $name() {
+                parse_test!($name, $s);
+            }
+        };
+    }
 
-#[test]
-fn if_else_if_condition() {
-    parses_without_errors("if () {} else if () {} else {}")
-}
-
-#[test]
-fn if_else_if_else_condition_stretched() {
-    parses_without_errors(
+    parse_test_full!(declaration, "let a = b\n");
+    parse_test_full!(assignment, "a = b\n");
+    parse_test_full!(unit_to_unit_assignment, "() = ()\n");
+    parse_test_full!(line_trailling_space, "() = () \n");
+    parse_test_full!(if_condition, "if (()) {} else {}");
+    parse_test_full!(if_else_if_condition, "if () {} else if () {} else {}");
+    parse_test_full!(
+        if_else_if_else_condition_stretched,
         r#"
-    if ()
-
-    {
-
-
-
-    }
-
-    else if () {
-
-
-    }
-
-    else {
-
-
-    }
-    "#,
-    )
-}
-
-#[test]
-fn if_condition_in_expr() {
-    parses_without_errors("() = if () {} else {} \n")
-}
-
-#[test]
-fn if_condition_in_expr_stretched() {
-    parses_without_errors(
+        if ()
+    
+        {
+    
+    
+    
+        }
+    
+        else if () {
+    
+    
+        }
+    
+        else {
+    
+    
+        }
+    "#
+    );
+    parse_test_full!(if_condition_in_expr, "() = if () {} else {} \n");
+    parse_test_full!(
+        if_condition_in_expr_stretched,
         r#"
-    () = if ()
-    {
-
-    }
-
-    else
-    {
-
-
-    }
-    "#,
-    )
-}
-
-#[test]
-fn declaration() {
-    parses_without_errors("let x = ()\n")
-}
-
-#[test]
-fn foreach_basic() {
-    parses_without_errors("foreach () in () {}")
-}
-
-#[test]
-fn freestanding_expr() {
-    parses_without_errors("1\n")
-}
-
-#[test]
-fn var_assignment_with_proper_expr_as_value() {
-    parses_without_errors("let x = 1\n")
-}
-
-#[test]
-fn precedence_parsing() {
-    parses_without_errors("x = 1 + 2 * 3 % - 4 ( 5 )\n")
+        () = if ()
+        {
+    
+        }
+    
+        else
+        {
+    
+    
+        }
+    "#
+    );
+    parse_test_full!(foreach_basic, "foreach () in () {}");
+    parse_test_full!(freestanding_expr, "1\n");
+    parse_test_full!(var_assignment_with_proper_expr_as_value, "let x = 1\n");
+    parse_test_full!(precedence_parsing, "x = 1 + 2 * 3 % - 4 ( 5 )\n");
 }

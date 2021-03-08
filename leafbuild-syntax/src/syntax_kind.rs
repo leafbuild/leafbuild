@@ -117,6 +117,9 @@ pub enum SyntaxKind {
     /// Newline
     NEWLINE,
 
+    /// EOF
+    EOF,
+
     /// Error
     ERROR,
 
@@ -156,7 +159,7 @@ pub enum SyntaxKind {
     IndexedExpr,
 
     /// `[b]`
-    IndexedExprBraces,
+    IndexedExprBrackets,
 
     /// Arguments to function call
     /// `(FArg ',')* FArg?`
@@ -165,10 +168,6 @@ pub enum SyntaxKind {
     /// an expression with a key
     /// `key = expr`
     KExpr,
-
-    /// Positional arg
-    /// `expr`
-    PositionalArg,
 
     /// `name = value`, `name += value`, ...
     Assignment,
@@ -208,9 +207,6 @@ pub enum SyntaxKind {
 
     ///
     ConditionalBranch,
-
-    ///
-    LangItem,
 
     /// for the root node
     ROOT,
@@ -310,6 +306,7 @@ impl SyntaxKind {
             NEWLINE => "\\n",
             WHITESPACE => " ",
             ERROR => "error",
+            EOF => "EOF",
             _ => "",
         }
         .into()
