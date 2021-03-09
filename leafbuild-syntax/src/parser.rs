@@ -2,9 +2,9 @@
 //! Also see [the syntax reference](https://leafbuild.github.io/leafbuild/dev/syntax_ref.html).
 
 use std::fmt;
-use std::ops::Range;
+use std::ops::{Deref, DerefMut, Range};
 
-use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange};
+use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange, TextSize};
 
 use crate::lexer::Lexer;
 use crate::syntax_kind::SyntaxKind::{self, *};
@@ -14,6 +14,14 @@ use leafbuild_core::utils::TakeIfUnless;
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
 pub struct Span {
     text_range: TextRange,
+}
+
+impl From<Range<TextSize>> for Span {
+    fn from(range: Range<TextSize>) -> Self {
+        Self {
+            text_range: TextRange::new(range.start, range.end),
+        }
+    }
 }
 
 impl From<Range<u32>> for Span {
@@ -79,6 +87,42 @@ impl Is for Option<SyntaxKind> {
     }
 }
 
+#[derive(Copy, Clone)]
+struct TokAndPosWrap {
+    kind: SyntaxKind,
+    pos: usize,
+}
+
+impl Is for TokAndPosWrap {
+    fn is(self, kind: SyntaxKind) -> bool {
+        self.kind.is(kind)
+    }
+}
+
+impl Is for Option<TokAndPosWrap> {
+    fn is(self, kind: SyntaxKind) -> bool {
+        self.map_or(false, |it| it.is(kind))
+    }
+
+    fn isnt(self, kind: SyntaxKind) -> bool {
+        self.map_or(false, |it| it.isnt(kind))
+    }
+}
+
+impl Deref for TokAndPosWrap {
+    type Target = SyntaxKind;
+
+    fn deref(&self) -> &Self::Target {
+        &self.kind
+    }
+}
+
+impl DerefMut for TokAndPosWrap {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.kind
+    }
+}
+
 #[derive(Debug, Clone)]
 enum ParseError {
     Eof,
@@ -130,7 +174,7 @@ impl<T: Is> Trivia for T {
 
     #[inline(always)]
     fn is_meaningful(self) -> bool {
-        !self.is_trivia() && !self.is_newline()
+        !self.is_trivia()
     }
 }
 
@@ -207,6 +251,19 @@ impl<'input> Parser<'input> {
             self.bump_raw_to(index + 1);
         }
         self.meaningful_index += 1;
+    }
+
+    #[inline(always)]
+    fn bump_to(&mut self, tk: Option<TokAndPosWrap>) {
+        if let Some(tk) = tk {
+            let off = self.meaningful[self.meaningful_index..]
+                .iter()
+                .enumerate()
+                .find_map(|(offset, &(_, index))| offset.take_unless(|_| index < tk.pos))
+                .unwrap_or(0);
+            self.meaningful_index += off;
+            self.bump_raw_to(self.meaningful[self.meaningful_index].1);
+        }
     }
 
     #[inline(always)]
@@ -293,26 +350,18 @@ impl<'input> Parser<'input> {
     }
 
     #[inline(always)]
-    fn skip_trivia_and_single_newline(&mut self) -> ParseResult {
-        self.require_newline()
-    }
-
-    #[inline(always)]
-    fn next_nontrivia(&self) -> Option<SyntaxKind> {
-        self.tokens[self.index..]
+    fn next_non_newline(&self) -> Option<TokAndPosWrap> {
+        self.meaningful[self.meaningful_index..]
             .iter()
-            .find_map(|&(it, _, _)| it.take_unless(|&it| it.is_trivia()))
+            .find_map(|&(kind, tk_pos)| (kind, tk_pos).take_unless(|&(it, _)| it.is_newline()))
+            .map(|(kind, pos)| TokAndPosWrap { kind, pos })
     }
 
     #[inline(always)]
     fn require_newline(&mut self) -> ParseResult {
-        while self.current_raw().is_trivia() {
-            self.bump_raw();
-        }
-
-        match self.current_raw() {
+        match self.current() {
             Some(NEWLINE) => {
-                self.bump_raw();
+                self.bump_last();
                 Ok(())
             }
             Some(other) => other.as_unexpected_token(self.current_span_raw()),
@@ -322,14 +371,7 @@ impl<'input> Parser<'input> {
 
     #[inline(always)]
     fn has_newline(&self) -> bool {
-        let idx = self
-            .meaningful
-            .get(self.meaningful_index)
-            .map_or(self.tokens.len(), |&(_, index)| index);
-
-        self.tokens[self.index..idx]
-            .iter()
-            .any(|&(kind, _, _)| kind.is(NEWLINE))
+        self.current().is(NEWLINE)
     }
 
     #[inline(always)]
@@ -401,14 +443,19 @@ impl<'input> Parser<'input> {
     }
 
     #[inline(always)]
+    fn node_start_skip_newlines(&mut self) {
+        while self.has_newline() {
+            self.bump();
+        }
+        self.bump_raw_to_meaningful();
+    }
+
+    #[inline(always)]
     fn parse_node<T>(
         &mut self,
         kind: SyntaxKind,
         f: impl FnOnce(&mut Self) -> ParseResult<T>,
     ) -> ParseResult<T> {
-        if kind != ROOT {
-            self.bump_raw_to_meaningful();
-        }
         self.start_node(kind);
         let r = f(self);
         self.finish_node();
@@ -435,7 +482,7 @@ impl<'input> Parser<'input> {
 #[must_use]
 pub fn parse(text: &str) -> Parse {
     let lexer = Lexer::new(text);
-    let tokens: Vec<(SyntaxKind, &str, Span)> = lexer.collect();
+    let mut tokens: Vec<(SyntaxKind, &str, Span)> = lexer.collect();
     let meaningful = tokens
         .iter()
         .enumerate()
@@ -454,6 +501,7 @@ pub fn parse(text: &str) -> Parse {
 
 #[inline]
 fn parse_lang_item(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     parse_statement(p)?;
 
     Ok(())
@@ -470,10 +518,11 @@ impl AsUnexpectedToken for SyntaxKind {
 }
 
 fn parse_statement(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     let tok = p.current().ok_or(ParseError::Eof)?;
     match tok {
         L_PAREN | L_BRACKET | L_BRACE | PLUS | MINUS | NOT_KW | TRUE_KW | FALSE_KW | NUMBER
-        | ID | STRING | MULTILINE_STRING => {
+        | ID | STRING | MULTILINE_STRING | IF_KW => {
             let assignment_checkpoint = p.checkpoint();
             parse_expr(p)?;
             if p.current()
@@ -489,6 +538,7 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
                     Ok(())
                 })
             } else {
+                p.require_newline()?;
                 Ok(())
             }
         }
@@ -499,7 +549,6 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
             tok.as_unexpected_token(p.current_span())
         }
         LET_KW => parse_declaration(p),
-        IF_KW => parse_conditional(p),
         FOREACH_KW => parse_foreach(p),
         CONTINUE_KW | BREAK_KW | RETURN_KW => parse_control_stmt(p),
         _ => unreachable!(),
@@ -507,10 +556,12 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_expr(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     p.parse_node(Expr, parse_precedence_9_expr)
 }
 
 fn parse_tuple_expr(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(is_tuple_expr_start(p));
 
     parse_tt(p, TupleExpr, L_PAREN, Some(COMMA), R_PAREN, parse_expr)
@@ -521,6 +572,7 @@ fn is_tuple_expr_start(p: &mut Parser) -> bool {
 }
 
 fn parse_array_expr(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(is_array_expr_start(p));
 
     parse_tt(
@@ -538,6 +590,7 @@ fn is_array_expr_start(p: &mut Parser) -> bool {
 }
 
 fn parse_primary(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     p.parse_node(PrimaryExpr, |p| {
         if is_array_expr_start(p) {
             parse_array_expr(p)
@@ -581,15 +634,25 @@ fn parse_tt(
     end_tok: SyntaxKind,
     mut f: impl FnMut(&mut Parser) -> ParseResult,
 ) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(p.current().is(start_tok));
     p.parse_node(outer_kind, move |p| {
         p.bump();
 
-        while p.current().isnt(end_tok) {
+        let mut tk;
+
+        while {
+            tk = p.next_non_newline();
+            tk.map_or(false, |it| it.kind.isnt(end_tok))
+        } {
+            p.bump_to(tk);
             f(p).map_incomplete()?;
 
             if let Some(separator) = separator {
-                if !p.bump_if(|it| it.is(separator)) && p.current().isnt(end_tok) {
+                p.node_start_skip_newlines();
+                if p.current().is(separator) {
+                    p.bump();
+                } else if p.current().isnt(end_tok) {
                     p.error();
 
                     return Err(ParseError::ExpectedTokens(
@@ -600,6 +663,7 @@ fn parse_tt(
             }
         }
 
+        p.node_start_skip_newlines();
         // consume the end token
         p.bump_last();
 
@@ -608,6 +672,7 @@ fn parse_tt(
 }
 
 fn parse_precedence_1_expr(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     let ck = p.checkpoint();
     parse_primary(p)?;
 
@@ -623,12 +688,14 @@ fn parse_precedence_1_expr(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_f_call(p: &mut Parser, ck: Checkpoint) -> ParseResult {
+    p.node_start_skip_newlines();
     p.parse_node_at(ck, FuncCallExpr, |p| {
         parse_tt(p, FuncCallArgs, L_PAREN, Some(COMMA), R_PAREN, parse_farg)
     })
 }
 
 fn parse_farg(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     if is_kexpr_start(p) {
         parse_kexpr(p)
     } else {
@@ -637,6 +704,7 @@ fn parse_farg(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_kexpr(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(is_kexpr_start(p));
 
     p.parse_node(KExpr, |p| {
@@ -651,10 +719,12 @@ fn parse_kexpr(p: &mut Parser) -> ParseResult {
 }
 
 fn is_kexpr_start(p: &mut Parser) -> bool {
+    p.node_start_skip_newlines();
     p.current().is(ID) && p.next_nontrivia_lookahead().is(EQ)
 }
 
 fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(p.current().is(L_BRACKET));
     p.parse_node_at(ck, IndexedExpr, |p| {
         p.parse_node(IndexedExprBrackets, |p| {
@@ -668,6 +738,7 @@ fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
 }
 
 fn parse_precedence_2_expr(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     if p.current().is_any(&[PLUS, MINUS]) {
         p.parse_node(PrefixUnaryOpExpr, |p| {
             p.bump();
@@ -684,10 +755,18 @@ fn parse_infix_binop(
     ops: &[SyntaxKind],
     mut lower: impl FnMut(&mut Parser) -> ParseResult,
 ) -> ParseResult {
+    p.node_start_skip_newlines();
     let ck = p.checkpoint();
     lower(p)?;
 
-    while p.current().is_any(ops) {
+    let mut tk;
+    while {
+        tk = p.next_non_newline();
+        tk
+    }
+    .is_any(ops)
+    {
+        p.bump_to(tk);
         p.parse_node_at(ck, InfixBinOpExpr, |p| {
             p.bump();
             lower(p)?;
@@ -740,9 +819,10 @@ fn is_expr_block_start(p: &mut Parser) -> bool {
 }
 
 fn parse_declaration(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(p.current().is(LET_KW));
     p.parse_node(Declaration, |p| {
-        p.bump(); // LET_KW
+        p.parse_single_tok(LET_KW);
 
         p.parse_single_tok(ID).map_incomplete()?;
 
@@ -761,13 +841,26 @@ fn is_conditional_start(p: &mut Parser) -> bool {
 }
 
 fn parse_conditional(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(is_conditional_start(p));
 
     p.parse_node(Conditional, |p| {
         parse_conditional_branch(p).map_incomplete()?;
-        while p.current().is(ELSE_KW) {
+        let mut tk;
+        while {
+            tk = p.next_non_newline();
+            tk
+        }
+        .is(ELSE_KW)
+        {
+            p.bump_to(tk);
             p.bump();
-            if p.current().is(IF_KW) {
+            if {
+                tk = p.next_non_newline();
+                tk
+            }
+            .is(IF_KW)
+            {
                 parse_conditional_branch(p).map_incomplete()?;
             } else {
                 parse_expr_block(p).map_incomplete()?;
@@ -780,6 +873,7 @@ fn parse_conditional(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_conditional_branch(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(p.current().is(IF_KW));
     p.parse_node(ConditionalBranch, |p| {
         // consume the IF_KW
@@ -794,6 +888,7 @@ fn parse_conditional_branch(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_foreach(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     assert!(p.current().is(FOREACH_KW));
     p.parse_node(Foreach, |p| {
         p.bump(); // FOREACH_KW
@@ -806,20 +901,21 @@ fn parse_foreach(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_control_stmt(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
     p.parse_node(ControlStatement, |p| match p.current() {
         Some(CONTINUE_KW) => {
             p.bump();
-            p.skip_trivia_and_single_newline()?;
+            p.require_newline()?;
             Ok(())
         }
 
         Some(RETURN_KW) | Some(BREAK_KW) => {
             p.bump();
-            if p.next_nontrivia().isnt(NEWLINE) {
+            if p.current().isnt(NEWLINE) {
                 parse_expr(p)?;
             }
 
-            p.skip_trivia_and_single_newline()?;
+            p.require_newline()?;
 
             Ok(())
         }

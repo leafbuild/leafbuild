@@ -42,8 +42,8 @@ expression: "\n        x = 1\n        + 2\n        + f(\n            4\n        
             - "        " WHITESPACE 54..62
             - ")" R_PAREN 62..63
     - "\n" NEWLINE 63..64
-  - Assignment 64..103
-    - "        " WHITESPACE 64..72
+  - "        " WHITESPACE 64..72
+  - Assignment 72..103
     - Expr 72..73
       - PrimaryExpr 72..73
         - "y" ID 72..73
