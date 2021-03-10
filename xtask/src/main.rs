@@ -27,6 +27,9 @@ enum Xtask {
 
     #[clap(name = "generate-parser-tests")]
     GenerateParserTests,
+
+    #[clap(name = "lint")]
+    Lint,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -39,6 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         Xtask::GenerateParserTests => xtask::test::generate_parser_tests()?,
         Xtask::Fmt => xtask::format::format()?,
         Xtask::FmtCheck => xtask::format::format_check()?,
+        Xtask::Lint => xtask::lint::lint()?,
     }
 
     Ok(())

@@ -1,6 +1,6 @@
+use crate::cargo_cmd;
 use crate::cmd::CmdResult;
-use crate::cmd_call;
 
-fn lint() -> CmdResult {
-    cmd_call!("cargo clippy")
+pub fn lint() -> CmdResult {
+    cargo_cmd!("clippy")
 }
