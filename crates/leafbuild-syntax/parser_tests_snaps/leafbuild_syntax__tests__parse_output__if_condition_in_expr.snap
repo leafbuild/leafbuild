@@ -1,0 +1,34 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "a = if b {} else {}\n"
+
+---
+- ROOT 0..20
+  - Assignment 0..20
+    - Expr 0..1
+      - PrimaryExpr 0..1
+        - "a" ID 0..1
+    - " " WHITESPACE 1..2
+    - "=" EQ 2..3
+    - " " WHITESPACE 3..4
+    - Expr 4..19
+      - PrimaryExpr 4..19
+        - Conditional 4..19
+          - ConditionalBranch 4..11
+            - "if" IF_KW 4..6
+            - " " WHITESPACE 6..7
+            - Expr 7..8
+              - PrimaryExpr 7..8
+                - "b" ID 7..8
+            - " " WHITESPACE 8..9
+            - ExprBlock 9..11
+              - "{" L_BRACE 9..10
+              - "}" R_BRACE 10..11
+          - " " WHITESPACE 11..12
+          - "else" ELSE_KW 12..16
+          - " " WHITESPACE 16..17
+          - ExprBlock 17..19
+            - "{" L_BRACE 17..18
+            - "}" R_BRACE 18..19
+    - "\n" NEWLINE 19..20
+

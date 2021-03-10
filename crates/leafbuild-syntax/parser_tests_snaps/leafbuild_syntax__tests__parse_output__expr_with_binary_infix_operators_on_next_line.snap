@@ -1,0 +1,63 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "x = 1\n+ 2\n+ f(\n     4\n)\ny = 3\n* 6\n% 78\n"
+
+---
+- ROOT 0..39
+  - Assignment 0..24
+    - Expr 0..1
+      - PrimaryExpr 0..1
+        - "x" ID 0..1
+    - " " WHITESPACE 1..2
+    - "=" EQ 2..3
+    - " " WHITESPACE 3..4
+    - Expr 4..23
+      - InfixBinOpExpr 4..23
+        - InfixBinOpExpr 4..9
+          - PrimaryExpr 4..5
+            - "1" NUMBER 4..5
+          - "\n" NEWLINE 5..6
+          - "+" PLUS 6..7
+          - " " WHITESPACE 7..8
+          - PrimaryExpr 8..9
+            - "2" NUMBER 8..9
+        - "\n" NEWLINE 9..10
+        - "+" PLUS 10..11
+        - " " WHITESPACE 11..12
+        - FuncCallExpr 12..23
+          - PrimaryExpr 12..13
+            - "f" ID 12..13
+          - FuncCallArgs 13..23
+            - "(" L_PAREN 13..14
+            - "\n" NEWLINE 14..15
+            - "     " WHITESPACE 15..20
+            - Expr 20..21
+              - PrimaryExpr 20..21
+                - "4" NUMBER 20..21
+            - "\n" NEWLINE 21..22
+            - ")" R_PAREN 22..23
+    - "\n" NEWLINE 23..24
+  - Assignment 24..39
+    - Expr 24..25
+      - PrimaryExpr 24..25
+        - "y" ID 24..25
+    - " " WHITESPACE 25..26
+    - "=" EQ 26..27
+    - " " WHITESPACE 27..28
+    - Expr 28..38
+      - InfixBinOpExpr 28..38
+        - InfixBinOpExpr 28..33
+          - PrimaryExpr 28..29
+            - "3" NUMBER 28..29
+          - "\n" NEWLINE 29..30
+          - "*" ASTERISK 30..31
+          - " " WHITESPACE 31..32
+          - PrimaryExpr 32..33
+            - "6" NUMBER 32..33
+        - "\n" NEWLINE 33..34
+        - "%" PERCENT 34..35
+        - " " WHITESPACE 35..36
+        - PrimaryExpr 36..38
+          - "78" NUMBER 36..38
+    - "\n" NEWLINE 38..39
+
