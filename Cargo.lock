@@ -623,6 +623,7 @@ dependencies = [
  "leafbuild-ml",
  "leafbuild-parser",
  "leafbuild-premakeml",
+ "leafbuild-stdx",
  "leafbuild-syntax",
  "regex",
  "term 0.7.0",
@@ -724,6 +725,10 @@ name = "leafbuild-premakeml"
 version = "0.1.0"
 
 [[package]]
+name = "leafbuild-stdx"
+version = "0.1.0"
+
+[[package]]
 name = "leafbuild-syntax"
 version = "0.1.0"
 dependencies = [
@@ -731,8 +736,8 @@ dependencies = [
  "drop_bomb",
  "insta",
  "itertools 0.10.0",
- "leafbuild-core",
  "leafbuild-derive",
+ "leafbuild-stdx",
  "logos",
  "rowan",
  "unindent",

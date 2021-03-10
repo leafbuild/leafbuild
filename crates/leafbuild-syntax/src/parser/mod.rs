@@ -8,7 +8,7 @@ use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange, TextSize};
 
 use crate::lexer::Lexer;
 use crate::syntax_kind::SyntaxKind::{self, *};
-use leafbuild_core::utils::TakeIfUnless;
+use leafbuild_stdx::TakeIfUnless;
 
 ///
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]

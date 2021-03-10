@@ -9,10 +9,16 @@
 //!
 #![allow(clippy::inline_always)]
 mod also;
+pub use also::*;
+
+mod clone_to;
+pub use clone_to::*;
+
+mod copy_to;
+pub use copy_to::*;
+
 #[path = "let.rs"]
 mod let_;
-
-pub use also::*;
 pub use let_::*;
 
 mod take_if_unless;

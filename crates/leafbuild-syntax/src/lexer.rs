@@ -1,6 +1,6 @@
 use crate::parser::Span;
 use crate::syntax_kind::SyntaxKind;
-use leafbuild_core::prelude::Let;
+use leafbuild_stdx::Let;
 use logos::Logos;
 use std::convert::TryInto;
 use std::ops::Range;

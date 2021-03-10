@@ -1,8 +1,8 @@
 //! Module containing logic to format [`tracing`] events.
 use ansi_term::{Color, Style};
 use itertools::Itertools;
-use leafbuild_core::prelude::{AndThenDo, TakeIfUnlessOwned};
 use leafbuild_interpreter::LfModName;
+use leafbuild_stdx::{AndThenDo, TakeIfUnlessOwned};
 use std::error::Error;
 use std::fmt::Debug;
 use std::io::{BufWriter, Write};
