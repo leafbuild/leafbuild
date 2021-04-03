@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 //! Kotlin-like `let` expressions.
 
 /// Trait to implement `let` on all types.

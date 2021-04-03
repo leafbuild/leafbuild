@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 use clap::Clap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -28,11 +33,18 @@ enum Xtask {
     #[clap(name = "generate-parser-tests")]
     GenerateParserTests,
 
+    #[clap(name = "generate-grammar")]
+    GenerateGrammar,
+
     #[clap(name = "lint")]
     Lint,
+
+    #[clap(name = "build")]
+    Build,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    pretty_env_logger::init();
     let task: Xtask = Xtask::parse();
     match task {
         Xtask::InstallGitHooks => xtask::git_hooks::install_git_hooks()?,
@@ -40,9 +52,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         Xtask::VerifyCommitMessage { path } => xtask::git_hooks::verify_commit_message(path),
         Xtask::Test { args } => xtask::test::run_tests(args)?,
         Xtask::GenerateParserTests => xtask::test::generate_parser_tests()?,
+        Xtask::GenerateGrammar => xtask::grammar::generate_grammar()?,
         Xtask::Fmt => xtask::format::format()?,
         Xtask::FmtCheck => xtask::format::format_check()?,
         Xtask::Lint => xtask::lint::lint()?,
+        Xtask::Build => xtask::build::build()?,
     }
 
     Ok(())

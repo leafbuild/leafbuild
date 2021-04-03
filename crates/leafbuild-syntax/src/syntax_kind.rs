@@ -1,7 +1,12 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 //! Holds [`SyntaxKind`]
 /// The syntax kind; see rowan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[allow(non_camel_case_types)]
+#[allow(non_camel_case_types, clippy::upper_case_acronyms)]
 #[repr(u16)]
 pub enum SyntaxKind {
     // tokens
@@ -55,10 +60,6 @@ pub enum SyntaxKind {
     NOT_EQ,
     /// `=`
     EQ,
-    /// `<<`
-    SHIFT_LEFT,
-    /// `>>`
-    SHIFT_RIGHT,
     /// `.`
     DOT,
     /// `:`
@@ -69,8 +70,6 @@ pub enum SyntaxKind {
     SEMICOLON,
     /// `,`
     COMMA,
-    /// `~`
-    TILDE,
     /// `and`
     AND_KW,
     /// `or`
@@ -99,6 +98,8 @@ pub enum SyntaxKind {
     FALSE_KW,
     /// `fn`
     FN_KW,
+    /// `struct`
+    STRUCT_KW,
     /// Number
     NUMBER,
     /// Identifier
@@ -208,6 +209,21 @@ pub enum SyntaxKind {
     ///
     ConditionalBranch,
 
+    ///
+    StructDecl,
+
+    ///
+    StructFieldList,
+
+    ///
+    StructField,
+
+    ///
+    TypeRef,
+
+    ///
+    TypeRefGenerics,
+
     /// for the root node
     ROOT,
 }
@@ -297,12 +313,13 @@ impl SyntaxKind {
             TRUE_KW => "true",
             FALSE_KW => "false",
             FN_KW => "fn",
-            NUMBER => "number",
-            ID => "id",
-            STRING => "'...'",
-            MULTILINE_STRING => "'''...'''",
-            LINE_COMMENT => "//...\n",
-            BLOCK_COMMENT => "/*...*/",
+            STRUCT_KW => "struct",
+            NUMBER => "<number>",
+            ID => "<id>",
+            STRING => "<'string'>",
+            MULTILINE_STRING => "<'''string'''>",
+            LINE_COMMENT => "<//comment>\n",
+            BLOCK_COMMENT => "</*comment*/>",
             NEWLINE => "\\n",
             WHITESPACE => " ",
             ERROR => "error",

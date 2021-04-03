@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 //! General utils and conveniences
 //!
 //!
@@ -29,3 +34,6 @@ pub use take_if_unless_owned::*;
 
 mod and_then_do;
 pub use and_then_do::*;
+
+mod copied;
+pub use copied::*;

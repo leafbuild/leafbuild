@@ -1,8 +1,14 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 //! Syntax tree types
+#![allow(clippy::missing_panics_doc)]
 use crate::parser::Is;
 use crate::syntax_kind::SyntaxKind::{self, *};
 use crate::LeafbuildLanguage;
-use leafbuild_derive::{ast_node, ast_token, FakeAstNode};
+use leafbuild_derive::{ast_token, AstNode};
 use rowan::NodeOrToken;
 ///
 pub type SyntaxNode = rowan::SyntaxNode<LeafbuildLanguage>;
@@ -33,11 +39,31 @@ impl Is for &SyntaxElement {
 }
 
 ///
-pub trait CastableFromSyntaxNode {
+pub trait NewSynTreeElem: Sized {
+    ///
+    #[allow(unsafe_code)]
+    unsafe fn new(syntax: SyntaxNode) -> Self;
+}
+
+///
+pub trait CastableFromSyntaxNode: NewSynTreeElem {
+    ///
+    const KIND: SyntaxKind = ERROR;
     ///
     fn cast(syntax: SyntaxNode) -> Option<Self>
     where
-        Self: Sized;
+        Self: Sized,
+    {
+        match syntax.kind() {
+            kind if kind == Self::KIND => Some(
+                #[allow(unsafe_code)]
+                unsafe {
+                    Self::new(syntax)
+                },
+            ),
+            _ => None,
+        }
+    }
 }
 
 ///
@@ -106,15 +132,15 @@ pub struct Id {
 }
 
 ///
-#[ast_node(Expr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Expr)]
 pub struct Expr {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(ArrayLitExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ArrayLitExpr)]
 pub struct ArrayLitExpr {
     syntax: SyntaxNode,
 }
@@ -128,8 +154,8 @@ impl ArrayLitExpr {
 }
 
 ///
-#[ast_node(MapLitExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(MapLitExpr)]
 pub struct MapLitExpr {
     syntax: SyntaxNode,
 }
@@ -142,15 +168,15 @@ impl MapLitExpr {
 }
 
 ///
-#[ast_node(StrLit)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(StrLit)]
 pub struct StrLit {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(PrimaryExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(PrimaryExpr)]
 pub struct PrimaryExpr {
     syntax: SyntaxNode,
 }
@@ -165,13 +191,11 @@ pub enum PrefixUnaryOpType {
     Minus,
     /// negates boolean value
     Not,
-    /// swaps bits
-    BitwiseNot,
 }
 
 ///
-#[ast_node(PrefixUnaryOpExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(PrefixUnaryOpExpr)]
 pub struct PrefixUnaryExpr {
     syntax: SyntaxNode,
 }
@@ -184,7 +208,6 @@ impl PrefixUnaryExpr {
             PLUS => PrefixUnaryOpType::Plus,
             MINUS => PrefixUnaryOpType::Minus,
             NOT_KW => PrefixUnaryOpType::Not,
-            TILDE => PrefixUnaryOpType::BitwiseNot,
             _ => unreachable!(),
         }
     }
@@ -210,11 +233,6 @@ pub enum InfixBinOpType {
     /// Modulo, remainder (`a % b`)
     TakeModulo,
 
-    /// Shift left
-    ShiftLeft,
-    /// Shift right
-    ShiftRight,
-
     /// Compare <
     CompareLessThan,
     /// Compare >
@@ -235,22 +253,22 @@ pub enum InfixBinOpType {
 }
 
 ///
-#[ast_node(InfixBinOpExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(InfixBinOpExpr)]
 pub struct InfixBinaryOpExpr {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(FuncCallExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(FuncCallExpr)]
 pub struct FuncCallExpr {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(MethodCallExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(MethodCallExpr)]
 pub struct MethodCallExpr {
     syntax: SyntaxNode,
 }
@@ -280,8 +298,8 @@ impl MethodCallExpr {
 }
 
 ///
-#[ast_node(PropertyAccessExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(PropertyAccessExpr)]
 pub struct PropertyAccessExpr {
     syntax: SyntaxNode,
 }
@@ -305,15 +323,15 @@ impl PropertyAccessExpr {
 }
 
 ///
-#[ast_node(TupleExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(TupleExpr)]
 pub struct TupleExpr {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(IndexedExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(IndexedExpr)]
 pub struct IndexExpr {
     syntax: SyntaxNode,
 }
@@ -327,8 +345,8 @@ impl IndexExpr {
 }
 
 ///
-#[ast_node(IndexedExprBrackets)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(IndexedExprBrackets)]
 pub struct IndexExprBrackets {
     syntax: SyntaxNode,
 }
@@ -342,7 +360,7 @@ impl IndexExprBrackets {
 }
 
 ///
-#[derive(Clone, Debug, FakeAstNode)]
+#[derive(Clone, Debug, AstNode)]
 pub enum FuncCallArg {
     ///
     #[kind(Expr)]
@@ -373,8 +391,8 @@ impl FuncCallArg {
 }
 
 ///
-#[ast_node(FuncCallArgs)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(FuncCallArgs)]
 pub struct FuncCallArgs {
     syntax: SyntaxNode,
 }
@@ -387,8 +405,8 @@ impl FuncCallArgs {
 }
 
 ///
-#[ast_node(KExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(KExpr)]
 pub struct KExpr {
     syntax: SyntaxNode,
 }
@@ -419,71 +437,71 @@ impl KExpr {
 }
 
 ///
-#[ast_node(Assignment)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Assignment)]
 pub struct Assignment {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(Declaration)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Declaration)]
 pub struct Declaration {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(If)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(If)]
 pub struct If {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(ElseIf)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ElseIf)]
 pub struct ElseIf {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(Else)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Else)]
 pub struct Else {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(Conditional)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Conditional)]
 pub struct Conditional {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(Foreach)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Foreach)]
 pub struct Foreach {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(ForInExpr)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ForInExpr)]
 pub struct ForInExpr {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(ControlStatement)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ControlStatement)]
 pub struct ControlStatement {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(ExprStatement)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ExprStatement)]
 pub struct ExprStatement {
     syntax: SyntaxNode,
 }
@@ -497,15 +515,15 @@ impl ExprStatement {
 }
 
 ///
-#[ast_node(FnBody)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(FnBody)]
 pub struct FnBody {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(Tuple)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(Tuple)]
 pub struct Tuple {
     syntax: SyntaxNode,
 }
@@ -518,21 +536,21 @@ impl Tuple {
 }
 
 ///
-#[ast_node(ExprBlock)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ExprBlock)]
 pub struct ExprBlock {
     syntax: SyntaxNode,
 }
 
 ///
-#[ast_node(ConditionalBranch)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ConditionalBranch)]
 pub struct ConditionalBranch {
     syntax: SyntaxNode,
 }
 
 ///
-#[derive(Clone, Debug, FakeAstNode)]
+#[derive(Clone, Debug, AstNode)]
 pub enum Statement {
     ///
     #[kind(Assignment)]
@@ -595,27 +613,22 @@ impl Statement {
 }
 
 ///
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(StructDecl)]
+pub struct StructDecl {
+    syntax: SyntaxNode,
+}
+
+///
+#[derive(Clone, Debug, AstNode)]
 pub enum LangItem {
     /// A statement
+    #[kind(Statement)]
     Statement(Statement),
+    /// A struct declaration
+    #[kind(StructDecl)]
+    StructDecl(StructDecl),
 }
-
-impl CastableFromSyntaxNode for LangItem {
-    fn cast(syntax: SyntaxNode) -> Option<Self>
-    where
-        Self: Sized,
-    {
-        let p: Option<Statement> = Statement::cast(syntax);
-        if let Some(statement) = p {
-            return Some(Self::Statement(statement));
-        }
-
-        None
-    }
-}
-
-impl FakeAstNode for LangItem {}
 
 impl LangItem {
     /// Casts to statement and returns None if it isn't
@@ -629,8 +642,8 @@ impl LangItem {
 }
 
 ///
-#[ast_node(ROOT)]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, AstNode)]
+#[kind(ROOT)]
 pub struct Root {
     syntax: SyntaxNode,
 }

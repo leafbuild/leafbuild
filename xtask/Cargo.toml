@@ -15,5 +15,10 @@ proc-macro2 = "1.0"
 itertools = "0.10"
 path-calculate = "0.1"
 thiserror = "1.0"
+anyhow = "1.0"
+log = "0.4"
+pretty_env_logger = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+ron = "0.6"
 
 ghk = { path = "../ghk" }

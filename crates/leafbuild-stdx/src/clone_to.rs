@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 //! Holds the [`CloneTo`] trait
 
 /// Trait to define `clone_to*` on all types

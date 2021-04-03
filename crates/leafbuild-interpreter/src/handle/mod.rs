@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 //! A handle.
 //! Explained in simple terms, this is a wrapper over all the structures the buildsystem uses internally.
 

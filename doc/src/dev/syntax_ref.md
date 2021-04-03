@@ -40,13 +40,12 @@ Precedence2Expr ::= ('-' | '+') Precedence2Expr
                   | Precedence1Expr
 Precedence3Expr ::= Precedence2Expr (('*' | '/' | '%') Precedence2Expr)*
 Precedence4Expr ::= Precedence3Expr (('+' | '-') Precedence3Expr)*
-Precedence5Expr ::= Precedence4Expr (('<<' | '>>') Precedence4Expr)*
-Precedence6Expr ::= Precedence5Expr (('<' | '>' | '<=' | '>=') Precedence5Expr)*
-Precedence7Expr ::= Precedence6Expr (('==' | '!=') Precedence6Expr)*
-Precedence8Expr ::= Precedence7Expr ('and' Precedence7Expr)*
-Precedence9Expr ::= Precedence8Expr ('or' Precedence8Expr)*
+Precedence5Expr ::= Precedence4Expr (('<' | '>' | '<=' | '>=') Precedence4Expr)*
+Precedence6Expr ::= Precedence5Expr (('==' | '!=') Precedence5Expr)*
+Precedence7Expr ::= Precedence6Expr ('and' Precedence6Expr)*
+Precedence8Expr ::= Precedence7Expr ('or' Precedence7Expr)*
 
-Expr ::= Precedence10Expr
+Expr ::= Precedence8Expr
 
 # Control flow
 Conditional ::= 'if' Expr Block ('else' 'if' Expr Block)* ('else' Block)?
@@ -60,4 +59,12 @@ Break ::= 'break' Expr? '\n'
 Return ::= 'return' Expr? '\n'
 
 ForeachStatement ::= 'foreach' ForeachInExpr Block
+
+StructDecl ::= 'struct' ID StructFieldList
+StructFieldList ::= '{' StructField* '}'
+StructField ::= ID ':' TypeRef
+
+# Types
+TypeRef ::= ID GenericParams?
+GenericParams ::= '<' (TypeRef ',')* TypeRef? '>'
 ```

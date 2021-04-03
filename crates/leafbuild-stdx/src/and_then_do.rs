@@ -1,3 +1,8 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
 /// A trait for exposing [`AndThenDo::and_then_do`] on [`Option`] and [`Result`]
 pub trait AndThenDo {
     /// The type of the value

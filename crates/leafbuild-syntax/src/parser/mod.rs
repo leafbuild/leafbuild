@@ -1,3 +1,9 @@
+/*
+ *   Copyright (c) 2021 Dinu Blanovschi
+ *   All rights reserved.
+ *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
+ */
+
 //! # The parser code
 //! Also see [the syntax reference](https://leafbuild.github.io/leafbuild/dev/syntax_ref.html).
 
@@ -8,7 +14,7 @@ use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange, TextSize};
 
 use crate::lexer::Lexer;
 use crate::syntax_kind::SyntaxKind::{self, *};
-use leafbuild_stdx::TakeIfUnless;
+use leafbuild_stdx::{CopyTo, TakeIfUnless};
 
 ///
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
@@ -227,6 +233,16 @@ impl<'input> Parser<'input> {
         }
     }
 
+    #[inline(always)]
+    fn at(&self, kind: SyntaxKind) -> bool {
+        self.current().is(kind)
+    }
+
+    #[inline(always)]
+    fn at_any(&self, kinds: &[SyntaxKind]) -> bool {
+        self.current().is_any(kinds)
+    }
+
     /// Advance one meaningful token, adding it to the current branch of the tree builder,
     /// along with all the trivia before it.
     #[inline(always)]
@@ -371,7 +387,7 @@ impl<'input> Parser<'input> {
 
     #[inline(always)]
     fn has_newline(&self) -> bool {
-        self.current().is(NEWLINE)
+        self.at(NEWLINE)
     }
 
     #[inline(always)]
@@ -502,9 +518,10 @@ pub fn parse(text: &str) -> Parse {
 #[inline]
 fn parse_lang_item(p: &mut Parser) -> ParseResult {
     p.node_start_skip_newlines();
-    parse_statement(p)?;
-
-    Ok(())
+    match p.current() {
+        Some(STRUCT_KW) => parse_struct_decl(p),
+        _ => parse_statement(p),
+    }
 }
 
 trait AsUnexpectedToken: Copy {
@@ -530,9 +547,7 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
 
             // test unit_to_unit_assignment
             // () = ()
-            if p.current()
-                .is_any(&[PLUS_EQ, MINUS_EQ, MUL_EQ, DIV_EQ, MOD_EQ, EQ])
-            {
+            if p.at_any(&[PLUS_EQ, MINUS_EQ, MUL_EQ, DIV_EQ, MOD_EQ, EQ]) {
                 p.parse_node_at(assignment_checkpoint, Assignment, |p| {
                     // consume the `=` / `+=` / ...
                     p.bump();
@@ -556,10 +571,8 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
         }
         R_PAREN | R_BRACKET | R_BRACE | PLUS_EQ | MINUS_EQ | MUL_EQ | DIV_EQ | MOD_EQ
         | ASTERISK | SLASH | PERCENT | EQ_EQ | GREATER_EQ | GREATER | LESS_EQ | LESS | NOT_EQ
-        | EQ | SHIFT_LEFT | SHIFT_RIGHT | DOT | COLON | QMARK | SEMICOLON | COMMA | TILDE
-        | AND_KW | OR_KW | IN_KW | FN_KW | ELSE_KW | ERROR => {
-            tok.as_unexpected_token(p.current_span())
-        }
+        | EQ | DOT | COLON | QMARK | SEMICOLON | COMMA | AND_KW | OR_KW | IN_KW | FN_KW
+        | ELSE_KW | ERROR => tok.as_unexpected_token(p.current_span()),
         LET_KW => parse_declaration(p),
         FOREACH_KW => parse_foreach(p),
         CONTINUE_KW | BREAK_KW | RETURN_KW => parse_control_stmt(p),
@@ -573,7 +586,7 @@ fn parse_expr(p: &mut Parser) -> ParseResult {
     // test precedence_parsing
     // x = 1 + 2 * 3 % - 4 ( 5 )
 
-    p.parse_node(Expr, parse_precedence_9_expr)
+    p.parse_node(Expr, parse_precedence_8_expr)
 }
 
 fn parse_tuple_expr(p: &mut Parser) -> ParseResult {
@@ -584,7 +597,7 @@ fn parse_tuple_expr(p: &mut Parser) -> ParseResult {
 }
 
 fn is_tuple_expr_start(p: &mut Parser) -> bool {
-    p.current().is(L_PAREN)
+    p.at(L_PAREN)
 }
 
 fn parse_array_expr(p: &mut Parser) -> ParseResult {
@@ -602,7 +615,7 @@ fn parse_array_expr(p: &mut Parser) -> ParseResult {
 }
 
 fn is_array_expr_start(p: &mut Parser) -> bool {
-    p.current().is(L_BRACKET)
+    p.at(L_BRACKET)
 }
 
 fn parse_primary(p: &mut Parser) -> ParseResult {
@@ -630,7 +643,7 @@ fn parse_primary(p: &mut Parser) -> ParseResult {
             parse_conditional(p)
         } else if is_expr_block_start(p) {
             parse_expr_block(p)
-        } else if p.current().is_any(&[NUMBER, ID]) {
+        } else if p.at_any(&[NUMBER, ID]) {
             p.bump_last();
             Ok(())
         } else if is_string_lit(p) {
@@ -645,7 +658,7 @@ fn parse_primary(p: &mut Parser) -> ParseResult {
 }
 
 fn is_string_lit(p: &mut Parser) -> bool {
-    p.current().is_any(&[STRING, MULTILINE_STRING])
+    p.at_any(&[STRING, MULTILINE_STRING])
 }
 
 fn parse_string(p: &mut Parser) -> ParseResult {
@@ -665,22 +678,23 @@ fn parse_tt(
     mut f: impl FnMut(&mut Parser) -> ParseResult,
 ) -> ParseResult {
     p.node_start_skip_newlines();
-    assert!(p.current().is(start_tok));
+    assert!(p.at(start_tok));
     p.parse_node(outer_kind, move |p| {
         p.bump();
 
-        let mut tk;
+        let mut tk = None;
 
-        while {
-            tk = p.next_non_newline();
-            tk.map_or(false, |it| it.kind.isnt(end_tok))
-        } {
+        while p
+            .next_non_newline()
+            .copy_to(&mut tk)
+            .map_or(false, |it| it.kind.isnt(end_tok))
+        {
             p.bump_to(tk);
             f(p).map_incomplete()?;
 
             if let Some(separator) = separator {
                 p.node_start_skip_newlines();
-                if p.current().is(separator) {
+                if p.at(separator) {
                     p.bump();
                 } else if p.current().isnt(end_tok) {
                     p.error();
@@ -711,9 +725,9 @@ fn parse_precedence_1_expr(p: &mut Parser) -> ParseResult {
     // [1]
 
     while p.current().is_any(&[L_PAREN, L_BRACKET]) && !p.has_newline() {
-        if p.current().is(L_PAREN) {
+        if p.at(L_PAREN) {
             parse_f_call(p, ck)?
-        } else if p.current().is(L_BRACKET) {
+        } else if p.at(L_BRACKET) {
             parse_index_expr(p, ck)?
         }
     }
@@ -768,7 +782,7 @@ fn parse_kexpr(p: &mut Parser) -> ParseResult {
 
 fn is_kexpr_start(p: &mut Parser) -> bool {
     p.node_start_skip_newlines();
-    p.current().is(ID) && p.next_nontrivia_lookahead().is(EQ)
+    p.at(ID) && p.next_nontrivia_lookahead().is(EQ)
 }
 
 fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
@@ -827,13 +841,8 @@ fn parse_infix_binop(
     // * 6
     // % 78
 
-    let mut tk;
-    while {
-        tk = p.next_non_newline();
-        tk
-    }
-    .is_any(ops)
-    {
+    let mut tk = None;
+    while p.next_non_newline().copy_to(&mut tk).is_any(ops) {
         p.bump_to(tk);
         p.parse_node_at(ck, InfixBinOpExpr, |p| {
             p.bump();
@@ -855,27 +864,23 @@ fn parse_precedence_4_expr(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_precedence_5_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[SHIFT_LEFT, SHIFT_RIGHT], parse_precedence_4_expr)
-}
-
-fn parse_precedence_6_expr(p: &mut Parser) -> ParseResult {
     parse_infix_binop(
         p,
         &[LESS, LESS_EQ, GREATER, GREATER_EQ],
-        parse_precedence_5_expr,
+        parse_precedence_4_expr,
     )
 }
 
+fn parse_precedence_6_expr(p: &mut Parser) -> ParseResult {
+    parse_infix_binop(p, &[EQ_EQ, NOT_EQ], parse_precedence_5_expr)
+}
+
 fn parse_precedence_7_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[EQ_EQ, NOT_EQ], parse_precedence_6_expr)
+    parse_infix_binop(p, &[AND_KW], parse_precedence_6_expr)
 }
 
 fn parse_precedence_8_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[AND_KW], parse_precedence_7_expr)
-}
-
-fn parse_precedence_9_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[OR_KW], parse_precedence_8_expr)
+    parse_infix_binop(p, &[OR_KW], parse_precedence_7_expr)
 }
 
 fn parse_expr_block(p: &mut Parser) -> ParseResult {
@@ -948,21 +953,11 @@ fn parse_conditional(p: &mut Parser) -> ParseResult {
         // if
         //      1
         // {}
-        let mut tk;
-        while {
-            tk = p.next_non_newline();
-            tk
-        }
-        .is(ELSE_KW)
-        {
+        let mut tk = None;
+        while p.next_non_newline().copy_to(&mut tk).is(ELSE_KW) {
             p.bump_to(tk);
             p.bump();
-            if {
-                tk = p.next_non_newline();
-                tk
-            }
-            .is(IF_KW)
-            {
+            if p.next_non_newline().copy_to(&mut tk).is(IF_KW) {
                 parse_conditional_branch(p).map_incomplete()?;
             } else {
                 parse_expr_block(p).map_incomplete()?;
@@ -1029,4 +1024,73 @@ fn parse_control_stmt(p: &mut Parser) -> ParseResult {
         Some(thing) => thing.as_unexpected_token(p.current_span()),
         None => Err(ParseError::Incomplete),
     })
+}
+
+fn parse_struct_decl(p: &mut Parser) -> ParseResult {
+    p.node_start_skip_newlines();
+
+    // test empty_struct
+    // struct test {}
+
+    // test struct_with_one_field
+    // struct test {
+    //     i: i32
+    // }
+
+    // test struct_with_field_and_generics
+    // struct test {
+    //     i: i32<a, b>
+    // }
+
+    // test err struct_with_field_name_but_no_type
+    // struct test {
+    //     i
+    // }
+
+    p.parse_node(StructDecl, |p| {
+        p.parse_single_tok(STRUCT_KW).map_incomplete()?;
+        p.parse_single_tok(ID).map_incomplete()?;
+        p.node_start_skip_newlines();
+        parse_tt(
+            p,
+            StructFieldList,
+            L_BRACE,
+            None,
+            R_BRACE,
+            parse_struct_field,
+        )?;
+        Ok(())
+    })
+}
+
+fn parse_struct_field(p: &mut Parser) -> ParseResult {
+    p.parse_node(StructField, |p| {
+        p.parse_single_tok(ID).map_incomplete()?;
+        p.parse_single_tok(COLON).map_incomplete()?;
+        parse_type_ref(p).map_incomplete()?;
+        p.require_newline()?;
+        Ok(())
+    })
+}
+
+fn parse_type_ref(p: &mut Parser) -> ParseResult {
+    p.parse_node(TypeRef, |p| {
+        p.parse_single_tok(ID).map_incomplete()?;
+        if p.at(LESS) {
+            parse_type_ref_generics(p)?;
+        }
+
+        Ok(())
+    })
+}
+
+fn parse_type_ref_generics(p: &mut Parser) -> ParseResult {
+    parse_tt(
+        p,
+        TypeRefGenerics,
+        LESS,
+        Some(COMMA),
+        GREATER,
+        parse_type_ref,
+    )
 }
