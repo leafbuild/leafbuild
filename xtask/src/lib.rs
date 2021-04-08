@@ -1,8 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
 use std::path::Path;
 
 pub mod build;
@@ -15,7 +10,6 @@ pub mod test;
 
 #[macro_use]
 extern crate thiserror;
-#[macro_use]
 extern crate serde;
 
 #[macro_export]

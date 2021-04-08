@@ -1,0 +1,319 @@
+(
+    const_tokens: [
+        (name: "PlusEq", kind: "PLUS_EQ", text: "+="),
+        (name: "MinusEq", kind: "MINUS_EQ", text: "-="),
+        (name: "MulEq", kind: "MUL_EQ", text: "*="),
+        (name: "DivEq", kind: "DIV_EQ", text: "/="),
+        (name: "ModEq", kind: "MOD_EQ", text: "%="),
+        (name: "Plus", kind: "PLUS", text: "+"),
+        (name: "Minus", kind: "MINUS", text: "-"),
+        (name: "Asterisk", kind: "ASTERISK", text: "*"),
+        (name: "Slash", kind: "SLASH", text: "/"),
+        (name: "Percent", kind: "PERCENT", text: "%"),
+        (name: "EqEq", kind: "EQ_EQ", text: "=="),
+        (name: "GreaterEq", kind: "GREATER_EQ", text: ">="),
+        (name: "Greater", kind: "GREATER", text: ">"),
+        (name: "LessEq", kind: "LESS_EQ", text: "<="),
+        (name: "Less", kind: "LESS", text: "<"),
+        (name: "Eq", kind: "EQ", text: "="),
+        (name: "NotEq", kind: "NEQ", text: "!="),
+        (name: "LParen", kind: "L_PAREN", text: "("),
+        (name: "RParen", kind: "R_PAREN", text: ")"),
+        (name: "LBracket", kind: "L_BRACKET", text: "["),
+        (name: "RBracket", kind: "R_BRACKET", text: "]"),
+        (name: "LBrace", kind: "L_BRACE", text: "{"),
+        (name: "RBrace", kind: "R_BRACE", text: "}"),
+        (name: "Dot", kind: "DOT", text: "."),
+        (name: "Colon", kind: "COLON", text: ":"),
+        (name: "QMark", kind: "QMARK", text: "?"),
+        (name: "Semicolon", kind: "SEMICOLON", text: ";"),
+        (name: "Comma", kind: "COMMA", text: ","),
+        (name: "AndKw", kind: "AND_KW", text: "and"),
+        (name: "OrKw", kind: "OR_KW", text: "or"),
+        (name: "NotKw", kind: "NOT_KW", text: "not"),
+        (name: "InKw", kind: "IN_KW", text: "in"),
+        (name: "LetKw", kind: "LET_KW", text: "let"),
+        (name: "IfKw", kind: "IF_KW", text: "if"),
+        (name: "ElseKw", kind: "ELSE_KW", text: "else"),
+        (name: "ForeachKw", kind: "FOREACH_KW", text: "foreach"),
+        (name: "ContinueKw", kind: "CONTINUE_KW", text: "continue"),
+        (name: "BreakKw", kind: "BREAK_KW", text: "break"),
+        (name: "ReturnKw", kind: "RETURN_KW", text: "return"),
+        (name: "TrueKw", kind: "TRUE_KW", text: "true"),
+        (name: "FalseKw", kind: "FALSE_KW", text: "false"),
+        (name: "FnKw", kind: "FN_KW", text: "fn"),
+        (name: "StructKw", kind: "STRUCT_KW", text: "struct"),
+
+        (name: "Newline", kind: "NEWLINE", text: "\n"),
+    ],
+    tokens: [
+        (name: "Id", kind: "ID", regex: "[a-zA-Z_][a-zA-Z0-9_]*"),
+        (name: "NumLit", kind: "NUM", regex: "([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|0)[uU]?[lL]?"),
+        (name: "Str", kind: "STRING", regex: r#"'(\\['nt\\]|[^'\\])+'"#),
+        (name: "MultilineStr", kind: "MULTILINE_STRING", regex: r#"'''([^']*|'[^']|''[^'])*'''"#),
+        (name: "SingleLineComment", kind: "SINGLE_LINE_COMMENT", regex: r#"//[^\n]*"#),
+        (name: "BlockComment", kind: "BLOCK_COMMENT", regex: r#"/\*([^*]|\**[^*/])*\*+/"#),
+        (name: "Whitespace", kind: "WHITESPACE", regex: r#"[ \t\r]+"#),
+    ],
+    nodes: [
+        (name: "Expr", kind: "Expr", children: []),
+        (name: "ExprBlock", kind: "ExprBlock", children: []),
+        (name: "KExpr", kind: "KExpr", children: [
+            Single("Id", "id"),
+            Single("Eq", "equal"),
+            Single("Expr", "expr"),
+        ]),
+        (
+            name: "ArrayLitExpr",
+            kind: "ArrayLitExpr",
+            children: [
+                Single("LBracket", "lbracket"),
+                Multiple("Expr", "expr"),
+                Single("RBracket", "rbracket"),
+            ],
+        ),
+        (
+            name: "MapLitExpr",
+            kind: "MapLitExpr",
+            children: [
+                Single("LBrace", "lbrace"),
+                Multiple("KExpr", "expr"),
+                Single("RBrace", "rbrace"),
+            ],
+        ),
+        (
+            name: "StrLit",
+            kind: "StrLit",
+            children: [
+                Optional("Str", "single_line_string"),
+                Optional("MultilineStr", "multiline_string"),
+            ],
+        ),
+        (
+            name: "PrimaryExpr",
+            kind: "PrimaryExpr",
+            children: [],
+        ),
+        (
+            name: "PrefixUnaryOpExpr",
+            kind: "PrefixUnaryOpExpr",
+            children: [
+                Last("Expr", "expr"),
+            ],
+        ),
+        (
+            name: "InfixBinaryOpExpr",
+            kind: "InfixBinOpExpr",
+            children: [
+                First("Expr", "left_operand"),
+                // TODO: uncomment this
+                // Single("InfixBinOp", "operator"),
+                Last("Expr", "right_operand"),
+            ],
+        ),
+        (
+            name: "FnCallExpr",
+            kind: "FnCallExpr",
+            children: [
+                First("Expr", "fn"),
+                Single("FnCallArgsList", "args"),
+            ],
+        ),
+        (
+            name: "FnCallArgsList",
+            kind: "FnCallArgsList",
+            children: [
+                Single("LParen", "lparen"),
+                Multiple("FArg", "args"),
+                Single("RParen", "rparen"),
+            ],
+        ),
+        (
+            name: "FArg",
+            kind: "FArg",
+            children: [
+                Optional("Expr", "as_expr"),
+                Optional("KExpr", "as_kexpr"),
+            ],
+        ),
+        (
+            name: "TupleExpr",
+            kind: "TupleExpr",
+            children: [
+                Single("LParen", "lparen"),
+                Multiple("Expr", "expr"),
+                Single("RParen", "rparen"),
+            ],
+        ),
+        (
+            name: "BoolLit",
+            kind: "BoolLit",
+            children: [
+                Optional("TrueKw", "true"),
+                Optional("FalseKw", "false"),
+            ],
+        ),
+        (
+            name: "IndexExpr",
+            kind: "IndexExpr",
+            children: [
+                Single("Expr", "base"),
+                Single("IndexExprBrackets", "brackets_expr"),
+            ],
+        ),
+        (
+            name: "IndexExprBrackets",
+            kind: "IndexExprBrackets",
+            children: [
+                Single("LBracket", "lbracket"),
+                Single("Expr", "expr"),
+                Single("RBracket", "rbracket"),
+            ],
+        ),
+        (
+            name: "Assignment",
+            kind: "Assignment",
+            children: [
+                First("Expr", "target_expr"),
+                // TODO: assignment operator
+                Last("Expr", "value"),
+            ],
+        ),
+        (
+            name: "Declaration",
+            kind: "Declaration",
+            children: [
+                Single("LetKw", "let"),
+                Single("Id", "name"),
+                Single("Eq", "eq"),
+                Single("Expr", "value"),
+            ],
+        ),
+        (
+            name: "Conditional",
+            kind: "Conditional",
+            children: [
+                Multiple("ConditionalBranch", "branches"),
+                Single("ElseKw", "else_kw"),
+                Single("ExprBlock", "else_block"),
+            ],
+        ),
+        (
+            name: "Foreach",
+            kind: "Foreach",
+            children: [
+                Single("ForeachKw", "foreach_kw"),
+                Single("ForInExpr", "for_in_expr"),
+                Single("ExprBlock", "block"),
+            ],
+        ),
+        (
+            name: "ForInExpr",
+            kind: "ForInExpr",
+            children: [
+                First("Expr", "binding"),
+                Single("InKw", "in_kw"),
+                Last("Expr", "iterator"),
+            ],
+        ),
+        (
+            name: "ControlStatement",
+            kind: "ControlStatement",
+            children: [
+                Optional("ContinueKw", "continue_kw"),
+                Optional("BreakKw", "break_kw"),
+                Optional("ReturnKw", "return_kw"),
+                Optional("Expr", "expr"),
+            ],
+        ),
+        (
+            name: "ExprStatement",
+            kind: "ExprStatement",
+            children: [
+                Single("Expr", "expr"),
+            ],
+        ),
+        (
+            name: "Tuple",
+            kind: "Tuple",
+            children: [
+                Single("LParen", "lparen"),
+                Multiple("Expr", "expression"),
+                Single("RParen", "rparen"),
+            ],
+        ),
+        (
+            name: "ConditionalBranch",
+            kind: "ConditionalBranch",
+            children: [
+                Single("IfKw", "if_kw"),
+                Single("Expr", "condition"),
+                Single("ExprBlock", "block"),
+            ],
+        ),
+        (
+            name: "Statement",
+            kind: "Statement",
+            children: [
+                Optional("ExprStatement", "expr_statement"),
+                Optional("Assignment", "assignment_statement"),
+                Optional("Declaration", "declaration_statement"),
+                Optional("Conditional", "conditional_statement"),
+                Optional("Foreach", "foreach_statement"),
+            ],
+        ),
+        (
+            name: "StructDecl",
+            kind: "StructDecl",
+            children: [
+                Single("StructKw", "struct_kw"),
+                Single("Id", "name"),
+                Single("StructFieldList", "field_list"),
+            ],
+        ),
+        (
+            name: "StructFieldList",
+            kind: "StructFieldList",
+            children: [
+                Single("LBrace", "lbrace"),
+                Multiple("StructField", "fields"),
+                Single("RBrace", "rbrace"),
+            ],
+        ),
+        (
+            name: "StructField",
+            kind: "StructField",
+            children: [
+                Single("Id", "name"),
+                Single("Colon", "colon"),
+                Single("TypeRef", "type"),
+            ]
+        ),
+        (
+            name: "TypeRef",
+            kind: "TypeRef",
+            children: [],
+        ),
+        (
+            name: "TypeRefGenerics",
+            kind: "TypeRefGenerics",
+            children: [],
+        ),
+        (
+            name: "LangItem",
+            kind: "LangItem",
+            children: [
+                Optional("Statement", "statement"),
+                // Optional("FnDecl", "fn_decl"),
+                Optional("StructDecl", "struct_decl"),
+            ]
+        ),
+        (
+            name: "Root",
+            kind: "ROOT",
+            children: [
+                Multiple("LangItem", "lang_items"),
+            ],
+        ),
+    ],
+)

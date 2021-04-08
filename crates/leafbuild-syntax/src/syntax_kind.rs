@@ -1,8 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
 //! Holds [`SyntaxKind`]
 /// The syntax kind; see rowan.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]

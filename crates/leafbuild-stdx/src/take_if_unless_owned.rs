@@ -1,8 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
 /// Similar to [`SomeNoneIf`][`super::SomeNoneIf`], but works with the owned types
 pub trait TakeIfUnlessOwned: ToOwned {
     /// Similar to [`SomeNoneIf::some_if`][`super::SomeNoneIf::some_if`], but works with owned types

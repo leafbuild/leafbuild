@@ -1,8 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
 use itertools::Itertools;
 use path_calculate::Calculate;
 use proc_macro2::{Ident, Span};
@@ -12,13 +7,9 @@ use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::{io, mem};
 
-use crate::{cargo_cmd, cmd, workspace_root, ws_path, ws_path_str};
-use crate::{
-    cmd::{CmdError, CmdResult},
-    format::format_file,
-};
+use crate::format::format_file;
+use crate::{cargo_cmd, workspace_root, ws_path, ws_path_str};
 use std::convert::TryInto;
-use std::process::ExitStatus;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum TestKind {

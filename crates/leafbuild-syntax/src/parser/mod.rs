@@ -1,9 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
-
 //! # The parser code
 //! Also see [the syntax reference](https://leafbuild.github.io/leafbuild/dev/syntax_ref.html).
 
@@ -13,8 +7,15 @@ use std::ops::{Deref, DerefMut, Range};
 use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange, TextSize};
 
 use crate::lexer::Lexer;
-use crate::syntax_kind::SyntaxKind::{self, *};
+use crate::SyntaxKind::{self, *};
 use leafbuild_stdx::{CopyTo, TakeIfUnless};
+
+use self::{error::ParseError, event::Event};
+
+mod error;
+mod event;
+mod token_source;
+mod tree_sink;
 
 ///
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
@@ -61,7 +62,7 @@ struct Parser<'input> {
     index: usize,
     meaningful_index: usize,
     builder: GreenNodeBuilder<'static>,
-    errors: Vec<(String, Span)>,
+    errors: Vec<ParseError>,
 }
 
 /// `is` helper
@@ -128,37 +129,6 @@ impl DerefMut for TokAndPosWrap {
         &mut self.kind
     }
 }
-
-#[derive(Debug, Clone)]
-enum ParseError {
-    Eof,
-    Incomplete,
-    Error(String, Span),
-    UnexpectedToken(String, Span),
-    ExpectedToken(String, Span, String),
-    ExpectedTokens(Vec<String>, Span),
-}
-
-trait MapIncomplete {
-    /// Eof => Incomplete
-    fn map_incomplete(self) -> Self;
-}
-
-impl MapIncomplete for ParseError {
-    fn map_incomplete(self) -> Self {
-        match self {
-            Self::Eof => Self::Incomplete,
-            other => other,
-        }
-    }
-}
-
-impl<T, E: MapIncomplete> MapIncomplete for Result<T, E> {
-    fn map_incomplete(self) -> Self {
-        self.map_err(MapIncomplete::map_incomplete)
-    }
-}
-
 trait Trivia: Copy {
     fn is_trivia(self) -> bool;
     fn is_newline(self) -> bool;
@@ -170,7 +140,7 @@ trait Trivia: Copy {
 impl<T: Is> Trivia for T {
     #[inline(always)]
     fn is_trivia(self) -> bool {
-        self.is_any(&[WHITESPACE, LINE_COMMENT, BLOCK_COMMENT])
+        self.is_any(&[WHITESPACE, SINGLE_LINE_COMMENT, BLOCK_COMMENT])
     }
 
     #[inline(always)]
@@ -183,8 +153,16 @@ impl<T: Is> Trivia for T {
         !self.is_trivia()
     }
 }
-
-type ParseResult<T = ()> = std::result::Result<T, ParseError>;
+#[derive(Debug, Clone)]
+enum ParseResult {
+    Eof,
+    Incomplete,
+    Error(String, Span),
+    UnexpectedToken(String, Span),
+    ExpectedToken(String, Span, String),
+    ExpectedTokens(Vec<String>, Span),
+    Ok,
+}
 
 #[allow(clippy::inline_always)]
 impl<'input> Parser<'input> {
@@ -193,12 +171,12 @@ impl<'input> Parser<'input> {
             p.bump_raw_to_meaningful();
             loop {
                 match parse_lang_item(p) {
-                    Err(ParseError::Eof) => break,
-                    Ok(()) => {}
-                    Err(ParseError::Incomplete) => {
+                    ParseResult::Eof => break,
+                    ParseResult::Ok => {}
+                    ParseResult::Incomplete => {
                         p.errors.push(("incomplete".into(), Span::default()))
                     }
-                    Err(ParseError::Error(err, span)) => {
+                    ParseResult::Error(err, span) => {
                         p.errors.push((err, span));
                         break;
                     }
@@ -241,6 +219,11 @@ impl<'input> Parser<'input> {
     #[inline(always)]
     fn at_any(&self, kinds: &[SyntaxKind]) -> bool {
         self.current().is_any(kinds)
+    }
+
+    pub(crate) fn error<E: Into<ParseError>>(&mut self, msg: E) {
+        let msg = msg.into();
+        self.push_event(Event::Error { msg })
     }
 
     /// Advance one meaningful token, adding it to the current branch of the tree builder,
@@ -399,7 +382,9 @@ impl<'input> Parser<'input> {
 
     #[inline(always)]
     fn error(&mut self) {
-        self.builder.token(ERROR.into(), "")
+        self.builder.start_node(ERROR.into());
+        self.bump_last();
+        self.builder.finish_node();
     }
 
     fn parse_single_tok_wrapped(
@@ -530,7 +515,7 @@ trait AsUnexpectedToken: Copy {
 
 impl AsUnexpectedToken for SyntaxKind {
     fn as_unexpected_token(self, span: Span) -> ParseResult {
-        Err(ParseError::UnexpectedToken(self.token_name(), span))
+        Err(ParseError::UnexpectedToken(self.token_name().into(), span))
     }
 }
 
@@ -538,8 +523,8 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
     p.node_start_skip_newlines();
     let tok = p.current().ok_or(ParseError::Eof)?;
     match tok {
-        L_PAREN | L_BRACKET | L_BRACE | PLUS | MINUS | NOT_KW | TRUE_KW | FALSE_KW | NUMBER
-        | ID | STRING | MULTILINE_STRING | IF_KW => {
+        L_PAREN | L_BRACKET | L_BRACE | PLUS | MINUS | NOT_KW | TRUE_KW | FALSE_KW | NUM | ID
+        | STRING | MULTILINE_STRING | IF_KW => {
             let assignment_checkpoint = p.checkpoint();
             parse_expr(p)?;
             // test assignment
@@ -570,9 +555,9 @@ fn parse_statement(p: &mut Parser) -> ParseResult {
             }
         }
         R_PAREN | R_BRACKET | R_BRACE | PLUS_EQ | MINUS_EQ | MUL_EQ | DIV_EQ | MOD_EQ
-        | ASTERISK | SLASH | PERCENT | EQ_EQ | GREATER_EQ | GREATER | LESS_EQ | LESS | NOT_EQ
-        | EQ | DOT | COLON | QMARK | SEMICOLON | COMMA | AND_KW | OR_KW | IN_KW | FN_KW
-        | ELSE_KW | ERROR => tok.as_unexpected_token(p.current_span()),
+        | ASTERISK | SLASH | PERCENT | EQ_EQ | GREATER_EQ | GREATER | LESS_EQ | LESS | NEQ | EQ
+        | DOT | COLON | QMARK | SEMICOLON | COMMA | AND_KW | OR_KW | IN_KW | FN_KW | ELSE_KW
+        | ERROR => tok.as_unexpected_token(p.current_span()),
         LET_KW => parse_declaration(p),
         FOREACH_KW => parse_foreach(p),
         CONTINUE_KW | BREAK_KW | RETURN_KW => parse_control_stmt(p),
@@ -643,7 +628,7 @@ fn parse_primary(p: &mut Parser) -> ParseResult {
             parse_conditional(p)
         } else if is_expr_block_start(p) {
             parse_expr_block(p)
-        } else if p.at_any(&[NUMBER, ID]) {
+        } else if p.at_any(&[NUM, ID]) {
             p.bump_last();
             Ok(())
         } else if is_string_lit(p) {
@@ -751,8 +736,8 @@ fn parse_f_call(p: &mut Parser, ck: Checkpoint) -> ParseResult {
     // x = f
     // (1, 2, a = b)
 
-    p.parse_node_at(ck, FuncCallExpr, |p| {
-        parse_tt(p, FuncCallArgs, L_PAREN, Some(COMMA), R_PAREN, parse_farg)
+    p.parse_node_at(ck, FnCallExpr, |p| {
+        parse_tt(p, FnCallArgsList, L_PAREN, Some(COMMA), R_PAREN, parse_farg)
     })
 }
 
@@ -788,8 +773,8 @@ fn is_kexpr_start(p: &mut Parser) -> bool {
 fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
     p.node_start_skip_newlines();
     assert!(p.current().is(L_BRACKET));
-    p.parse_node_at(ck, IndexedExpr, |p| {
-        p.parse_node(IndexedExprBrackets, |p| {
+    p.parse_node_at(ck, IndexExpr, |p| {
+        p.parse_node(IndexExprBrackets, |p| {
             p.bump(); // '['
             parse_expr(p)?; // expr
             p.parse_single_tok(R_BRACKET)?;
@@ -872,7 +857,7 @@ fn parse_precedence_5_expr(p: &mut Parser) -> ParseResult {
 }
 
 fn parse_precedence_6_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[EQ_EQ, NOT_EQ], parse_precedence_5_expr)
+    parse_infix_binop(p, &[EQ_EQ, NEQ], parse_precedence_5_expr)
 }
 
 fn parse_precedence_7_expr(p: &mut Parser) -> ParseResult {
