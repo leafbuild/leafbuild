@@ -1,7 +1,6 @@
 use std::path::Path;
 
 pub mod build;
-pub mod cmd;
 pub mod format;
 pub mod git_hooks;
 pub mod grammar;
@@ -10,6 +9,8 @@ pub mod test;
 
 #[macro_use]
 extern crate thiserror;
+#[macro_use]
+extern crate cmd;
 extern crate serde;
 
 #[macro_export]

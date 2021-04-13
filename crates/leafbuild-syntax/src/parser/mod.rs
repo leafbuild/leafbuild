@@ -4,16 +4,23 @@
 use std::fmt;
 use std::ops::{Deref, DerefMut, Range};
 
-use rowan::{Checkpoint, GreenNode, GreenNodeBuilder, TextRange, TextSize};
+use rowan::{Checkpoint, GreenNodeBuilder, TextRange, TextSize};
 
 use crate::lexer::Lexer;
 use crate::SyntaxKind::{self, *};
+use crate::T;
 use leafbuild_stdx::{CopyTo, TakeIfUnless};
 
-use self::{error::ParseError, event::Event};
+use self::{
+    error::ParseError,
+    event::Event,
+    marker::{CompletedMarker, Marker},
+    token_source::TokenSource,
+};
 
 mod error;
 mod event;
+mod marker;
 mod token_source;
 mod tree_sink;
 
@@ -45,127 +52,14 @@ impl fmt::Debug for Span {
     }
 }
 
-///
-#[derive(Debug)]
-pub struct Parse {
-    /// the node
-    pub green_node: GreenNode,
-    /// errors
-    #[allow(unused)]
-    pub errors: Vec<(String, Span)>,
-}
-
-struct Parser<'input> {
+struct Parser<'ts> {
     /// tokens
-    tokens: Vec<(SyntaxKind, &'input str, Span)>,
-    meaningful: Vec<(SyntaxKind, usize)>,
-    index: usize,
-    meaningful_index: usize,
-    builder: GreenNodeBuilder<'static>,
-    errors: Vec<ParseError>,
-}
-
-/// `is` helper
-pub(crate) trait Is: Sized + Copy {
-    fn is(self, kind: SyntaxKind) -> bool;
-
-    fn isnt(self, kind: SyntaxKind) -> bool {
-        !self.is(kind)
-    }
-
-    fn is_any(self, kinds: &[SyntaxKind]) -> bool {
-        kinds.iter().any(|&it| self.is(it))
-    }
-}
-
-impl Is for SyntaxKind {
-    fn is(self, kind: SyntaxKind) -> bool {
-        self == kind
-    }
-}
-
-impl Is for Option<SyntaxKind> {
-    fn is(self, kind: SyntaxKind) -> bool {
-        self.map_or(false, |it| it.is(kind))
-    }
-
-    fn isnt(self, kind: SyntaxKind) -> bool {
-        self.map_or(false, |it| it.isnt(kind))
-    }
-}
-
-#[derive(Copy, Clone)]
-struct TokAndPosWrap {
-    kind: SyntaxKind,
-    pos: usize,
-}
-
-impl Is for TokAndPosWrap {
-    fn is(self, kind: SyntaxKind) -> bool {
-        self.kind.is(kind)
-    }
-}
-
-impl Is for Option<TokAndPosWrap> {
-    fn is(self, kind: SyntaxKind) -> bool {
-        self.map_or(false, |it| it.is(kind))
-    }
-
-    fn isnt(self, kind: SyntaxKind) -> bool {
-        self.map_or(false, |it| it.isnt(kind))
-    }
-}
-
-impl Deref for TokAndPosWrap {
-    type Target = SyntaxKind;
-
-    fn deref(&self) -> &Self::Target {
-        &self.kind
-    }
-}
-
-impl DerefMut for TokAndPosWrap {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.kind
-    }
-}
-trait Trivia: Copy {
-    fn is_trivia(self) -> bool;
-    fn is_newline(self) -> bool;
-
-    fn is_meaningful(self) -> bool;
+    source: &'ts mut dyn TokenSource,
+    events: Vec<Event>,
 }
 
 #[allow(clippy::inline_always)]
-impl<T: Is> Trivia for T {
-    #[inline(always)]
-    fn is_trivia(self) -> bool {
-        self.is_any(&[WHITESPACE, SINGLE_LINE_COMMENT, BLOCK_COMMENT])
-    }
-
-    #[inline(always)]
-    fn is_newline(self) -> bool {
-        self.is(NEWLINE)
-    }
-
-    #[inline(always)]
-    fn is_meaningful(self) -> bool {
-        !self.is_trivia()
-    }
-}
-#[derive(Debug, Clone)]
-enum ParseResult {
-    Eof,
-    Incomplete,
-    Error(String, Span),
-    UnexpectedToken(String, Span),
-    ExpectedToken(String, Span, String),
-    ExpectedTokens(Vec<String>, Span),
-    Ok,
-}
-
-#[allow(clippy::inline_always)]
-impl<'input> Parser<'input> {
+impl<'ts> Parser<'ts> {
     fn parse(mut self) -> Parse {
         self.parse_node(ROOT, |p| {
             p.bump_raw_to_meaningful();
@@ -221,100 +115,43 @@ impl<'input> Parser<'input> {
         self.current().is_any(kinds)
     }
 
+    #[inline(always)]
+    fn bump(&mut self, kind: SyntaxKind) {
+        assert!(self.eat(kind));
+    }
+
+    #[inline(always)]
+    fn bump_any(&mut self) {
+        let kind = self.current();
+        if kind == EOF {
+            return;
+        }
+
+        self.do_bump(kind, 1);
+    }
+
+    fn do_bump(&mut self, kind: SyntaxKind, n_raw_tokens: u8) {
+        self.source.bump();
+        self.push_event(Event::Token { kind, n_raw_tokens })
+    }
+
+    fn expect(&mut self, kind: SyntaxKind) -> bool {
+        if self.eat(kind) {
+            return true;
+        }
+        self.error(format!("expected {:?}", kind));
+        false
+    }
+
     pub(crate) fn error<E: Into<ParseError>>(&mut self, msg: E) {
         let msg = msg.into();
         self.push_event(Event::Error { msg })
     }
 
-    /// Advance one meaningful token, adding it to the current branch of the tree builder,
-    /// along with all the trivia before it.
     #[inline(always)]
-    fn bump(&mut self) {
-        self.meaningful_index += 1;
-        if let Some(index) = self
-            .meaningful
-            .get(self.meaningful_index)
-            .map(|&(_, it)| it)
-        {
-            self.bump_raw_to(index);
-        }
-    }
-
-    #[inline(always)]
-    fn bump_last(&mut self) {
-        if let Some(index) = self
-            .meaningful
-            .get(self.meaningful_index)
-            .map(|&(_, it)| it)
-        {
-            self.bump_raw_to(index + 1);
-        }
-        self.meaningful_index += 1;
-    }
-
-    #[inline(always)]
-    fn bump_to(&mut self, tk: Option<TokAndPosWrap>) {
-        if let Some(tk) = tk {
-            let off = self.meaningful[self.meaningful_index..]
-                .iter()
-                .enumerate()
-                .find_map(|(offset, &(_, index))| offset.take_unless(|_| index < tk.pos))
-                .unwrap_or(0);
-            self.meaningful_index += off;
-            self.bump_raw_to(self.meaningful[self.meaningful_index].1);
-        }
-    }
-
-    #[inline(always)]
-    fn bump_raw(&mut self) {
-        if let Some((kind, text, _)) = self.tokens.get(self.index) {
-            if self.index
-                == self
-                    .meaningful
-                    .get(self.meaningful_index + 1)
-                    .map_or(usize::MAX, |&(_, index)| index)
-            {
-                self.meaningful_index += 1;
-            }
-
-            self.builder.token(kind.into(), text);
-            self.index += 1;
-        }
-    }
-
-    #[inline(always)]
-    fn bump_raw_to(&mut self, new_index: usize) {
-        let Parser {
-            ref index,
-            ref tokens,
-            ref mut builder,
-            ..
-        } = self;
-
-        tokens[*index..new_index]
-            .iter()
-            .for_each(|(kind, text, _)| {
-                builder.token(kind.into(), text);
-            });
-
-        self.index = new_index;
-    }
-
-    #[inline(always)]
-    fn bump_raw_to_meaningful(&mut self) {
-        if let Some(index) = self
-            .meaningful
-            .get(self.meaningful_index)
-            .map(|&(_, index)| index)
-        {
-            self.bump_raw_to(index);
-        }
-    }
-
-    #[inline(always)]
-    fn bump_if(&mut self, f: impl FnOnce(SyntaxKind) -> bool) -> bool {
-        if self.current().map_or(false, f) {
-            self.bump();
+    fn eat(&mut self, kind: SyntaxKind) -> bool {
+        if self.at(kind) {
+            self.do_bump(kind, 1);
             true
         } else {
             false
@@ -322,50 +159,23 @@ impl<'input> Parser<'input> {
     }
 
     #[inline(always)]
-    fn current(&self) -> Option<SyntaxKind> {
-        self.meaningful
-            .get(self.meaningful_index)
-            .map(|(kind, _)| *kind)
+    fn current(&self) -> SyntaxKind {
+        self.nth(0)
+    }
+
+    #[inline(always)]
+    fn nth(&self, n: usize) -> SyntaxKind {
+        self.source.lookahead(n).syntax_kind
     }
 
     #[inline(always)]
     fn current_span(&self) -> Span {
-        self.meaningful
-            .get(self.meaningful_index)
-            .map(|&(_, index)| index)
-            .map_or(Span::default(), |index| self.tokens[index].2)
+        self.source.current().span
     }
 
     #[inline(always)]
-    fn current_raw(&self) -> Option<SyntaxKind> {
-        self.tokens.get(self.index).map(|(kind, _, _)| *kind)
-    }
-
-    #[inline(always)]
-    fn current_span_raw(&self) -> Span {
-        self.tokens
-            .get(self.index)
-            .map_or(Span::default(), |(_, _, span)| *span)
-    }
-
-    #[inline(always)]
-    fn next_non_newline(&self) -> Option<TokAndPosWrap> {
-        self.meaningful[self.meaningful_index..]
-            .iter()
-            .find_map(|&(kind, tk_pos)| (kind, tk_pos).take_unless(|&(it, _)| it.is_newline()))
-            .map(|(kind, pos)| TokAndPosWrap { kind, pos })
-    }
-
-    #[inline(always)]
-    fn require_newline(&mut self) -> ParseResult {
-        match self.current() {
-            Some(NEWLINE) => {
-                self.bump_last();
-                Ok(())
-            }
-            Some(other) => other.as_unexpected_token(self.current_span_raw()),
-            None => Err(ParseError::Eof),
-        }
+    fn require_newline(&mut self) {
+        self.expect(NEWLINE)
     }
 
     #[inline(always)]
@@ -374,108 +184,25 @@ impl<'input> Parser<'input> {
     }
 
     #[inline(always)]
-    fn next_nontrivia_lookahead(&self) -> Option<SyntaxKind> {
-        self.tokens[self.index + 1..]
-            .iter()
-            .find_map(|(it, _, _)| (*it).take_unless(|&it| it.is_trivia()))
-    }
-
-    #[inline(always)]
-    fn error(&mut self) {
-        self.builder.start_node(ERROR.into());
-        self.bump_last();
-        self.builder.finish_node();
-    }
-
-    fn parse_single_tok_wrapped(
-        &mut self,
-        kind: SyntaxKind,
-        output_kind: SyntaxKind,
-    ) -> ParseResult {
-        self.builder.start_node(output_kind.into());
-        if !self.bump_if(|it| it.is(kind)) {
-            let current = self.current();
-            self.errors.push((
-                format!("Expected {:?}, got {:?}", kind, current),
-                self.current_span(),
-            ));
-            self.error();
-            return self
-                .current()
-                .unwrap()
-                .as_unexpected_token(self.current_span());
+    fn skip_newlines(&mut self) {
+        while self.at(NEWLINE) {
+            self.do_bump(NEWLINE, 1);
         }
-        self.builder.finish_node();
-        Ok(())
     }
 
     #[inline(always)]
-    fn parse_single_tok(&mut self, kind: SyntaxKind) -> ParseResult {
-        if !self.bump_if(|it| it.is(kind)) {
-            self.error();
+    fn unexpected(&mut self) {
+        let current = self.current();
+        self.do_bump(current, 1);
 
-            return Err(ParseError::ExpectedToken(
-                kind.token_name(),
-                self.current_span(),
-                self.current().unwrap_or(ERROR).token_name(),
-            ));
-        }
-        Ok(())
+        self.error(format!("Unexpected {}", current));
     }
 
     #[inline(always)]
-    fn start_node(&mut self, kind: SyntaxKind) {
-        self.builder.start_node(kind.into())
-    }
-
-    #[inline(always)]
-    fn start_node_at(&mut self, checkpoint: Checkpoint, kind: SyntaxKind) {
-        self.builder.start_node_at(checkpoint, kind.into())
-    }
-
-    #[inline(always)]
-    fn checkpoint(&mut self) -> Checkpoint {
-        self.builder.checkpoint()
-    }
-
-    #[inline(always)]
-    fn finish_node(&mut self) {
-        self.builder.finish_node()
-    }
-
-    #[inline(always)]
-    fn node_start_skip_newlines(&mut self) {
-        while self.has_newline() {
-            self.bump();
-        }
-        self.bump_raw_to_meaningful();
-    }
-
-    #[inline(always)]
-    fn parse_node<T>(
-        &mut self,
-        kind: SyntaxKind,
-        f: impl FnOnce(&mut Self) -> ParseResult<T>,
-    ) -> ParseResult<T> {
-        self.start_node(kind);
-        let r = f(self);
-        self.finish_node();
-
-        r
-    }
-
-    #[inline(always)]
-    fn parse_node_at<T>(
-        &mut self,
-        checkpoint: Checkpoint,
-        kind: SyntaxKind,
-        f: impl FnOnce(&mut Self) -> ParseResult<T>,
-    ) -> ParseResult<T> {
-        self.start_node_at(checkpoint, kind);
-        let r = f(self);
-        self.finish_node();
-
-        r
+    fn start(&mut self) -> Marker {
+        let pos = self.events.len() as u32;
+        self.push_event(Event::tombstone());
+        Marker::new(pos)
     }
 }
 
@@ -501,72 +228,97 @@ pub fn parse(text: &str) -> Parse {
 }
 
 #[inline]
-fn parse_lang_item(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_lang_item(p: &mut Parser) {
+    p.skip_newlines();
     match p.current() {
         Some(STRUCT_KW) => parse_struct_decl(p),
         _ => parse_statement(p),
     }
 }
 
-trait AsUnexpectedToken: Copy {
-    fn as_unexpected_token(self, span: Span) -> ParseResult;
-}
-
-impl AsUnexpectedToken for SyntaxKind {
-    fn as_unexpected_token(self, span: Span) -> ParseResult {
-        Err(ParseError::UnexpectedToken(self.token_name().into(), span))
-    }
-}
-
-fn parse_statement(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_statement(p: &mut Parser) {
     let tok = p.current().ok_or(ParseError::Eof)?;
     match tok {
-        L_PAREN | L_BRACKET | L_BRACE | PLUS | MINUS | NOT_KW | TRUE_KW | FALSE_KW | NUM | ID
-        | STRING | MULTILINE_STRING | IF_KW => {
-            let assignment_checkpoint = p.checkpoint();
+        T!['(']
+        | T!['[']
+        | T!['{']
+        | T![+]
+        | T![-]
+        | T![not]
+        | T![true]
+        | T![false]
+        | T![NumLit]
+        | T![Id]
+        | T![Str]
+        | T![MultilineStr]
+        | T![if] => {
+            let assingment_marker = p.start();
             parse_expr(p)?;
             // test assignment
             // a = b
 
             // test unit_to_unit_assignment
             // () = ()
-            if p.at_any(&[PLUS_EQ, MINUS_EQ, MUL_EQ, DIV_EQ, MOD_EQ, EQ]) {
-                p.parse_node_at(assignment_checkpoint, Assignment, |p| {
-                    // consume the `=` / `+=` / ...
-                    p.bump();
+            if p.at_any(&[T![+=], T![-=], T![*=], T![/=], T![%=], T![=]]) {
+                // consume the `=` / `+=` / ...
+                p.bump_any();
 
-                    // test assignment_expr_on_next_line
-                    // x =
-                    //     1
+                // test assignment_expr_on_next_line
+                // x =
+                //     1
 
-                    parse_expr(p)?;
+                parse_expr(p)?;
 
-                    p.require_newline()?;
-                    Ok(())
-                })
+                p.require_newline()?;
+                assingment_marker.complete(p, Assignment);
             } else {
                 // test freestanding_expr
                 // 1
 
                 p.require_newline()?;
-                Ok(())
+                assingment_marker.abandon(p);
             }
         }
-        R_PAREN | R_BRACKET | R_BRACE | PLUS_EQ | MINUS_EQ | MUL_EQ | DIV_EQ | MOD_EQ
-        | ASTERISK | SLASH | PERCENT | EQ_EQ | GREATER_EQ | GREATER | LESS_EQ | LESS | NEQ | EQ
-        | DOT | COLON | QMARK | SEMICOLON | COMMA | AND_KW | OR_KW | IN_KW | FN_KW | ELSE_KW
-        | ERROR => tok.as_unexpected_token(p.current_span()),
         LET_KW => parse_declaration(p),
         FOREACH_KW => parse_foreach(p),
         CONTINUE_KW | BREAK_KW | RETURN_KW => parse_control_stmt(p),
+        T![')']
+        | T![']']
+        | T!['}']
+        | T![+=]
+        | T![-=]
+        | T![*=]
+        | T![/=]
+        | T![%=]
+        | T![*]
+        | T![/]
+        | T![%]
+        | T![==]
+        | T![>=]
+        | T![>]
+        | T![<=]
+        | T![<]
+        | T![!=]
+        | T![=]
+        | T![.]
+        | T![:]
+        | T![?]
+        | T![;]
+        | T![,]
+        | T![and]
+        | T![or]
+        | T![in]
+        | T![fn]
+        | T![else]
+        | ERROR => {
+            // FIXME: error
+        }
         _ => unreachable!(),
     }
 }
 
-fn parse_expr(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_expr(p: &mut Parser) {
+    p.skip_newlines();
 
     // test precedence_parsing
     // x = 1 + 2 * 3 % - 4 ( 5 )
@@ -574,37 +326,30 @@ fn parse_expr(p: &mut Parser) -> ParseResult {
     p.parse_node(Expr, parse_precedence_8_expr)
 }
 
-fn parse_tuple_expr(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_tuple_expr(p: &mut Parser) {
+    p.skip_newlines();
     assert!(is_tuple_expr_start(p));
 
-    parse_tt(p, TupleExpr, L_PAREN, Some(COMMA), R_PAREN, parse_expr)
+    parse_tt(p, TupleExpr, T!['['], Some(T![,]), T![']'], parse_expr)
 }
 
 fn is_tuple_expr_start(p: &mut Parser) -> bool {
     p.at(L_PAREN)
 }
 
-fn parse_array_expr(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_array_expr(p: &mut Parser) {
+    p.skip_newlines();
     assert!(is_array_expr_start(p));
 
-    parse_tt(
-        p,
-        ArrayLitExpr,
-        L_BRACKET,
-        Some(COMMA),
-        R_BRACKET,
-        parse_expr,
-    )
+    parse_tt(p, ArrayLitExpr, T!['['], Some(T![,]), T![']'], parse_expr)
 }
 
 fn is_array_expr_start(p: &mut Parser) -> bool {
-    p.at(L_BRACKET)
+    p.at(T!['['])
 }
 
-fn parse_primary(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_primary(p: &mut Parser) -> CompletedMarker {
+    p.skip_newlines();
     p.parse_node(PrimaryExpr, |p| {
         if is_array_expr_start(p) {
             parse_array_expr(p)
@@ -628,30 +373,23 @@ fn parse_primary(p: &mut Parser) -> ParseResult {
             parse_conditional(p)
         } else if is_expr_block_start(p) {
             parse_expr_block(p)
-        } else if p.at_any(&[NUM, ID]) {
+        } else if p.at_any(&[T![NumLit], T![Id]]) {
             p.bump_last();
-            Ok(())
         } else if is_string_lit(p) {
             parse_string(p)
         } else {
-            p.error();
-            p.current().map_or(Err(ParseError::Eof), |token| {
-                token.as_unexpected_token(p.current_span())
-            })
+            p.unexpected();
         }
     })
 }
 
 fn is_string_lit(p: &mut Parser) -> bool {
-    p.at_any(&[STRING, MULTILINE_STRING])
+    p.at_any(&[T![Str], T![MultilineStr]])
 }
 
-fn parse_string(p: &mut Parser) -> ParseResult {
+fn parse_string(p: &mut Parser) {
     assert!(is_string_lit(p));
-    p.parse_node(StrLit, |p| {
-        p.bump_last();
-        Ok(())
-    })
+    p.bump_any()
 }
 
 fn parse_tt(
@@ -660,69 +398,47 @@ fn parse_tt(
     start_tok: SyntaxKind,
     separator: Option<SyntaxKind>,
     end_tok: SyntaxKind,
-    mut f: impl FnMut(&mut Parser) -> ParseResult,
-) -> ParseResult {
-    p.node_start_skip_newlines();
-    assert!(p.at(start_tok));
-    p.parse_node(outer_kind, move |p| {
-        p.bump();
+    mut f: impl FnMut(&mut Parser),
+) {
+    let marker = p.start();
+    p.bump(start_tok);
 
-        let mut tk = None;
+    while !p.at(EOF) && !p.at(end_tok) {
+        f(p);
 
-        while p
-            .next_non_newline()
-            .copy_to(&mut tk)
-            .map_or(false, |it| it.kind.isnt(end_tok))
-        {
-            p.bump_to(tk);
-            f(p).map_incomplete()?;
-
-            if let Some(separator) = separator {
-                p.node_start_skip_newlines();
-                if p.at(separator) {
-                    p.bump();
-                } else if p.current().isnt(end_tok) {
-                    p.error();
-
-                    return Err(ParseError::ExpectedTokens(
-                        vec![end_tok.token_name(), separator.token_name()],
-                        p.current_span(),
-                    ));
-                }
+        if let Some(separator) = separator {
+            if p.at(separator) {
+                p.bump(separator);
+            } else if !p.at(end_tok) {
+                p.error(format!("expected {:?} or {:?}", separator, end_tok));
             }
         }
+    }
 
-        p.node_start_skip_newlines();
-        // consume the end token
-        p.bump_last();
-
-        Ok(())
-    })
+    p.expect(end_tok);
+    marker.complete(p, outer_kind);
 }
 
-fn parse_precedence_1_expr(p: &mut Parser) -> ParseResult {
+fn parse_precedence_1_expr(p: &mut Parser) {
     p.node_start_skip_newlines();
-    let ck = p.checkpoint();
-    parse_primary(p)?;
+    let mut marker = parse_primary(p);
 
     // test index_on_second_line_is_array_lit_expr
     // x = a
     // [1]
 
-    while p.current().is_any(&[L_PAREN, L_BRACKET]) && !p.has_newline() {
-        if p.at(L_PAREN) {
-            parse_f_call(p, ck)?
-        } else if p.at(L_BRACKET) {
-            parse_index_expr(p, ck)?
+    while p.at_any(&[T!['('], T!['[']]) {
+        if p.at(T!['(']) {
+            let new_marker = marker.precede(p);
+            marker = parse_f_call(p, new_marker);
+        } else if p.at(T!['[']) {
+            let new_marker = marker.precede(p);
+            marker = parse_index_expr(p, new_marker);
         }
     }
-
-    Ok(())
 }
 
-fn parse_f_call(p: &mut Parser, ck: Checkpoint) -> ParseResult {
-    p.node_start_skip_newlines();
-
+fn parse_f_call(p: &mut Parser, marker: Marker) -> CompletedMarker {
     // test simple_function_call
     // x = f(1, 2, a = b)
 
@@ -736,13 +452,12 @@ fn parse_f_call(p: &mut Parser, ck: Checkpoint) -> ParseResult {
     // x = f
     // (1, 2, a = b)
 
-    p.parse_node_at(ck, FnCallExpr, |p| {
-        parse_tt(p, FnCallArgsList, L_PAREN, Some(COMMA), R_PAREN, parse_farg)
-    })
+    parse_tt(p, FnCallArgsList, T!['('], Some(T![,]), T![')'], parse_farg);
+    marker.complete(p, FnCallExpr)
 }
 
-fn parse_farg(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_farg(p: &mut Parser) {
+    p.skip_newlines();
     if is_kexpr_start(p) {
         parse_kexpr(p)
     } else {
@@ -750,61 +465,48 @@ fn parse_farg(p: &mut Parser) -> ParseResult {
     }
 }
 
-fn parse_kexpr(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_kexpr(p: &mut Parser) {
+    p.skip_newlines();
     assert!(is_kexpr_start(p));
 
-    p.parse_node(KExpr, |p| {
-        p.bump();
+    p.bump(T![Id]);
+    p.bump(T![=]);
 
-        p.parse_single_tok(EQ)?;
-
-        parse_expr(p)?;
-
-        Ok(())
-    })
+    parse_expr(p);
 }
 
 fn is_kexpr_start(p: &mut Parser) -> bool {
     p.node_start_skip_newlines();
-    p.at(ID) && p.next_nontrivia_lookahead().is(EQ)
+    p.at(T![Id]) && p.nth(1) == T![=]
 }
 
-fn parse_index_expr(p: &mut Parser, ck: Checkpoint) -> ParseResult {
+fn parse_index_expr(p: &mut Parser, marker: Marker) -> CompletedMarker {
     p.node_start_skip_newlines();
     assert!(p.current().is(L_BRACKET));
-    p.parse_node_at(ck, IndexExpr, |p| {
-        p.parse_node(IndexExprBrackets, |p| {
-            p.bump(); // '['
-            parse_expr(p)?; // expr
-            p.parse_single_tok(R_BRACKET)?;
-
-            Ok(())
-        })
-    })
+    let expr_marker = p.start();
+    let brackets_marker = p.start();
+    p.bump(T!['{']);
+    parse_expr(p); // expr
+    p.expect(T!['}']);
+    brackets_marker.complete(p, IndexExprBrackets);
+    expr_marker.complete(p, IndexExpr)
 }
 
-fn parse_precedence_2_expr(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
-    if p.current().is_any(&[PLUS, MINUS]) {
-        p.parse_node(PrefixUnaryOpExpr, |p| {
-            p.bump();
-
-            parse_precedence_2_expr(p)
-        })
+fn parse_precedence_2_expr(p: &mut Parser) {
+    p.skip_newlines();
+    if p.at_any(&[T![+], T![-]]) {
+        let marker = p.start();
+        p.bump_any();
+        marker.complete(p, PrefixUnaryOpExpr);
     } else {
         parse_precedence_1_expr(p)
     }
 }
 
-fn parse_infix_binop(
-    p: &mut Parser,
-    ops: &[SyntaxKind],
-    mut lower: impl FnMut(&mut Parser) -> ParseResult,
-) -> ParseResult {
-    p.node_start_skip_newlines();
-    let ck = p.checkpoint();
-    lower(p)?;
+fn parse_infix_binop(p: &mut Parser, ops: &[SyntaxKind], mut lower: impl FnMut(&mut Parser)) {
+    p.skip_newlines();
+    let marker = p.start();
+    lower(p);
 
     // test expr_with_binary_infix_operators_on_same_line_and_second_operand_on_second_line
     // x = 1 +
@@ -826,85 +528,72 @@ fn parse_infix_binop(
     // * 6
     // % 78
 
-    let mut tk = None;
-    while p.next_non_newline().copy_to(&mut tk).is_any(ops) {
-        p.bump_to(tk);
-        p.parse_node_at(ck, InfixBinOpExpr, |p| {
-            p.bump();
-            lower(p)?;
-
-            Ok(())
-        })?;
+    while p.at_any(ops) {
+        p.bump_any();
+        lower(p);
     }
 
     Ok(())
 }
 
-fn parse_precedence_3_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[ASTERISK, SLASH, PERCENT], parse_precedence_2_expr)
+fn parse_precedence_3_expr(p: &mut Parser) {
+    parse_infix_binop(p, &[T![*], T![/], T![%]], parse_precedence_2_expr)
 }
 
-fn parse_precedence_4_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[PLUS, MINUS], parse_precedence_3_expr)
+fn parse_precedence_4_expr(p: &mut Parser) {
+    parse_infix_binop(p, &[T![+], T![-]], parse_precedence_3_expr)
 }
 
-fn parse_precedence_5_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(
-        p,
-        &[LESS, LESS_EQ, GREATER, GREATER_EQ],
-        parse_precedence_4_expr,
-    )
+fn parse_precedence_5_expr(p: &mut Parser) {
+    parse_infix_binop(p, &[T![<], T![<=], T![>], T![>=]], parse_precedence_4_expr)
 }
 
-fn parse_precedence_6_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[EQ_EQ, NEQ], parse_precedence_5_expr)
+fn parse_precedence_6_expr(p: &mut Parser) {
+    parse_infix_binop(p, &[T![==], T![!=]], parse_precedence_5_expr)
 }
 
-fn parse_precedence_7_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[AND_KW], parse_precedence_6_expr)
+fn parse_precedence_7_expr(p: &mut Parser) {
+    parse_infix_binop(p, &[T![and]], parse_precedence_6_expr)
 }
 
-fn parse_precedence_8_expr(p: &mut Parser) -> ParseResult {
-    parse_infix_binop(p, &[OR_KW], parse_precedence_7_expr)
+fn parse_precedence_8_expr(p: &mut Parser) {
+    parse_infix_binop(p, &[T![or]], parse_precedence_7_expr)
 }
 
-fn parse_expr_block(p: &mut Parser) -> ParseResult {
-    parse_tt(p, ExprBlock, L_BRACE, None, R_BRACE, parse_statement)
+fn parse_expr_block(p: &mut Parser) {
+    parse_tt(p, ExprBlock, T!['{'], None, T!['}'], parse_statement)
 }
 
 fn is_expr_block_start(p: &mut Parser) -> bool {
-    p.current().is(L_BRACE)
+    p.current().is(T!['{'])
 }
 
-fn parse_declaration(p: &mut Parser) -> ParseResult {
+fn parse_declaration(p: &mut Parser) {
     // test declaration
     // let a = b
 
     // test var_declaration_with_proper_expr_as_value
     // let x = 1
-    p.node_start_skip_newlines();
-    assert!(p.current().is(LET_KW));
-    p.parse_node(Declaration, |p| {
-        p.parse_single_tok(LET_KW)?;
+    p.skip_newlines();
+    let mk = p.start();
+    p.expect(T![let]);
+    p.expect(T![Id]);
 
-        p.parse_single_tok(ID).map_incomplete()?;
+    p.expect(T![=]);
 
-        p.parse_single_tok(EQ).map_incomplete()?;
+    parse_expr(p);
 
-        parse_expr(p).map_incomplete()?;
+    p.require_newline();
 
-        p.require_newline().map_incomplete()?;
-
-        Ok(())
-    })
+    mk.complete(p, Declaration);
 }
 
 fn is_conditional_start(p: &mut Parser) -> bool {
-    p.current().is(IF_KW)
+    p.at(T![if])
 }
 
-fn parse_conditional(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_conditional(p: &mut Parser) {
+    p.skip_newlines();
 
     // test if_else_condition
     // if a {} else {}
@@ -915,7 +604,7 @@ fn parse_conditional(p: &mut Parser) -> ParseResult {
     assert!(is_conditional_start(p));
 
     p.parse_node(Conditional, |p| {
-        parse_conditional_branch(p).map_incomplete()?;
+        parse_conditional_branch(p);
         // test if_else_if_else_condition_stretched
         // if ()
         //
@@ -938,11 +627,10 @@ fn parse_conditional(p: &mut Parser) -> ParseResult {
         // if
         //      1
         // {}
-        let mut tk = None;
-        while p.next_non_newline().copy_to(&mut tk).is(ELSE_KW) {
+        while p.next_non_newline().copy_to(&mut tk).is(T![else]) {
             p.bump_to(tk);
-            p.bump();
-            if p.next_non_newline().copy_to(&mut tk).is(IF_KW) {
+            p.bump(T![else]);
+            if p.next_non_newline().copy_to(&mut tk).is(T![if]) {
                 parse_conditional_branch(p).map_incomplete()?;
             } else {
                 parse_expr_block(p).map_incomplete()?;

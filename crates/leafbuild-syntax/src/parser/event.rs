@@ -1,4 +1,4 @@
-use crate::SyntaxKind;
+use crate::SyntaxKind::{self, TOMBSTONE};
 
 use super::error::ParseError;
 
@@ -65,4 +65,13 @@ pub(crate) enum Event {
     Error {
         msg: ParseError,
     },
+}
+
+impl Event {
+    pub(crate) fn tombstone() -> Event {
+        Event::Start {
+            kind: TOMBSTONE,
+            forward_parent: None,
+        }
+    }
 }

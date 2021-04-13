@@ -375,7 +375,9 @@ impl Grammar {
                         .map(|it| {
                             let matcher: TokenStream =
                                 if it.1.chars().any(|it| "([{)]}".contains(it)) {
-                                    format!(r#""{}""#, it.1).parse().unwrap()
+                                    format!(r#"'{}'"#, it.1).parse().unwrap()
+                                } else if it.1 == "\n" {
+                                    r#"'\n'"#.parse().unwrap()
                                 } else {
                                     it.1.parse().unwrap()
                                 };
@@ -406,6 +408,7 @@ impl Grammar {
             pub enum SyntaxKind {
                 ERROR,
                 EOF,
+                TOMBSTONE,
                 #(#kinds)*
             }
 

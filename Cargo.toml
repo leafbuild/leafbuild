@@ -5,8 +5,4 @@ rustc-hash.opt-level = 3
 text-size.opt-level = 3
 
 [workspace]
-members = [
-    "crates/*",
-    "xtask",
-    "ghk",
-]
+members = ["crates/*", "xtask", "cmd", "ghk"]

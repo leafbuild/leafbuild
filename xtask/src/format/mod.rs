@@ -3,9 +3,9 @@
  *   All rights reserved.
  *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
  */
-use crate::cmd::CmdResult;
 use crate::workspace_root;
-use crate::{cargo_cmd, cmd_call};
+use cmd::CmdResult;
+use cmd::{cargo_cmd, cmd_call};
 use std::path::Path;
 
 pub fn format() -> CmdResult {

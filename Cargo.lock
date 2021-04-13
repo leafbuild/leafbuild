@@ -202,6 +202,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "cmd"
+version = "0.1.0"
+
+[[package]]
 name = "codespan-reporting"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1744,6 +1748,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap 3.0.0-beta.2",
+ "cmd",
  "ghk",
  "itertools 0.10.0",
  "log",

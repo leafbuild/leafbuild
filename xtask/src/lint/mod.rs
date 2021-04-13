@@ -1,5 +1,5 @@
-use crate::cargo_cmd;
-use crate::cmd::CmdResult;
+use cmd::cargo_cmd;
+use cmd::CmdResult;
 
 pub fn lint() -> CmdResult {
     cargo_cmd!("clippy")

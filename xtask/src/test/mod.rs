@@ -8,7 +8,8 @@ use std::path::{Path, PathBuf};
 use std::{io, mem};
 
 use crate::format::format_file;
-use crate::{cargo_cmd, workspace_root, ws_path, ws_path_str};
+use crate::{workspace_root, ws_path, ws_path_str};
+use cmd::cargo_cmd;
 use std::convert::TryInto;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
