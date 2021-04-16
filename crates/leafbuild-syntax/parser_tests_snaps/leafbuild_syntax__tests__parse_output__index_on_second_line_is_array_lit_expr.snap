@@ -21,7 +21,7 @@ expression: "x = a\n[1]\n"
         - "[" L_BRACKET 6..7
         - Expr 7..8
           - PrimaryExpr 7..8
-            - "1" NUMBER 7..8
+            - "1" NUM 7..8
         - "]" R_BRACKET 8..9
   - "\n" NEWLINE 9..10
 

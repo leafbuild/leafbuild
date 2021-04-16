@@ -1,7 +1,6 @@
 //! Syntax tree types
 #![allow(clippy::missing_panics_doc)]
-use crate::parser::Is;
-use crate::syntax_kind::SyntaxKind::{self};
+use crate::syntax_kind::SyntaxKind;
 use crate::LeafbuildLanguage;
 use rowan::NodeOrToken;
 ///
@@ -10,27 +9,6 @@ pub type SyntaxNode = rowan::SyntaxNode<LeafbuildLanguage>;
 pub type SyntaxToken = rowan::SyntaxToken<LeafbuildLanguage>;
 ///
 pub type SyntaxElement = NodeOrToken<SyntaxNode, SyntaxToken>;
-
-impl Is for &SyntaxNode {
-    fn is(self, kind: SyntaxKind) -> bool {
-        self.kind().is(kind)
-    }
-}
-
-impl Is for &SyntaxToken {
-    fn is(self, kind: SyntaxKind) -> bool {
-        self.kind().is(kind)
-    }
-}
-
-impl Is for &SyntaxElement {
-    fn is(self, kind: SyntaxKind) -> bool {
-        match self {
-            NodeOrToken::Node(n) => n.is(kind),
-            NodeOrToken::Token(t) => t.is(kind),
-        }
-    }
-}
 
 ///
 pub trait AstNode {
@@ -63,12 +41,18 @@ pub trait AstNode {
 
 ///
 pub trait AstToken {
+    /// The [`SyntaxKind`] of this token.
+    /// It should maintain the invariant that `KIND == self.token.kind()`
     const KIND: SyntaxKind;
 
+    /// Creates a new `Self` from the given syntax token,
+    /// without checking if the kinds match.
     #[allow(unsafe_code)]
     unsafe fn new(syntax: SyntaxToken) -> Self;
 
-    ///
+    /// Tries to cast the [`SyntaxToken`] to self, comparing
+    /// token.kind() with [`Self::KIND`] and returning Some
+    /// if they match or None otherwise.
     fn cast(syntax: SyntaxToken) -> Option<Self>
     where
         Self: Sized,
@@ -84,7 +68,7 @@ pub trait AstToken {
         }
     }
 
-    ///
+    /// Returns the text of this token.
     fn get_text(&self) -> &str;
 }
 

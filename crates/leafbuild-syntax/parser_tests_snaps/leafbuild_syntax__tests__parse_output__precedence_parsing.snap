@@ -14,35 +14,35 @@ expression: "x = 1 + 2 * 3 % - 4 ( 5 )\n"
     - Expr 4..25
       - InfixBinOpExpr 4..25
         - PrimaryExpr 4..5
-          - "1" NUMBER 4..5
+          - "1" NUM 4..5
         - " " WHITESPACE 5..6
         - "+" PLUS 6..7
         - " " WHITESPACE 7..8
         - InfixBinOpExpr 8..25
           - InfixBinOpExpr 8..13
             - PrimaryExpr 8..9
-              - "2" NUMBER 8..9
+              - "2" NUM 8..9
             - " " WHITESPACE 9..10
             - "*" ASTERISK 10..11
             - " " WHITESPACE 11..12
             - PrimaryExpr 12..13
-              - "3" NUMBER 12..13
+              - "3" NUM 12..13
           - " " WHITESPACE 13..14
           - "%" PERCENT 14..15
           - " " WHITESPACE 15..16
           - PrefixUnaryOpExpr 16..25
             - "-" MINUS 16..17
             - " " WHITESPACE 17..18
-            - FuncCallExpr 18..25
+            - FnCallExpr 18..25
               - PrimaryExpr 18..19
-                - "4" NUMBER 18..19
+                - "4" NUM 18..19
               - " " WHITESPACE 19..20
-              - FuncCallArgs 20..25
+              - FnCallArgsList 20..25
                 - "(" L_PAREN 20..21
                 - " " WHITESPACE 21..22
                 - Expr 22..23
                   - PrimaryExpr 22..23
-                    - "5" NUMBER 22..23
+                    - "5" NUM 22..23
                 - " " WHITESPACE 23..24
                 - ")" R_PAREN 24..25
     - "\n" NEWLINE 25..26

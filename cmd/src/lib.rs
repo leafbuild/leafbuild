@@ -1,4 +1,4 @@
-use std::{error::Error, process::ExitStatus};
+use std::process::ExitStatus;
 use std::{fmt, io};
 #[macro_export]
 macro_rules! cmd_process {
@@ -73,13 +73,6 @@ impl From<io::Error> for CmdError {
 
 impl std::error::Error for CmdError {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::IoError(err) => err.source(),
-            Self::NotSuccess(_) => None,
-        }
-    }
-
-    fn cause(&self) -> Option<&dyn std::error::Error> {
         match self {
             Self::IoError(err) => Some(err),
             Self::NotSuccess(_) => None,

@@ -79,7 +79,7 @@ pub fn install_tests(tests: Vec<ParseTest>) -> anyhow::Result<()> {
             let file = self.file.as_path().to_str().unwrap();
             let line = self.line;
             tokens.append_all(quote::quote! {
-                parse_test_full!(#name, #code, #file, #line);
+                parse_test_full!(#name, indoc!(#code), #file, #line);
             })
         }
     }
@@ -107,12 +107,12 @@ pub fn install_tests(tests: Vec<ParseTest>) -> anyhow::Result<()> {
                 mod parse_error {
                     use crate::parser::parse;
 
-                    use unindent::Unindent;
+                    use indoc::indoc;
 
                     macro_rules! parse_test {
                         ($name:ident, $s:expr) => {
-                            let p = parse($s);
-                            assert_ne!(p.errors, vec![]);
+                            let (_, errors) = parse($s);
+                            assert_ne!(errors, vec![]);
                         };
                     }
 
@@ -131,17 +131,17 @@ pub fn install_tests(tests: Vec<ParseTest>) -> anyhow::Result<()> {
                 #[allow(clippy::unseparated_literal_suffix)]
                 mod parse_output {
                     use crate::parser::parse;
-                    use crate::syn_tree::{self, AstNode, CastableFromSyntaxNode, Root, SyntaxElement};
+                    use crate::syn_tree::{self, AstNode, Root, SyntaxElement};
                     use crate::LeafbuildLanguage;
 
-                    use unindent::Unindent;
+                    use indoc::indoc;
 
                     macro_rules! parse_test {
                         ($name:ident, $s:expr, $file:expr, $line:expr) => {
                             let mut s = String::new();
-                            let p = parse($s);
-                            assert_eq!(p.errors, vec![]);
-                            let node = rowan::SyntaxNode::<LeafbuildLanguage>::new_root(p.green_node);
+                            let (node, errors) = parse($s);
+                            assert_eq!(errors, vec![]);
+                            let node = rowan::SyntaxNode::<LeafbuildLanguage>::new_root(node);
                             let node: Root = Root::cast(node).unwrap();
                             syn_tree::test_dbg(0, SyntaxElement::Node(node.syntax().clone()), &mut s);
 
@@ -296,7 +296,7 @@ fn raw_str_literal(s: &'_ str, indent: usize) -> ::proc_macro2::TokenStream {
         }
     }
     format!(
-        "&r{0:#^raw_depth$}\"\n{wrapped}\"{0:#^raw_depth$}.unindent()",
+        "r{0:#^raw_depth$}\"\n{wrapped}\"{0:#^raw_depth$}",
         "",
         wrapped = s
             .lines()

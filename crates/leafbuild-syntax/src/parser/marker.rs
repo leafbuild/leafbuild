@@ -1,7 +1,6 @@
 use drop_bomb::DropBomb;
 
 use crate::parser::event::Event;
-use crate::parser::token_source::TokenSource;
 use crate::parser::Parser;
 use crate::syntax_kind::SyntaxKind::{self, *};
 
@@ -11,7 +10,7 @@ pub struct Marker {
 }
 
 impl Marker {
-    fn new(pos: u32) -> Self {
+    pub fn new(pos: u32) -> Self {
         Marker {
             pos,
             bomb: DropBomb::new("Marker must be either completed or abandoned"),

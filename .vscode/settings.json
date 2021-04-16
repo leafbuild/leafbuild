@@ -1,23 +1,32 @@
 {
     "rust-analyzer.procMacro.enable": true,
     "rust-analyzer.checkOnSave.enable": true,
-    // discord
-    "discord.enabled": true,
-    "discord.smallImage": "{app_name}",
-    "discord.lowerDetailsNoWorkspaceFound": "No workspace",
-    // editing
-    "discord.largeImage": "Editing a {LANG} file",
-    "discord.detailsEditing": "Editing {file_name}",
-    "discord.lowerDetailsEditing": "{workspace}({current_line}/{total_lines})",
-    // idling
-    "discord.largeImageIdling": "Idling",
-    "discord.detailsIdling": "Idling",
-    "discord.lowerDetailsIdling": "Workspace: {workspace}",
-    // debugging
-    "discord.detailsDebugging": "Smashing my head against the wall because of {file_name}",
-    "discord.lowerDetailsDebugging": "Debugging: {workspace}",
-    // file header
-    "copyrighter.author": "Dinu Blanovschi",
-    "copyrighter.note": "Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.",
-    "copyrighter.newFilesOnly": false,
+    //
+    "rust-analyzer.completion.addCallParenthesis": true,
+    "rust-analyzer.completion.addCallArgumentSnippets": true,
+    "rust-analyzer.completion.autoimport.enable": true,
+    "rust-analyzer.completion.postfix.enable": true,
+    //
+    "rust-analyzer.assist.importMergeBehavior": "last",
+    "rust-analyzer.assist.importGroup": true,
+    "rust-analyzer.assist.importPrefix": "plain",
+    //
+    "rust-analyzer.callInfo.full": true,
+    //
+    "rust-analyzer.hoverActions.enable": true,
+    "rust-analyzer.hoverActions.gotoTypeDef": true,
+    "rust-analyzer.hoverActions.implementations": true,
+    "rust-analyzer.hoverActions.linksInHover": true,
+    //
+    "rust-analyzer.diagnostics.enable": true,
+    "rust-analyzer.notifications.cargoTomlNotFound": true,
+    //
+    "rust-analyzer.debug.engine": "vadimcn.vscode-lldb",
+    //
+    "rust-analyzer.lens.enable": true,
+    "rust-analyzer.lens.implementations": true,
+    "rust-analyzer.lens.debug": true,
+    "rust-analyzer.lens.methodReferences": true,
+    "rust-analyzer.lens.references": true,
+    "rust-analyzer.lens.run": true,
 }

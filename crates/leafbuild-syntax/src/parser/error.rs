@@ -1,4 +1,5 @@
-pub(crate) struct ParseError(pub Box<String>);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParseError(pub Box<String>);
 
 impl<T> From<T> for ParseError
 where

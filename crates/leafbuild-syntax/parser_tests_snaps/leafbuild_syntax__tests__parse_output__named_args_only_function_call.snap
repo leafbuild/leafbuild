@@ -12,10 +12,10 @@ expression: "x = f(a = b, c = d)\n"
     - "=" EQ 2..3
     - " " WHITESPACE 3..4
     - Expr 4..19
-      - FuncCallExpr 4..19
+      - FnCallExpr 4..19
         - PrimaryExpr 4..5
           - "f" ID 4..5
-        - FuncCallArgs 5..19
+        - FnCallArgsList 5..19
           - "(" L_PAREN 5..6
           - KExpr 6..11
             - "a" ID 6..7

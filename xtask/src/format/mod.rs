@@ -1,8 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
 use crate::workspace_root;
 use cmd::CmdResult;
 use cmd::{cargo_cmd, cmd_call};

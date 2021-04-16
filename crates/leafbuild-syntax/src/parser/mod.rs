@@ -2,15 +2,20 @@
 //! Also see [the syntax reference](https://leafbuild.github.io/leafbuild/dev/syntax_ref.html).
 
 use std::fmt;
-use std::ops::{Deref, DerefMut, Range};
+use std::ops::Range;
 
-use rowan::{Checkpoint, GreenNodeBuilder, TextRange, TextSize};
+use rowan::{TextRange, TextSize};
+use token_source::token_source_from_lexer::LexerWrap;
+
+use leafbuild_stdx::CopyTo;
 
 use crate::lexer::Lexer;
 use crate::SyntaxKind::{self, *};
 use crate::T;
-use leafbuild_stdx::{CopyTo, TakeIfUnless};
 
+use self::text_tree_sink::TextTreeSink;
+use self::token_source::{FindProperty, ForwardToken, Token};
+use self::tree_sink::TreeSink;
 use self::{
     error::ParseError,
     event::Event,
@@ -21,13 +26,26 @@ use self::{
 mod error;
 mod event;
 mod marker;
-mod token_source;
-mod tree_sink;
+pub mod text_tree_sink;
+pub mod token_source;
+pub mod tree_sink;
 
-///
+trait IsTrivia: Copy {
+    fn is_trivia(self) -> bool;
+}
+
+impl IsTrivia for SyntaxKind {
+    fn is_trivia(self) -> bool {
+        self == Self::WHITESPACE || self == Self::SINGLE_LINE_COMMENT || self == Self::BLOCK_COMMENT
+    }
+}
+
+/// A span in the source code
 #[derive(Copy, Clone, Default, Eq, PartialEq, Hash)]
+#[repr(transparent)]
 pub struct Span {
-    text_range: TextRange,
+    /// The underlying text range
+    pub text_range: TextRange,
 }
 
 impl From<Range<TextSize>> for Span {
@@ -48,11 +66,11 @@ impl From<Range<u32>> for Span {
 
 impl fmt::Debug for Span {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{:?}", self.text_range)
+        self.text_range.fmt(f)
     }
 }
 
-struct Parser<'ts> {
+pub(crate) struct Parser<'ts> {
     /// tokens
     source: &'ts mut dyn TokenSource,
     events: Vec<Event>,
@@ -60,59 +78,27 @@ struct Parser<'ts> {
 
 #[allow(clippy::inline_always)]
 impl<'ts> Parser<'ts> {
-    fn parse(mut self) -> Parse {
-        self.parse_node(ROOT, |p| {
-            p.bump_raw_to_meaningful();
-            loop {
-                match parse_lang_item(p) {
-                    ParseResult::Eof => break,
-                    ParseResult::Ok => {}
-                    ParseResult::Incomplete => {
-                        p.errors.push(("incomplete".into(), Span::default()))
-                    }
-                    ParseResult::Error(err, span) => {
-                        p.errors.push((err, span));
-                        break;
-                    }
-                    Err(ParseError::UnexpectedToken(tk, span)) => {
-                        p.errors.push((format!("unexpected `{}`", tk), span));
-                        break;
-                    }
-                    Err(ParseError::ExpectedToken(tk, span, found)) => {
-                        p.errors.push((
-                            format!("expected token {}, found token {}", tk, found),
-                            span,
-                        ));
-                        break;
-                    }
-                    Err(ParseError::ExpectedTokens(tokens, span)) => {
-                        p.errors
-                            .push((format!("expected one of {{{}}}", tokens.join(", ")), span));
-                        break;
-                    }
-                }
+    fn parse(&mut self) {
+        let marker = self.start();
+        loop {
+            if self.at(EOF) {
+                break;
             }
-
-            p.bump_raw_to(p.tokens.len());
-
-            Ok(())
-        })
-        .unwrap();
-
-        Parse {
-            green_node: self.builder.finish(),
-            errors: self.errors,
+            parse_lang_item(self);
         }
+
+        marker.complete(self, ROOT);
     }
 
     #[inline(always)]
     fn at(&self, kind: SyntaxKind) -> bool {
-        self.current().is(kind)
+        self.current() == kind
     }
 
     #[inline(always)]
-    fn at_any(&self, kinds: &[SyntaxKind]) -> bool {
-        self.current().is_any(kinds)
+    fn at_any<const N: usize>(&self, kinds: [SyntaxKind; N]) -> bool {
+        let current = self.current();
+        std::array::IntoIter::new(kinds).any(|it| it == current)
     }
 
     #[inline(always)]
@@ -131,7 +117,9 @@ impl<'ts> Parser<'ts> {
     }
 
     fn do_bump(&mut self, kind: SyntaxKind, n_raw_tokens: u8) {
-        self.source.bump();
+        for _ in 0..n_raw_tokens {
+            self.source.bump();
+        }
         self.push_event(Event::Token { kind, n_raw_tokens })
     }
 
@@ -139,7 +127,7 @@ impl<'ts> Parser<'ts> {
         if self.eat(kind) {
             return true;
         }
-        self.error(format!("expected {:?}", kind));
+        self.error(format!("expected {:?}, got {:?}", kind, self.current()));
         false
     }
 
@@ -169,18 +157,53 @@ impl<'ts> Parser<'ts> {
     }
 
     #[inline(always)]
-    fn current_span(&self) -> Span {
-        self.source.current().span
-    }
-
-    #[inline(always)]
     fn require_newline(&mut self) {
-        self.expect(NEWLINE)
+        self.expect(NEWLINE);
     }
 
     #[inline(always)]
     fn has_newline(&self) -> bool {
         self.at(NEWLINE)
+    }
+
+    #[inline(always)]
+    fn bump_to(&mut self, forward_token: ForwardToken) {
+        let bumps = self.source.bump_to(forward_token);
+        for _ in 0..bumps {
+            self.bump_any();
+        }
+    }
+
+    #[inline(always)]
+    fn next_not_newline(&self) -> ForwardToken {
+        self.source.find(FindProperty::KindIsNot(NEWLINE))
+    }
+
+    #[inline(always)]
+    fn bump_to_if_next_non_newline_is(&mut self, kind: SyntaxKind) -> bool {
+        let mut tk = ForwardToken::default();
+        let k = self.next_not_newline().copy_to(&mut tk).kind;
+        if k == kind {
+            self.bump_to(tk);
+            true
+        } else {
+            false
+        }
+    }
+
+    #[inline(always)]
+    fn bump_to_if_next_non_newline_is_any<const KindsSize: usize>(
+        &mut self,
+        kinds: [SyntaxKind; KindsSize],
+    ) -> bool {
+        let mut tk = ForwardToken::default();
+        let k = self.next_not_newline().copy_to(&mut tk).kind;
+        if std::array::IntoIter::new(kinds).any(|it| it == k) {
+            self.bump_to(tk);
+            true
+        } else {
+            false
+        }
     }
 
     #[inline(always)]
@@ -193,9 +216,11 @@ impl<'ts> Parser<'ts> {
     #[inline(always)]
     fn unexpected(&mut self) {
         let current = self.current();
-        self.do_bump(current, 1);
+        if current != EOF {
+            self.do_bump(current, 1);
+        }
 
-        self.error(format!("Unexpected {}", current));
+        self.error(format!("Unexpected {:?}", current));
     }
 
     #[inline(always)]
@@ -204,40 +229,49 @@ impl<'ts> Parser<'ts> {
         self.push_event(Event::tombstone());
         Marker::new(pos)
     }
+
+    #[inline(always)]
+    fn push_event(&mut self, event: Event) {
+        self.events.push(event)
+    }
+}
+///
+pub fn parse(text: &str) -> (rowan::GreenNode, Vec<(ParseError, TextSize)>) {
+    let lexer = Lexer::new(text);
+    let tokens: Vec<_> = lexer
+        .map(|(kind, span)| Token {
+            syntax_kind: kind,
+            len: span.text_range.len(),
+        })
+        .collect();
+    let mut lexer = LexerWrap::new(&tokens);
+    let mut sink = TextTreeSink::new(text, &tokens);
+
+    parse_to_sink(&mut lexer, &mut sink);
+    sink.finish()
 }
 
 /// parses `text`
-#[must_use]
-pub fn parse(text: &str) -> Parse {
-    let lexer = Lexer::new(text);
-    let tokens: Vec<(SyntaxKind, &str, Span)> = lexer.collect();
-    let meaningful = tokens
-        .iter()
-        .enumerate()
-        .filter_map(|(index, (it, _, _))| (*it, index).take_if(|(kind, _)| kind.is_meaningful()))
-        .collect();
-    Parser {
-        builder: GreenNodeBuilder::new(),
-        errors: vec![],
-        index: 0,
-        tokens,
-        meaningful,
-        meaningful_index: 0,
-    }
-    .parse()
+pub fn parse_to_sink(source: &mut dyn TokenSource, sink: &mut dyn TreeSink) {
+    let mut p = Parser {
+        source,
+        events: vec![],
+    };
+    p.parse();
+    event::process(sink, p.events);
 }
 
 #[inline]
 fn parse_lang_item(p: &mut Parser) {
     p.skip_newlines();
     match p.current() {
-        Some(STRUCT_KW) => parse_struct_decl(p),
+        T![struct] => parse_struct_decl(p),
         _ => parse_statement(p),
     }
 }
 
 fn parse_statement(p: &mut Parser) {
-    let tok = p.current().ok_or(ParseError::Eof)?;
+    let tok = p.current();
     match tok {
         T!['(']
         | T!['[']
@@ -253,13 +287,13 @@ fn parse_statement(p: &mut Parser) {
         | T![MultilineStr]
         | T![if] => {
             let assingment_marker = p.start();
-            parse_expr(p)?;
+            parse_expr(p);
             // test assignment
             // a = b
 
             // test unit_to_unit_assignment
             // () = ()
-            if p.at_any(&[T![+=], T![-=], T![*=], T![/=], T![%=], T![=]]) {
+            if p.at_any([T![+=], T![-=], T![*=], T![/=], T![%=], T![=]]) {
                 // consume the `=` / `+=` / ...
                 p.bump_any();
 
@@ -267,53 +301,24 @@ fn parse_statement(p: &mut Parser) {
                 // x =
                 //     1
 
-                parse_expr(p)?;
+                parse_expr(p);
 
-                p.require_newline()?;
+                p.require_newline();
                 assingment_marker.complete(p, Assignment);
             } else {
                 // test freestanding_expr
                 // 1
 
-                p.require_newline()?;
+                p.require_newline();
                 assingment_marker.abandon(p);
             }
         }
-        LET_KW => parse_declaration(p),
-        FOREACH_KW => parse_foreach(p),
-        CONTINUE_KW | BREAK_KW | RETURN_KW => parse_control_stmt(p),
-        T![')']
-        | T![']']
-        | T!['}']
-        | T![+=]
-        | T![-=]
-        | T![*=]
-        | T![/=]
-        | T![%=]
-        | T![*]
-        | T![/]
-        | T![%]
-        | T![==]
-        | T![>=]
-        | T![>]
-        | T![<=]
-        | T![<]
-        | T![!=]
-        | T![=]
-        | T![.]
-        | T![:]
-        | T![?]
-        | T![;]
-        | T![,]
-        | T![and]
-        | T![or]
-        | T![in]
-        | T![fn]
-        | T![else]
-        | ERROR => {
-            // FIXME: error
+        T![let] => parse_declaration(p),
+        T![foreach] => parse_foreach(p),
+        T![continue] | T![break] | T![return] => parse_control_stmt(p),
+        _ => {
+            p.unexpected();
         }
-        _ => unreachable!(),
     }
 }
 
@@ -323,18 +328,20 @@ fn parse_expr(p: &mut Parser) {
     // test precedence_parsing
     // x = 1 + 2 * 3 % - 4 ( 5 )
 
-    p.parse_node(Expr, parse_precedence_8_expr)
+    let marker = p.start();
+    parse_precedence_8_expr(p);
+    marker.complete(p, Expr);
 }
 
 fn parse_tuple_expr(p: &mut Parser) {
     p.skip_newlines();
     assert!(is_tuple_expr_start(p));
 
-    parse_tt(p, TupleExpr, T!['['], Some(T![,]), T![']'], parse_expr)
+    parse_tt(p, TupleExpr, T!['('], Some(T![,]), T![')'], parse_expr)
 }
 
 fn is_tuple_expr_start(p: &mut Parser) -> bool {
-    p.at(L_PAREN)
+    p.at(T!['('])
 }
 
 fn parse_array_expr(p: &mut Parser) {
@@ -350,41 +357,42 @@ fn is_array_expr_start(p: &mut Parser) -> bool {
 
 fn parse_primary(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
-    p.parse_node(PrimaryExpr, |p| {
-        if is_array_expr_start(p) {
-            parse_array_expr(p)
-        } else if is_tuple_expr_start(p) {
-            parse_tuple_expr(p)
-        } else if is_conditional_start(p) {
-            // test if_condition_in_expr
-            // a = if b {} else {}
+    let marker = p.start();
 
-            // test if_condition_in_expr_stretched
-            // a = if b
-            // {
-            //
-            // }
-            //
-            // else
-            // {
-            //
-            //
-            // }
-            parse_conditional(p)
-        } else if is_expr_block_start(p) {
-            parse_expr_block(p)
-        } else if p.at_any(&[T![NumLit], T![Id]]) {
-            p.bump_last();
-        } else if is_string_lit(p) {
-            parse_string(p)
-        } else {
-            p.unexpected();
-        }
-    })
+    if is_array_expr_start(p) {
+        parse_array_expr(p)
+    } else if is_tuple_expr_start(p) {
+        parse_tuple_expr(p)
+    } else if is_conditional_start(p) {
+        // test if_condition_in_expr
+        // a = if b {} else {}
+
+        // test if_condition_in_expr_stretched
+        // a = if b
+        // {
+        //
+        // }
+        //
+        // else
+        // {
+        //
+        //
+        // }
+        parse_conditional(p)
+    } else if is_expr_block_start(p) {
+        parse_expr_block(p)
+    } else if p.at_any([T![NumLit], T![Id]]) {
+        p.bump_any();
+    } else if is_string_lit(p) {
+        parse_string(p)
+    } else {
+        p.unexpected();
+    }
+    marker.complete(p, PrimaryExpr)
 }
 
 fn is_string_lit(p: &mut Parser) -> bool {
-    p.at_any(&[T![Str], T![MultilineStr]])
+    p.at_any([T![Str], T![MultilineStr]])
 }
 
 fn parse_string(p: &mut Parser) {
@@ -401,33 +409,43 @@ fn parse_tt(
     mut f: impl FnMut(&mut Parser),
 ) {
     let marker = p.start();
-    p.bump(start_tok);
+    if !p.expect(start_tok) {
+        marker.abandon(p);
+        return;
+    }
 
-    while !p.at(EOF) && !p.at(end_tok) {
+    p.skip_newlines();
+    while !p.at_any([EOF, end_tok]) {
         f(p);
 
         if let Some(separator) = separator {
-            if p.at(separator) {
-                p.bump(separator);
+            p.skip_newlines();
+            if p.eat(separator) {
             } else if !p.at(end_tok) {
-                p.error(format!("expected {:?} or {:?}", separator, end_tok));
+                p.error(format!(
+                    "expected {:?} or {:?}, got {:?}",
+                    separator,
+                    end_tok,
+                    p.current()
+                ));
             }
         }
+        p.skip_newlines();
     }
 
     p.expect(end_tok);
     marker.complete(p, outer_kind);
 }
 
-fn parse_precedence_1_expr(p: &mut Parser) {
-    p.node_start_skip_newlines();
+fn parse_precedence_1_expr(p: &mut Parser) -> CompletedMarker {
+    p.skip_newlines();
     let mut marker = parse_primary(p);
 
     // test index_on_second_line_is_array_lit_expr
     // x = a
     // [1]
 
-    while p.at_any(&[T!['('], T!['[']]) {
+    while p.at_any([T!['('], T!['[']]) {
         if p.at(T!['(']) {
             let new_marker = marker.precede(p);
             marker = parse_f_call(p, new_marker);
@@ -436,6 +454,8 @@ fn parse_precedence_1_expr(p: &mut Parser) {
             marker = parse_index_expr(p, new_marker);
         }
     }
+
+    marker
 }
 
 fn parse_f_call(p: &mut Parser, marker: Marker) -> CompletedMarker {
@@ -468,45 +488,49 @@ fn parse_farg(p: &mut Parser) {
 fn parse_kexpr(p: &mut Parser) {
     p.skip_newlines();
     assert!(is_kexpr_start(p));
+    let marker = p.start();
 
     p.bump(T![Id]);
     p.bump(T![=]);
 
     parse_expr(p);
+
+    marker.complete(p, KExpr);
 }
 
 fn is_kexpr_start(p: &mut Parser) -> bool {
-    p.node_start_skip_newlines();
     p.at(T![Id]) && p.nth(1) == T![=]
 }
 
 fn parse_index_expr(p: &mut Parser, marker: Marker) -> CompletedMarker {
-    p.node_start_skip_newlines();
-    assert!(p.current().is(L_BRACKET));
     let expr_marker = p.start();
     let brackets_marker = p.start();
-    p.bump(T!['{']);
+    p.bump(T!['[']);
     parse_expr(p); // expr
-    p.expect(T!['}']);
+    p.expect(T![']']);
     brackets_marker.complete(p, IndexExprBrackets);
     expr_marker.complete(p, IndexExpr)
 }
 
-fn parse_precedence_2_expr(p: &mut Parser) {
+fn parse_precedence_2_expr(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
-    if p.at_any(&[T![+], T![-]]) {
+    if p.at_any([T![+], T![-]]) {
         let marker = p.start();
         p.bump_any();
-        marker.complete(p, PrefixUnaryOpExpr);
+        parse_precedence_2_expr(p);
+        marker.complete(p, PrefixUnaryOpExpr)
     } else {
         parse_precedence_1_expr(p)
     }
 }
 
-fn parse_infix_binop(p: &mut Parser, ops: &[SyntaxKind], mut lower: impl FnMut(&mut Parser)) {
+fn parse_infix_binop<const N: usize>(
+    p: &mut Parser,
+    ops: [SyntaxKind; N],
+    mut lower: impl FnMut(&mut Parser) -> CompletedMarker,
+) -> CompletedMarker {
     p.skip_newlines();
-    let marker = p.start();
-    lower(p);
+    let mut completed = lower(p);
 
     // test expr_with_binary_infix_operators_on_same_line_and_second_operand_on_second_line
     // x = 1 +
@@ -528,44 +552,48 @@ fn parse_infix_binop(p: &mut Parser, ops: &[SyntaxKind], mut lower: impl FnMut(&
     // * 6
     // % 78
 
-    while p.at_any(ops) {
+    while p.bump_to_if_next_non_newline_is_any(ops) {
+        let prec = completed.precede(p);
         p.bump_any();
         lower(p);
+
+        completed = prec.complete(p, InfixBinOpExpr);
     }
 
-    Ok(())
+    completed
 }
 
-fn parse_precedence_3_expr(p: &mut Parser) {
-    parse_infix_binop(p, &[T![*], T![/], T![%]], parse_precedence_2_expr)
+fn parse_precedence_3_expr(p: &mut Parser) -> CompletedMarker {
+    parse_infix_binop(p, [T![*], T![/], T![%]], parse_precedence_2_expr)
 }
 
-fn parse_precedence_4_expr(p: &mut Parser) {
-    parse_infix_binop(p, &[T![+], T![-]], parse_precedence_3_expr)
+fn parse_precedence_4_expr(p: &mut Parser) -> CompletedMarker {
+    parse_infix_binop(p, [T![+], T![-]], parse_precedence_3_expr)
 }
 
-fn parse_precedence_5_expr(p: &mut Parser) {
-    parse_infix_binop(p, &[T![<], T![<=], T![>], T![>=]], parse_precedence_4_expr)
+fn parse_precedence_5_expr(p: &mut Parser) -> CompletedMarker {
+    parse_infix_binop(p, [T![<], T![<=], T![>], T![>=]], parse_precedence_4_expr)
 }
 
-fn parse_precedence_6_expr(p: &mut Parser) {
-    parse_infix_binop(p, &[T![==], T![!=]], parse_precedence_5_expr)
+fn parse_precedence_6_expr(p: &mut Parser) -> CompletedMarker {
+    parse_infix_binop(p, [T![==], T![!=]], parse_precedence_5_expr)
 }
 
-fn parse_precedence_7_expr(p: &mut Parser) {
-    parse_infix_binop(p, &[T![and]], parse_precedence_6_expr)
+fn parse_precedence_7_expr(p: &mut Parser) -> CompletedMarker {
+    parse_infix_binop(p, [T![and]], parse_precedence_6_expr)
 }
 
-fn parse_precedence_8_expr(p: &mut Parser) {
-    parse_infix_binop(p, &[T![or]], parse_precedence_7_expr)
+fn parse_precedence_8_expr(p: &mut Parser) -> CompletedMarker {
+    parse_infix_binop(p, [T![or]], parse_precedence_7_expr)
 }
 
 fn parse_expr_block(p: &mut Parser) {
+    p.skip_newlines();
     parse_tt(p, ExprBlock, T!['{'], None, T!['}'], parse_statement)
 }
 
 fn is_expr_block_start(p: &mut Parser) -> bool {
-    p.current().is(T!['{'])
+    p.at(T!['{'])
 }
 
 fn parse_declaration(p: &mut Parser) {
@@ -603,104 +631,97 @@ fn parse_conditional(p: &mut Parser) {
 
     assert!(is_conditional_start(p));
 
-    p.parse_node(Conditional, |p| {
-        parse_conditional_branch(p);
-        // test if_else_if_else_condition_stretched
-        // if ()
-        //
-        // {
-        //
-        // }
-        //
-        // else if
-        // ()
-        //
-        // {
-        //
-        // }
-        //
-        // else {
-        //
-        // }
+    let marker = p.start();
+    parse_conditional_branch(p);
+    // test if_else_if_else_condition_stretched
+    // if ()
+    //
+    // {
+    //
+    // }
+    //
+    // else if
+    // ()
+    //
+    // {
+    //
+    // }
+    //
+    // else {
+    //
+    // }
 
-        // test if_condition_on_next_line
-        // if
-        //      1
-        // {}
-        while p.next_non_newline().copy_to(&mut tk).is(T![else]) {
-            p.bump_to(tk);
-            p.bump(T![else]);
-            if p.next_non_newline().copy_to(&mut tk).is(T![if]) {
-                parse_conditional_branch(p).map_incomplete()?;
-            } else {
-                parse_expr_block(p).map_incomplete()?;
-                break;
-            }
+    // test if_condition_on_next_line
+    // if
+    //      1
+    // {}
+    while p.bump_to_if_next_non_newline_is(T![else]) {
+        p.bump(T![else]);
+        if p.bump_to_if_next_non_newline_is(T![if]) {
+            parse_conditional_branch(p);
+        } else {
+            parse_expr_block(p);
+            break;
         }
+    }
 
-        Ok(())
-    })
+    marker.complete(p, Conditional);
 }
 
-fn parse_conditional_branch(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
-    assert!(p.current().is(IF_KW));
-    p.parse_node(ConditionalBranch, |p| {
-        // consume the IF_KW
-        p.bump();
+fn parse_conditional_branch(p: &mut Parser) {
+    p.skip_newlines();
+    let marker = p.start();
 
-        parse_expr(p).map_incomplete()?;
+    // consume the IF_KW
+    p.bump(T![if]);
 
-        parse_expr_block(p).map_incomplete()?;
+    parse_expr(p);
 
-        Ok(())
-    })
+    parse_expr_block(p);
+    marker.complete(p, ConditionalBranch);
 }
 
-fn parse_foreach(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_foreach(p: &mut Parser) {
+    p.skip_newlines();
 
     // test foreach_basic
     // foreach a in b {}
 
-    assert!(p.current().is(FOREACH_KW));
-    p.parse_node(Foreach, |p| {
-        p.bump(); // FOREACH_KW
-        parse_expr(p).map_incomplete()?;
-        p.parse_single_tok(IN_KW)?;
-        parse_expr(p).map_incomplete()?;
-        parse_expr_block(p).map_incomplete()?;
-        Ok(())
-    })
+    let marker = p.start();
+
+    p.bump(T![foreach]);
+    parse_expr(p);
+    p.expect(T![in]);
+    parse_expr(p);
+    parse_expr_block(p);
+
+    marker.complete(p, Foreach);
+
+    p.require_newline();
 }
 
-fn parse_control_stmt(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
-    p.parse_node(ControlStatement, |p| match p.current() {
-        Some(CONTINUE_KW) => {
-            p.bump();
-            p.require_newline()?;
-            Ok(())
-        }
-
-        Some(RETURN_KW) | Some(BREAK_KW) => {
-            p.bump();
-            if p.current().isnt(NEWLINE) {
-                parse_expr(p)?;
-            }
-
-            p.require_newline()?;
-
-            Ok(())
-        }
-
-        Some(thing) => thing.as_unexpected_token(p.current_span()),
-        None => Err(ParseError::Incomplete),
-    })
+fn is_control_stmt(p: &mut Parser) -> bool {
+    p.at_any([T![continue], T![break], T![return]])
 }
 
-fn parse_struct_decl(p: &mut Parser) -> ParseResult {
-    p.node_start_skip_newlines();
+fn parse_control_stmt(p: &mut Parser) {
+    p.skip_newlines();
+    assert!(is_control_stmt(p));
+
+    let marker = p.start();
+    if p.eat(T![continue]) {
+    } else if p.eat(T![return]) || p.eat(T![break]) {
+        if !p.at(NEWLINE) {
+            parse_expr(p)
+        }
+    }
+    p.require_newline();
+
+    marker.complete(p, ControlStatement);
+}
+
+fn parse_struct_decl(p: &mut Parser) {
+    p.skip_newlines();
 
     // test empty_struct
     // struct test {}
@@ -720,50 +741,47 @@ fn parse_struct_decl(p: &mut Parser) -> ParseResult {
     //     i
     // }
 
-    p.parse_node(StructDecl, |p| {
-        p.parse_single_tok(STRUCT_KW).map_incomplete()?;
-        p.parse_single_tok(ID).map_incomplete()?;
-        p.node_start_skip_newlines();
-        parse_tt(
-            p,
-            StructFieldList,
-            L_BRACE,
-            None,
-            R_BRACE,
-            parse_struct_field,
-        )?;
-        Ok(())
-    })
+    let marker = p.start();
+    p.bump(T![struct]);
+    p.expect(T![Id]);
+    p.skip_newlines();
+    parse_tt(
+        p,
+        StructFieldList,
+        T!['{'],
+        None,
+        T!['}'],
+        parse_struct_field,
+    );
+    marker.complete(p, StructDecl);
+    p.require_newline();
 }
 
-fn parse_struct_field(p: &mut Parser) -> ParseResult {
-    p.parse_node(StructField, |p| {
-        p.parse_single_tok(ID).map_incomplete()?;
-        p.parse_single_tok(COLON).map_incomplete()?;
-        parse_type_ref(p).map_incomplete()?;
-        p.require_newline()?;
-        Ok(())
-    })
+fn parse_struct_field(p: &mut Parser) {
+    let marker = p.start();
+    p.expect(T![Id]);
+    p.expect(T![:]);
+    parse_type_ref(p);
+    p.require_newline();
+    marker.complete(p, StructField);
 }
 
-fn parse_type_ref(p: &mut Parser) -> ParseResult {
-    p.parse_node(TypeRef, |p| {
-        p.parse_single_tok(ID).map_incomplete()?;
-        if p.at(LESS) {
-            parse_type_ref_generics(p)?;
-        }
-
-        Ok(())
-    })
+fn parse_type_ref(p: &mut Parser) {
+    let marker = p.start();
+    p.expect(T![Id]);
+    if p.at(T![<]) {
+        parse_type_ref_generics(p);
+    }
+    marker.complete(p, TypeRef);
 }
 
-fn parse_type_ref_generics(p: &mut Parser) -> ParseResult {
+fn parse_type_ref_generics(p: &mut Parser) {
     parse_tt(
         p,
         TypeRefGenerics,
-        LESS,
-        Some(COMMA),
-        GREATER,
+        T![<],
+        Some(T![,]),
+        T![>],
         parse_type_ref,
     )
 }

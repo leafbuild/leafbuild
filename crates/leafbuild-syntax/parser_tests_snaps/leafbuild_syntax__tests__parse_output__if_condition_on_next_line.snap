@@ -13,7 +13,7 @@ expression: "if\n     1\n{}\n"
           - "     " WHITESPACE 3..8
           - Expr 8..9
             - PrimaryExpr 8..9
-              - "1" NUMBER 8..9
+              - "1" NUM 8..9
           - "\n" NEWLINE 9..10
           - ExprBlock 10..12
             - "{" L_BRACE 10..11

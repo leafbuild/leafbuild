@@ -14,6 +14,6 @@ expression: "x =\n    1\n"
     - "    " WHITESPACE 4..8
     - Expr 8..9
       - PrimaryExpr 8..9
-        - "1" NUMBER 8..9
+        - "1" NUM 8..9
     - "\n" NEWLINE 9..10
 

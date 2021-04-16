@@ -184,8 +184,7 @@ impl<'a> ToTokens for Lexer<'a> {
                         .iter()
                         .map(|it| {
                             let name = Ident::new(&it.name, Span::call_site());
-                            let kind = Ident::new(&it.kind, Span::call_site());
-                            quote! {Tk::#name => #kind,}
+                            quote! {Tk::#name => T![#name],}
                         })
                         .flatten(),
                 )
@@ -199,9 +198,15 @@ impl<'a> ToTokens for Lexer<'a> {
                         .iter()
                         .map(|it| {
                             let name = Ident::new(&it.name, Span::call_site());
-                            let kind = Ident::new(&it.kind, Span::call_site());
-
-                            quote! {Tk::#name => #kind,}
+                            let matcher: TokenStream =
+                                if it.text.chars().any(|it| "([{)]}".contains(it)) {
+                                    format!(r#"'{}'"#, it.text).parse().unwrap()
+                                } else if it.text == "\n" {
+                                    r#"'\n'"#.parse().unwrap()
+                                } else {
+                                    it.text.parse().unwrap()
+                                };
+                            quote! {Tk::#name => T![#matcher],}
                         })
                         .flatten(),
                 )
@@ -219,6 +224,7 @@ impl<'a> ToTokens for Lexer<'a> {
         tokens.append_all(quote! {
             use crate::parser::Span;
             use crate::syntax_kind::SyntaxKind;
+            use crate::T;
             use leafbuild_stdx::Let;
             use logos::Logos;
             use std::convert::TryInto;
@@ -248,30 +254,24 @@ impl<'a> ToTokens for Lexer<'a> {
 
             #[allow(missing_debug_implementations)]
             pub struct Lexer<'a> {
-                lexer: logos::Lexer<'a, Tk>,
+                lexer: logos::SpannedIter<'a, Tk>,
             }
-
             impl<'a> Lexer<'a> {
                 pub(crate) fn new(s: &'a str) -> Self {
-                    let lexer = Tk::lexer(s);
+                    let lexer = Tk::lexer(s).spanned();
                     Self { lexer }
                 }
             }
-
             impl<'a> Iterator for Lexer<'a> {
-                type Item = (SyntaxKind, &'a str, Span);
-
+                type Item = (SyntaxKind, Span);
                 fn next(&mut self) -> Option<Self::Item> {
-                    self.lexer.next().map(|token| {
+                    self.lexer.next().map(|(token, span)| {
                         (
                             token.into(),
-                            self.lexer.slice(),
-                            self.lexer
-                                .span()
-                                .let_(|it| -> Range<u32> {
-                                    it.start.try_into().unwrap()..it.end.try_into().unwrap()
-                                })
-                                .into(),
+                            span.let_(|it| -> Range<u32> {
+                                it.start.try_into().unwrap()..it.end.try_into().unwrap()
+                            })
+                            .into(),
                         )
                     })
                 }
@@ -402,6 +402,7 @@ impl Grammar {
         );
 
         quote! {
+            #![allow(missing_docs)]
             #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
             #[allow(non_camel_case_types, clippy::upper_case_acronyms)]
             #[repr(u16)]
@@ -459,6 +460,7 @@ impl Grammar {
             }
 
             #[macro_export]
+            #[doc = "A nice way of getting [`SyntaxKind`]s from tokens in rust itself."]
             macro_rules! T {
                 #token_macro_matches
             }
@@ -671,6 +673,7 @@ impl Grammar {
             let children = Children(grammar, &node.children, &node.name);
 
             stream.append_all(quote! {
+                #[derive(Debug, Clone)]
                 pub struct #name {
                     syntax: SyntaxNode,
                 }
@@ -702,6 +705,7 @@ impl Grammar {
         }
 
         stream.append_all(quote! {
+            #![allow(missing_docs)]
             use super::{
                 AstNode, AstToken, SyntaxKind, SyntaxNode, SyntaxToken,
             };

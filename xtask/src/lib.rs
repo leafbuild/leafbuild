@@ -7,11 +7,9 @@ pub mod grammar;
 pub mod lint;
 pub mod test;
 
-#[macro_use]
-extern crate thiserror;
-#[macro_use]
 extern crate cmd;
 extern crate serde;
+extern crate thiserror;
 
 #[macro_export]
 macro_rules! err {
