@@ -2,180 +2,369 @@
 use super::{
     implementation::*, AstNode, AstToken, SyntaxElement, SyntaxKind, SyntaxNode, SyntaxToken,
 };
+#[allow(unused_variables)]
 #[doc = "The visitor trait"]
 pub trait Visitor {
+    #[doc = "The result of visit methods"]
     type Output;
-    type Sink;
+    #[doc = r"
+            Behavior if a visitor method wasn't overridden.
+            It's given the name of the method if, known at compile time.
+            "]
+    fn undefined(&mut self, name: &'static str) -> Self::Output {
+        panic!("Visitor doesn't implement {}", name)
+    }
     #[doc = "Visits a Id token"]
-    fn visit_id(&self, id: Id) -> Self::Output;
+    fn visit_id(&mut self, id: Id) -> Self::Output {
+        self.undefined("visit_id")
+    }
     #[doc = "Visits a NumLit token"]
-    fn visit_num_lit(&self, num_lit: NumLit) -> Self::Output;
+    fn visit_num_lit(&mut self, num_lit: NumLit) -> Self::Output {
+        self.undefined("visit_num_lit")
+    }
     #[doc = "Visits a Str token"]
-    fn visit_str(&self, str: Str) -> Self::Output;
+    fn visit_str(&mut self, str: Str) -> Self::Output {
+        self.undefined("visit_str")
+    }
     #[doc = "Visits a MultilineStr token"]
-    fn visit_multiline_str(&self, multiline_str: MultilineStr) -> Self::Output;
+    fn visit_multiline_str(&mut self, multiline_str: MultilineStr) -> Self::Output {
+        self.undefined("visit_multiline_str")
+    }
     #[doc = "Visits a SingleLineComment token"]
-    fn visit_single_line_comment(&self, single_line_comment: SingleLineComment) -> Self::Output;
+    fn visit_single_line_comment(
+        &mut self,
+        single_line_comment: SingleLineComment,
+    ) -> Self::Output {
+        self.undefined("visit_single_line_comment")
+    }
     #[doc = "Visits a BlockComment token"]
-    fn visit_block_comment(&self, block_comment: BlockComment) -> Self::Output;
+    fn visit_block_comment(&mut self, block_comment: BlockComment) -> Self::Output {
+        self.undefined("visit_block_comment")
+    }
     #[doc = "Visits a Whitespace token"]
-    fn visit_whitespace(&self, whitespace: Whitespace) -> Self::Output;
+    fn visit_whitespace(&mut self, whitespace: Whitespace) -> Self::Output {
+        self.undefined("visit_whitespace")
+    }
     #[doc = "Visits a PlusEq token"]
-    fn visit_plus_eq(&self, plus_eq: PlusEq) -> Self::Output;
+    fn visit_plus_eq(&mut self, plus_eq: PlusEq) -> Self::Output {
+        self.undefined("visit_plus_eq")
+    }
     #[doc = "Visits a MinusEq token"]
-    fn visit_minus_eq(&self, minus_eq: MinusEq) -> Self::Output;
+    fn visit_minus_eq(&mut self, minus_eq: MinusEq) -> Self::Output {
+        self.undefined("visit_minus_eq")
+    }
     #[doc = "Visits a MulEq token"]
-    fn visit_mul_eq(&self, mul_eq: MulEq) -> Self::Output;
+    fn visit_mul_eq(&mut self, mul_eq: MulEq) -> Self::Output {
+        self.undefined("visit_mul_eq")
+    }
     #[doc = "Visits a DivEq token"]
-    fn visit_div_eq(&self, div_eq: DivEq) -> Self::Output;
+    fn visit_div_eq(&mut self, div_eq: DivEq) -> Self::Output {
+        self.undefined("visit_div_eq")
+    }
     #[doc = "Visits a ModEq token"]
-    fn visit_mod_eq(&self, mod_eq: ModEq) -> Self::Output;
+    fn visit_mod_eq(&mut self, mod_eq: ModEq) -> Self::Output {
+        self.undefined("visit_mod_eq")
+    }
     #[doc = "Visits a Plus token"]
-    fn visit_plus(&self, plus: Plus) -> Self::Output;
+    fn visit_plus(&mut self, plus: Plus) -> Self::Output {
+        self.undefined("visit_plus")
+    }
     #[doc = "Visits a Minus token"]
-    fn visit_minus(&self, minus: Minus) -> Self::Output;
+    fn visit_minus(&mut self, minus: Minus) -> Self::Output {
+        self.undefined("visit_minus")
+    }
     #[doc = "Visits a Asterisk token"]
-    fn visit_asterisk(&self, asterisk: Asterisk) -> Self::Output;
+    fn visit_asterisk(&mut self, asterisk: Asterisk) -> Self::Output {
+        self.undefined("visit_asterisk")
+    }
     #[doc = "Visits a Slash token"]
-    fn visit_slash(&self, slash: Slash) -> Self::Output;
+    fn visit_slash(&mut self, slash: Slash) -> Self::Output {
+        self.undefined("visit_slash")
+    }
     #[doc = "Visits a Percent token"]
-    fn visit_percent(&self, percent: Percent) -> Self::Output;
+    fn visit_percent(&mut self, percent: Percent) -> Self::Output {
+        self.undefined("visit_percent")
+    }
     #[doc = "Visits a EqEq token"]
-    fn visit_eq_eq(&self, eq_eq: EqEq) -> Self::Output;
+    fn visit_eq_eq(&mut self, eq_eq: EqEq) -> Self::Output {
+        self.undefined("visit_eq_eq")
+    }
     #[doc = "Visits a GreaterEq token"]
-    fn visit_greater_eq(&self, greater_eq: GreaterEq) -> Self::Output;
+    fn visit_greater_eq(&mut self, greater_eq: GreaterEq) -> Self::Output {
+        self.undefined("visit_greater_eq")
+    }
     #[doc = "Visits a Greater token"]
-    fn visit_greater(&self, greater: Greater) -> Self::Output;
+    fn visit_greater(&mut self, greater: Greater) -> Self::Output {
+        self.undefined("visit_greater")
+    }
     #[doc = "Visits a LessEq token"]
-    fn visit_less_eq(&self, less_eq: LessEq) -> Self::Output;
+    fn visit_less_eq(&mut self, less_eq: LessEq) -> Self::Output {
+        self.undefined("visit_less_eq")
+    }
     #[doc = "Visits a Less token"]
-    fn visit_less(&self, less: Less) -> Self::Output;
+    fn visit_less(&mut self, less: Less) -> Self::Output {
+        self.undefined("visit_less")
+    }
     #[doc = "Visits a Eq token"]
-    fn visit_eq(&self, eq: Eq) -> Self::Output;
+    fn visit_eq(&mut self, eq: Eq) -> Self::Output {
+        self.undefined("visit_eq")
+    }
     #[doc = "Visits a NotEq token"]
-    fn visit_not_eq(&self, not_eq: NotEq) -> Self::Output;
+    fn visit_not_eq(&mut self, not_eq: NotEq) -> Self::Output {
+        self.undefined("visit_not_eq")
+    }
     #[doc = "Visits a LParen token"]
-    fn visit_lparen(&self, lparen: LParen) -> Self::Output;
+    fn visit_lparen(&mut self, lparen: LParen) -> Self::Output {
+        self.undefined("visit_lparen")
+    }
     #[doc = "Visits a RParen token"]
-    fn visit_rparen(&self, rparen: RParen) -> Self::Output;
+    fn visit_rparen(&mut self, rparen: RParen) -> Self::Output {
+        self.undefined("visit_rparen")
+    }
     #[doc = "Visits a LBracket token"]
-    fn visit_lbracket(&self, lbracket: LBracket) -> Self::Output;
+    fn visit_lbracket(&mut self, lbracket: LBracket) -> Self::Output {
+        self.undefined("visit_lbracket")
+    }
     #[doc = "Visits a RBracket token"]
-    fn visit_rbracket(&self, rbracket: RBracket) -> Self::Output;
+    fn visit_rbracket(&mut self, rbracket: RBracket) -> Self::Output {
+        self.undefined("visit_rbracket")
+    }
     #[doc = "Visits a LBrace token"]
-    fn visit_lbrace(&self, lbrace: LBrace) -> Self::Output;
+    fn visit_lbrace(&mut self, lbrace: LBrace) -> Self::Output {
+        self.undefined("visit_lbrace")
+    }
     #[doc = "Visits a RBrace token"]
-    fn visit_rbrace(&self, rbrace: RBrace) -> Self::Output;
+    fn visit_rbrace(&mut self, rbrace: RBrace) -> Self::Output {
+        self.undefined("visit_rbrace")
+    }
     #[doc = "Visits a Dot token"]
-    fn visit_dot(&self, dot: Dot) -> Self::Output;
+    fn visit_dot(&mut self, dot: Dot) -> Self::Output {
+        self.undefined("visit_dot")
+    }
     #[doc = "Visits a Colon token"]
-    fn visit_colon(&self, colon: Colon) -> Self::Output;
+    fn visit_colon(&mut self, colon: Colon) -> Self::Output {
+        self.undefined("visit_colon")
+    }
     #[doc = "Visits a QMark token"]
-    fn visit_qmark(&self, qmark: QMark) -> Self::Output;
+    fn visit_qmark(&mut self, qmark: QMark) -> Self::Output {
+        self.undefined("visit_qmark")
+    }
     #[doc = "Visits a Semicolon token"]
-    fn visit_semicolon(&self, semicolon: Semicolon) -> Self::Output;
+    fn visit_semicolon(&mut self, semicolon: Semicolon) -> Self::Output {
+        self.undefined("visit_semicolon")
+    }
     #[doc = "Visits a Comma token"]
-    fn visit_comma(&self, comma: Comma) -> Self::Output;
+    fn visit_comma(&mut self, comma: Comma) -> Self::Output {
+        self.undefined("visit_comma")
+    }
     #[doc = "Visits a AndKw token"]
-    fn visit_and_kw(&self, and_kw: AndKw) -> Self::Output;
+    fn visit_and_kw(&mut self, and_kw: AndKw) -> Self::Output {
+        self.undefined("visit_and_kw")
+    }
     #[doc = "Visits a OrKw token"]
-    fn visit_or_kw(&self, or_kw: OrKw) -> Self::Output;
+    fn visit_or_kw(&mut self, or_kw: OrKw) -> Self::Output {
+        self.undefined("visit_or_kw")
+    }
     #[doc = "Visits a NotKw token"]
-    fn visit_not_kw(&self, not_kw: NotKw) -> Self::Output;
+    fn visit_not_kw(&mut self, not_kw: NotKw) -> Self::Output {
+        self.undefined("visit_not_kw")
+    }
     #[doc = "Visits a InKw token"]
-    fn visit_in_kw(&self, in_kw: InKw) -> Self::Output;
+    fn visit_in_kw(&mut self, in_kw: InKw) -> Self::Output {
+        self.undefined("visit_in_kw")
+    }
     #[doc = "Visits a LetKw token"]
-    fn visit_let_kw(&self, let_kw: LetKw) -> Self::Output;
+    fn visit_let_kw(&mut self, let_kw: LetKw) -> Self::Output {
+        self.undefined("visit_let_kw")
+    }
     #[doc = "Visits a IfKw token"]
-    fn visit_if_kw(&self, if_kw: IfKw) -> Self::Output;
+    fn visit_if_kw(&mut self, if_kw: IfKw) -> Self::Output {
+        self.undefined("visit_if_kw")
+    }
     #[doc = "Visits a ElseKw token"]
-    fn visit_else_kw(&self, else_kw: ElseKw) -> Self::Output;
+    fn visit_else_kw(&mut self, else_kw: ElseKw) -> Self::Output {
+        self.undefined("visit_else_kw")
+    }
     #[doc = "Visits a ForeachKw token"]
-    fn visit_foreach_kw(&self, foreach_kw: ForeachKw) -> Self::Output;
+    fn visit_foreach_kw(&mut self, foreach_kw: ForeachKw) -> Self::Output {
+        self.undefined("visit_foreach_kw")
+    }
     #[doc = "Visits a ContinueKw token"]
-    fn visit_continue_kw(&self, continue_kw: ContinueKw) -> Self::Output;
+    fn visit_continue_kw(&mut self, continue_kw: ContinueKw) -> Self::Output {
+        self.undefined("visit_continue_kw")
+    }
     #[doc = "Visits a BreakKw token"]
-    fn visit_break_kw(&self, break_kw: BreakKw) -> Self::Output;
+    fn visit_break_kw(&mut self, break_kw: BreakKw) -> Self::Output {
+        self.undefined("visit_break_kw")
+    }
     #[doc = "Visits a ReturnKw token"]
-    fn visit_return_kw(&self, return_kw: ReturnKw) -> Self::Output;
+    fn visit_return_kw(&mut self, return_kw: ReturnKw) -> Self::Output {
+        self.undefined("visit_return_kw")
+    }
     #[doc = "Visits a TrueKw token"]
-    fn visit_true_kw(&self, true_kw: TrueKw) -> Self::Output;
+    fn visit_true_kw(&mut self, true_kw: TrueKw) -> Self::Output {
+        self.undefined("visit_true_kw")
+    }
     #[doc = "Visits a FalseKw token"]
-    fn visit_false_kw(&self, false_kw: FalseKw) -> Self::Output;
+    fn visit_false_kw(&mut self, false_kw: FalseKw) -> Self::Output {
+        self.undefined("visit_false_kw")
+    }
     #[doc = "Visits a FnKw token"]
-    fn visit_fn_kw(&self, fn_kw: FnKw) -> Self::Output;
+    fn visit_fn_kw(&mut self, fn_kw: FnKw) -> Self::Output {
+        self.undefined("visit_fn_kw")
+    }
     #[doc = "Visits a StructKw token"]
-    fn visit_struct_kw(&self, struct_kw: StructKw) -> Self::Output;
+    fn visit_struct_kw(&mut self, struct_kw: StructKw) -> Self::Output {
+        self.undefined("visit_struct_kw")
+    }
     #[doc = "Visits a Newline token"]
-    fn visit_newline(&self, newline: Newline) -> Self::Output;
+    fn visit_newline(&mut self, newline: Newline) -> Self::Output {
+        self.undefined("visit_newline")
+    }
     #[doc = "Visits a Expr node"]
-    fn visit_expr(&self, expr: Expr) -> Self::Output;
+    fn visit_expr(&mut self, expr: Expr) -> Self::Output {
+        self.undefined("visit_expr")
+    }
     #[doc = "Visits a ExprBlock node"]
-    fn visit_expr_block(&self, expr_block: ExprBlock) -> Self::Output;
+    fn visit_expr_block(&mut self, expr_block: ExprBlock) -> Self::Output {
+        self.undefined("visit_expr_block")
+    }
     #[doc = "Visits a KExpr node"]
-    fn visit_kexpr(&self, kexpr: KExpr) -> Self::Output;
+    fn visit_kexpr(&mut self, kexpr: KExpr) -> Self::Output {
+        self.undefined("visit_kexpr")
+    }
     #[doc = "Visits a ArrayLitExpr node"]
-    fn visit_array_lit_expr(&self, array_lit_expr: ArrayLitExpr) -> Self::Output;
+    fn visit_array_lit_expr(&mut self, array_lit_expr: ArrayLitExpr) -> Self::Output {
+        self.undefined("visit_array_lit_expr")
+    }
     #[doc = "Visits a MapLitExpr node"]
-    fn visit_map_lit_expr(&self, map_lit_expr: MapLitExpr) -> Self::Output;
+    fn visit_map_lit_expr(&mut self, map_lit_expr: MapLitExpr) -> Self::Output {
+        self.undefined("visit_map_lit_expr")
+    }
     #[doc = "Visits a StrLit node"]
-    fn visit_str_lit(&self, str_lit: StrLit) -> Self::Output;
+    fn visit_str_lit(&mut self, str_lit: StrLit) -> Self::Output {
+        self.undefined("visit_str_lit")
+    }
     #[doc = "Visits a PrimaryExpr node"]
-    fn visit_primary_expr(&self, primary_expr: PrimaryExpr) -> Self::Output;
+    fn visit_primary_expr(&mut self, primary_expr: PrimaryExpr) -> Self::Output {
+        self.undefined("visit_primary_expr")
+    }
     #[doc = "Visits a PrefixUnaryOpExpr node"]
-    fn visit_prefix_unary_op_expr(&self, prefix_unary_op_expr: PrefixUnaryOpExpr) -> Self::Output;
+    fn visit_prefix_unary_op_expr(
+        &mut self,
+        prefix_unary_op_expr: PrefixUnaryOpExpr,
+    ) -> Self::Output {
+        self.undefined("visit_prefix_unary_op_expr")
+    }
     #[doc = "Visits a InfixBinaryOpExpr node"]
-    fn visit_infix_binary_op_expr(&self, infix_binary_op_expr: InfixBinaryOpExpr) -> Self::Output;
+    fn visit_infix_binary_op_expr(
+        &mut self,
+        infix_binary_op_expr: InfixBinaryOpExpr,
+    ) -> Self::Output {
+        self.undefined("visit_infix_binary_op_expr")
+    }
     #[doc = "Visits a FnCallExpr node"]
-    fn visit_fn_call_expr(&self, fn_call_expr: FnCallExpr) -> Self::Output;
+    fn visit_fn_call_expr(&mut self, fn_call_expr: FnCallExpr) -> Self::Output {
+        self.undefined("visit_fn_call_expr")
+    }
     #[doc = "Visits a FnCallArgsList node"]
-    fn visit_fn_call_args_list(&self, fn_call_args_list: FnCallArgsList) -> Self::Output;
+    fn visit_fn_call_args_list(&mut self, fn_call_args_list: FnCallArgsList) -> Self::Output {
+        self.undefined("visit_fn_call_args_list")
+    }
     #[doc = "Visits a FArg node"]
-    fn visit_farg(&self, farg: FArg) -> Self::Output;
+    fn visit_farg(&mut self, farg: FArg) -> Self::Output {
+        self.undefined("visit_farg")
+    }
     #[doc = "Visits a TupleExpr node"]
-    fn visit_tuple_expr(&self, tuple_expr: TupleExpr) -> Self::Output;
+    fn visit_tuple_expr(&mut self, tuple_expr: TupleExpr) -> Self::Output {
+        self.undefined("visit_tuple_expr")
+    }
     #[doc = "Visits a BoolLit node"]
-    fn visit_bool_lit(&self, bool_lit: BoolLit) -> Self::Output;
+    fn visit_bool_lit(&mut self, bool_lit: BoolLit) -> Self::Output {
+        self.undefined("visit_bool_lit")
+    }
     #[doc = "Visits a IndexExpr node"]
-    fn visit_index_expr(&self, index_expr: IndexExpr) -> Self::Output;
+    fn visit_index_expr(&mut self, index_expr: IndexExpr) -> Self::Output {
+        self.undefined("visit_index_expr")
+    }
     #[doc = "Visits a IndexExprBrackets node"]
-    fn visit_index_expr_brackets(&self, index_expr_brackets: IndexExprBrackets) -> Self::Output;
+    fn visit_index_expr_brackets(
+        &mut self,
+        index_expr_brackets: IndexExprBrackets,
+    ) -> Self::Output {
+        self.undefined("visit_index_expr_brackets")
+    }
     #[doc = "Visits a Assignment node"]
-    fn visit_assignment(&self, assignment: Assignment) -> Self::Output;
+    fn visit_assignment(&mut self, assignment: Assignment) -> Self::Output {
+        self.undefined("visit_assignment")
+    }
     #[doc = "Visits a Declaration node"]
-    fn visit_declaration(&self, declaration: Declaration) -> Self::Output;
+    fn visit_declaration(&mut self, declaration: Declaration) -> Self::Output {
+        self.undefined("visit_declaration")
+    }
     #[doc = "Visits a Conditional node"]
-    fn visit_conditional(&self, conditional: Conditional) -> Self::Output;
+    fn visit_conditional(&mut self, conditional: Conditional) -> Self::Output {
+        self.undefined("visit_conditional")
+    }
     #[doc = "Visits a Foreach node"]
-    fn visit_foreach(&self, foreach: Foreach) -> Self::Output;
+    fn visit_foreach(&mut self, foreach: Foreach) -> Self::Output {
+        self.undefined("visit_foreach")
+    }
     #[doc = "Visits a ForInExpr node"]
-    fn visit_for_in_expr(&self, for_in_expr: ForInExpr) -> Self::Output;
+    fn visit_for_in_expr(&mut self, for_in_expr: ForInExpr) -> Self::Output {
+        self.undefined("visit_for_in_expr")
+    }
     #[doc = "Visits a ControlStatement node"]
-    fn visit_control_statement(&self, control_statement: ControlStatement) -> Self::Output;
+    fn visit_control_statement(&mut self, control_statement: ControlStatement) -> Self::Output {
+        self.undefined("visit_control_statement")
+    }
     #[doc = "Visits a ExprStatement node"]
-    fn visit_expr_statement(&self, expr_statement: ExprStatement) -> Self::Output;
+    fn visit_expr_statement(&mut self, expr_statement: ExprStatement) -> Self::Output {
+        self.undefined("visit_expr_statement")
+    }
     #[doc = "Visits a Tuple node"]
-    fn visit_tuple(&self, tuple: Tuple) -> Self::Output;
+    fn visit_tuple(&mut self, tuple: Tuple) -> Self::Output {
+        self.undefined("visit_tuple")
+    }
     #[doc = "Visits a ConditionalBranch node"]
-    fn visit_conditional_branch(&self, conditional_branch: ConditionalBranch) -> Self::Output;
+    fn visit_conditional_branch(&mut self, conditional_branch: ConditionalBranch) -> Self::Output {
+        self.undefined("visit_conditional_branch")
+    }
     #[doc = "Visits a Statement node"]
-    fn visit_statement(&self, statement: Statement) -> Self::Output;
+    fn visit_statement(&mut self, statement: Statement) -> Self::Output {
+        self.undefined("visit_statement")
+    }
     #[doc = "Visits a StructDecl node"]
-    fn visit_struct_decl(&self, struct_decl: StructDecl) -> Self::Output;
+    fn visit_struct_decl(&mut self, struct_decl: StructDecl) -> Self::Output {
+        self.undefined("visit_struct_decl")
+    }
     #[doc = "Visits a StructFieldList node"]
-    fn visit_struct_field_list(&self, struct_field_list: StructFieldList) -> Self::Output;
+    fn visit_struct_field_list(&mut self, struct_field_list: StructFieldList) -> Self::Output {
+        self.undefined("visit_struct_field_list")
+    }
     #[doc = "Visits a StructField node"]
-    fn visit_struct_field(&self, struct_field: StructField) -> Self::Output;
+    fn visit_struct_field(&mut self, struct_field: StructField) -> Self::Output {
+        self.undefined("visit_struct_field")
+    }
     #[doc = "Visits a TypeRef node"]
-    fn visit_type_ref(&self, type_ref: TypeRef) -> Self::Output;
+    fn visit_type_ref(&mut self, type_ref: TypeRef) -> Self::Output {
+        self.undefined("visit_type_ref")
+    }
     #[doc = "Visits a TypeRefGenerics node"]
-    fn visit_type_ref_generics(&self, type_ref_generics: TypeRefGenerics) -> Self::Output;
+    fn visit_type_ref_generics(&mut self, type_ref_generics: TypeRefGenerics) -> Self::Output {
+        self.undefined("visit_type_ref_generics")
+    }
     #[doc = "Visits a LangItem node"]
-    fn visit_lang_item(&self, lang_item: LangItem) -> Self::Output;
+    fn visit_lang_item(&mut self, lang_item: LangItem) -> Self::Output {
+        self.undefined("visit_lang_item")
+    }
     #[doc = "Visits a Root node"]
-    fn visit_root(&self, root: Root) -> Self::Output;
+    fn visit_root(&mut self, root: Root) -> Self::Output {
+        self.undefined("visit_root")
+    }
     #[allow(unsafe_code)]
-    fn visit(&self, node: SyntaxNode) -> Self::Output {
+    #[doc = "Visits the node"]
+    fn visit(&mut self, node: SyntaxNode) -> Self::Output {
         match node.kind() {
             SyntaxKind::Expr => self.visit_expr(unsafe { Expr::new(node) }),
             SyntaxKind::ExprBlock => self.visit_expr_block(unsafe { ExprBlock::new(node) }),
@@ -234,7 +423,8 @@ pub trait Visitor {
         }
     }
     #[allow(unsafe_code)]
-    fn visit_token(&self, token: SyntaxToken) -> Self::Output {
+    #[doc = "Visits the token"]
+    fn visit_token(&mut self, token: SyntaxToken) -> Self::Output {
         match token.kind() {
             SyntaxKind::ID => self.visit_id(unsafe { Id::new(token) }),
             SyntaxKind::NUM => self.visit_num_lit(unsafe { NumLit::new(token) }),
@@ -297,7 +487,8 @@ pub trait Visitor {
         }
     }
     #[allow(unsafe_code)]
-    fn visit_element(&self, element: SyntaxElement) -> Self::Output {
+    #[doc = "Visits the element"]
+    fn visit_element(&mut self, element: SyntaxElement) -> Self::Output {
         match element {
             SyntaxElement::Node(node) => self.visit(node),
             SyntaxElement::Token(token) => self.visit_token(token),

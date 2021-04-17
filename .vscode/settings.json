@@ -29,4 +29,7 @@
     "rust-analyzer.lens.methodReferences": true,
     "rust-analyzer.lens.references": true,
     "rust-analyzer.lens.run": true,
+    "rust-analyzer.rustfmt.extraArgs": [
+        "+stable"
+    ],
 }
