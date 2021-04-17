@@ -53,6 +53,8 @@ pub fn visitor(grammar: &Grammar) -> TokenStream {
                 }
             }
         }
+
+        mod tests;
     }
 }
 

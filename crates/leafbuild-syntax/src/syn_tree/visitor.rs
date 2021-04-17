@@ -495,3 +495,4 @@ pub trait Visitor {
         }
     }
 }
+mod tests;
