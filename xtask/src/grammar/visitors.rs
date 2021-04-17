@@ -54,6 +54,7 @@ pub fn visitor(grammar: &Grammar) -> TokenStream {
             }
         }
 
+        #[cfg(test)]
         mod tests;
     }
 }
