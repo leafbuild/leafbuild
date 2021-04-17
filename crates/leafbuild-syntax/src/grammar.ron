@@ -1,70 +1,70 @@
 (
     const_tokens: [
-        (name: "PlusEq", kind: "PLUS_EQ", text: "+="),
-        (name: "MinusEq", kind: "MINUS_EQ", text: "-="),
-        (name: "MulEq", kind: "MUL_EQ", text: "*="),
-        (name: "DivEq", kind: "DIV_EQ", text: "/="),
-        (name: "ModEq", kind: "MOD_EQ", text: "%="),
-        (name: "Plus", kind: "PLUS", text: "+"),
-        (name: "Minus", kind: "MINUS", text: "-"),
-        (name: "Asterisk", kind: "ASTERISK", text: "*"),
-        (name: "Slash", kind: "SLASH", text: "/"),
-        (name: "Percent", kind: "PERCENT", text: "%"),
-        (name: "EqEq", kind: "EQ_EQ", text: "=="),
-        (name: "GreaterEq", kind: "GREATER_EQ", text: ">="),
-        (name: "Greater", kind: "GREATER", text: ">"),
-        (name: "LessEq", kind: "LESS_EQ", text: "<="),
-        (name: "Less", kind: "LESS", text: "<"),
-        (name: "Eq", kind: "EQ", text: "="),
-        (name: "NotEq", kind: "NEQ", text: "!="),
-        (name: "LParen", kind: "L_PAREN", text: "("),
-        (name: "RParen", kind: "R_PAREN", text: ")"),
-        (name: "LBracket", kind: "L_BRACKET", text: "["),
-        (name: "RBracket", kind: "R_BRACKET", text: "]"),
-        (name: "LBrace", kind: "L_BRACE", text: "{"),
-        (name: "RBrace", kind: "R_BRACE", text: "}"),
-        (name: "Dot", kind: "DOT", text: "."),
-        (name: "Colon", kind: "COLON", text: ":"),
-        (name: "QMark", kind: "QMARK", text: "?"),
-        (name: "Semicolon", kind: "SEMICOLON", text: ";"),
-        (name: "Comma", kind: "COMMA", text: ","),
-        (name: "AndKw", kind: "AND_KW", text: "and"),
-        (name: "OrKw", kind: "OR_KW", text: "or"),
-        (name: "NotKw", kind: "NOT_KW", text: "not"),
-        (name: "InKw", kind: "IN_KW", text: "in"),
-        (name: "LetKw", kind: "LET_KW", text: "let"),
-        (name: "IfKw", kind: "IF_KW", text: "if"),
-        (name: "ElseKw", kind: "ELSE_KW", text: "else"),
-        (name: "ForeachKw", kind: "FOREACH_KW", text: "foreach"),
-        (name: "ContinueKw", kind: "CONTINUE_KW", text: "continue"),
-        (name: "BreakKw", kind: "BREAK_KW", text: "break"),
-        (name: "ReturnKw", kind: "RETURN_KW", text: "return"),
-        (name: "TrueKw", kind: "TRUE_KW", text: "true"),
-        (name: "FalseKw", kind: "FALSE_KW", text: "false"),
-        (name: "FnKw", kind: "FN_KW", text: "fn"),
-        (name: "StructKw", kind: "STRUCT_KW", text: "struct"),
-
-        (name: "Newline", kind: "NEWLINE", text: "\n"),
+        (name: "PlusEq", lowercase: "plus_eq", kind: "PLUS_EQ", text: "+="),
+        (name: "MinusEq", lowercase: "minus_eq", kind: "MINUS_EQ", text: "-="),
+        (name: "MulEq", lowercase: "mul_eq", kind: "MUL_EQ", text: "*="),
+        (name: "DivEq", lowercase: "div_eq", kind: "DIV_EQ", text: "/="),
+        (name: "ModEq", lowercase: "mod_eq", kind: "MOD_EQ", text: "%="),
+        (name: "Plus", lowercase: "plus", kind: "PLUS", text: "+"),
+        (name: "Minus", lowercase: "minus", kind: "MINUS", text: "-"),
+        (name: "Asterisk", lowercase: "asterisk", kind: "ASTERISK", text: "*"),
+        (name: "Slash", lowercase: "slash", kind: "SLASH", text: "/"),
+        (name: "Percent", lowercase: "percent", kind: "PERCENT", text: "%"),
+        (name: "EqEq", lowercase: "eq_eq", kind: "EQ_EQ", text: "=="),
+        (name: "GreaterEq", lowercase: "greater_eq", kind: "GREATER_EQ", text: ">="),
+        (name: "Greater", lowercase: "greater", kind: "GREATER", text: ">"),
+        (name: "LessEq", lowercase: "less_eq", kind: "LESS_EQ", text: "<="),
+        (name: "Less", lowercase: "less", kind: "LESS", text: "<"),
+        (name: "Eq", lowercase: "eq", kind: "EQ", text: "="),
+        (name: "NotEq", lowercase: "not_eq", kind: "NEQ", text: "!="),
+        (name: "LParen", lowercase: "lparen", kind: "L_PAREN", text: "("),
+        (name: "RParen", lowercase: "rparen", kind: "R_PAREN", text: ")"),
+        (name: "LBracket", lowercase: "lbracket", kind: "L_BRACKET", text: "["),
+        (name: "RBracket", lowercase: "rbracket", kind: "R_BRACKET", text: "]"),
+        (name: "LBrace", lowercase: "lbrace", kind: "L_BRACE", text: "{"),
+        (name: "RBrace", lowercase: "rbrace", kind: "R_BRACE", text: "}"),
+        (name: "Dot", lowercase: "dot", kind: "DOT", text: "."),
+        (name: "Colon", lowercase: "colon", kind: "COLON", text: ":"),
+        (name: "QMark", lowercase: "qmark", kind: "QMARK", text: "?"),
+        (name: "Semicolon", lowercase: "semicolon", kind: "SEMICOLON", text: ";"),
+        (name: "Comma", lowercase: "comma", kind: "COMMA", text: ","),
+        (name: "AndKw", lowercase: "and_kw", kind: "AND_KW", text: "and"),
+        (name: "OrKw", lowercase: "or_kw", kind: "OR_KW", text: "or"),
+        (name: "NotKw", lowercase: "not_kw", kind: "NOT_KW", text: "not"),
+        (name: "InKw", lowercase: "in_kw", kind: "IN_KW", text: "in"),
+        (name: "LetKw", lowercase: "let_kw", kind: "LET_KW", text: "let"),
+        (name: "IfKw", lowercase: "if_kw", kind: "IF_KW", text: "if"),
+        (name: "ElseKw", lowercase: "else_kw", kind: "ELSE_KW", text: "else"),
+        (name: "ForeachKw", lowercase: "foreach_kw", kind: "FOREACH_KW", text: "foreach"),
+        (name: "ContinueKw", lowercase: "continue_kw", kind: "CONTINUE_KW", text: "continue"),
+        (name: "BreakKw", lowercase: "break_kw", kind: "BREAK_KW", text: "break"),
+        (name: "ReturnKw", lowercase: "return_kw", kind: "RETURN_KW", text: "return"),
+        (name: "TrueKw", lowercase: "true_kw", kind: "TRUE_KW", text: "true"),
+        (name: "FalseKw", lowercase: "false_kw", kind: "FALSE_KW", text: "false"),
+        (name: "FnKw", lowercase: "fn_kw", kind: "FN_KW", text: "fn"),
+        (name: "StructKw", lowercase: "struct_kw", kind: "STRUCT_KW", text: "struct"),
+        (name: "Newline", lowercase: "newline", kind: "NEWLINE", text: "\n"),
     ],
     tokens: [
-        (name: "Id", kind: "ID", regex: "[a-zA-Z_][a-zA-Z0-9_]*"),
-        (name: "NumLit", kind: "NUM", regex: "([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|0)[uU]?[lL]?"),
-        (name: "Str", kind: "STRING", regex: r#"'(\\['nt\\]|[^'\\])+'"#),
-        (name: "MultilineStr", kind: "MULTILINE_STRING", regex: r#"'''([^']*|'[^']|''[^'])*'''"#),
-        (name: "SingleLineComment", kind: "SINGLE_LINE_COMMENT", regex: r#"//[^\n]*"#),
-        (name: "BlockComment", kind: "BLOCK_COMMENT", regex: r#"/\*([^*]|\**[^*/])*\*+/"#),
-        (name: "Whitespace", kind: "WHITESPACE", regex: r#"[ \t\r]+"#),
+        (name: "Id", lowercase: "id", kind: "ID", regex: "[a-zA-Z_][a-zA-Z0-9_]*"),
+        (name: "NumLit", lowercase: "num_lit", kind: "NUM", regex: "([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|0)[uU]?[lL]?"),
+        (name: "Str", lowercase: "str", kind: "STRING", regex: r#"'(\\['nt\\]|[^'\\])+'"#),
+        (name: "MultilineStr", lowercase: "multiline_str", kind: "MULTILINE_STRING", regex: r#"'''([^']*|'[^']|''[^'])*'''"#),
+        (name: "SingleLineComment", lowercase: "single_line_comment", kind: "SINGLE_LINE_COMMENT", regex: r#"//[^\n]*"#),
+        (name: "BlockComment", lowercase: "block_comment", kind: "BLOCK_COMMENT", regex: r#"/\*([^*]|\**[^*/])*\*+/"#),
+        (name: "Whitespace", lowercase: "whitespace", kind: "WHITESPACE", regex: r#"[ \t\r]+"#),
     ],
     nodes: [
-        (name: "Expr", kind: "Expr", children: []),
-        (name: "ExprBlock", kind: "ExprBlock", children: []),
-        (name: "KExpr", kind: "KExpr", children: [
+        (name: "Expr", lowercase: "expr", kind: "Expr", children: []),
+        (name: "ExprBlock", lowercase: "expr_block", kind: "ExprBlock", children: []),
+        (name: "KExpr", lowercase: "kexpr", kind: "KExpr", children: [
             Single("Id", "id"),
             Single("Eq", "equal"),
             Single("Expr", "expr"),
         ]),
         (
             name: "ArrayLitExpr",
+            lowercase: "array_lit_expr",
             kind: "ArrayLitExpr",
             children: [
                 Single("LBracket", "lbracket"),
@@ -74,6 +74,7 @@
         ),
         (
             name: "MapLitExpr",
+            lowercase: "map_lit_expr",
             kind: "MapLitExpr",
             children: [
                 Single("LBrace", "lbrace"),
@@ -83,6 +84,7 @@
         ),
         (
             name: "StrLit",
+            lowercase: "str_lit",
             kind: "StrLit",
             children: [
                 Optional("Str", "single_line_string"),
@@ -91,11 +93,13 @@
         ),
         (
             name: "PrimaryExpr",
+            lowercase: "primary_expr",
             kind: "PrimaryExpr",
             children: [],
         ),
         (
             name: "PrefixUnaryOpExpr",
+            lowercase: "prefix_unary_op_expr",
             kind: "PrefixUnaryOpExpr",
             children: [
                 Last("Expr", "expr"),
@@ -103,6 +107,7 @@
         ),
         (
             name: "InfixBinaryOpExpr",
+            lowercase: "infix_binary_op_expr",
             kind: "InfixBinOpExpr",
             children: [
                 First("Expr", "left_operand"),
@@ -113,6 +118,7 @@
         ),
         (
             name: "FnCallExpr",
+            lowercase: "fn_call_expr",
             kind: "FnCallExpr",
             children: [
                 First("Expr", "fn"),
@@ -121,6 +127,7 @@
         ),
         (
             name: "FnCallArgsList",
+            lowercase: "fn_call_args_list",
             kind: "FnCallArgsList",
             children: [
                 Single("LParen", "lparen"),
@@ -130,6 +137,7 @@
         ),
         (
             name: "FArg",
+            lowercase: "farg",
             kind: "FArg",
             children: [
                 Optional("Expr", "as_expr"),
@@ -138,6 +146,7 @@
         ),
         (
             name: "TupleExpr",
+            lowercase: "tuple_expr",
             kind: "TupleExpr",
             children: [
                 Single("LParen", "lparen"),
@@ -147,6 +156,7 @@
         ),
         (
             name: "BoolLit",
+            lowercase: "bool_lit",
             kind: "BoolLit",
             children: [
                 Optional("TrueKw", "true"),
@@ -155,6 +165,7 @@
         ),
         (
             name: "IndexExpr",
+            lowercase: "index_expr",
             kind: "IndexExpr",
             children: [
                 Single("Expr", "base"),
@@ -163,6 +174,7 @@
         ),
         (
             name: "IndexExprBrackets",
+            lowercase: "index_expr_brackets",
             kind: "IndexExprBrackets",
             children: [
                 Single("LBracket", "lbracket"),
@@ -172,6 +184,7 @@
         ),
         (
             name: "Assignment",
+            lowercase: "assignment",
             kind: "Assignment",
             children: [
                 First("Expr", "target_expr"),
@@ -181,6 +194,7 @@
         ),
         (
             name: "Declaration",
+            lowercase: "declaration",
             kind: "Declaration",
             children: [
                 Single("LetKw", "let"),
@@ -191,6 +205,7 @@
         ),
         (
             name: "Conditional",
+            lowercase: "conditional",
             kind: "Conditional",
             children: [
                 Multiple("ConditionalBranch", "branches"),
@@ -200,6 +215,7 @@
         ),
         (
             name: "Foreach",
+            lowercase: "foreach",
             kind: "Foreach",
             children: [
                 Single("ForeachKw", "foreach_kw"),
@@ -209,6 +225,7 @@
         ),
         (
             name: "ForInExpr",
+            lowercase: "for_in_expr",
             kind: "ForInExpr",
             children: [
                 First("Expr", "binding"),
@@ -218,6 +235,7 @@
         ),
         (
             name: "ControlStatement",
+            lowercase: "control_statement",
             kind: "ControlStatement",
             children: [
                 Optional("ContinueKw", "continue_kw"),
@@ -228,6 +246,7 @@
         ),
         (
             name: "ExprStatement",
+            lowercase: "expr_statement",
             kind: "ExprStatement",
             children: [
                 Single("Expr", "expr"),
@@ -235,6 +254,7 @@
         ),
         (
             name: "Tuple",
+            lowercase: "tuple",
             kind: "Tuple",
             children: [
                 Single("LParen", "lparen"),
@@ -244,6 +264,7 @@
         ),
         (
             name: "ConditionalBranch",
+            lowercase: "conditional_branch",
             kind: "ConditionalBranch",
             children: [
                 Single("IfKw", "if_kw"),
@@ -253,6 +274,7 @@
         ),
         (
             name: "Statement",
+            lowercase: "statement",
             kind: "Statement",
             children: [
                 Optional("ExprStatement", "expr_statement"),
@@ -264,6 +286,7 @@
         ),
         (
             name: "StructDecl",
+            lowercase: "struct_decl",
             kind: "StructDecl",
             children: [
                 Single("StructKw", "struct_kw"),
@@ -273,6 +296,7 @@
         ),
         (
             name: "StructFieldList",
+            lowercase: "struct_field_list",
             kind: "StructFieldList",
             children: [
                 Single("LBrace", "lbrace"),
@@ -282,6 +306,7 @@
         ),
         (
             name: "StructField",
+            lowercase: "struct_field",
             kind: "StructField",
             children: [
                 Single("Id", "name"),
@@ -291,16 +316,19 @@
         ),
         (
             name: "TypeRef",
+            lowercase: "type_ref",
             kind: "TypeRef",
             children: [],
         ),
         (
             name: "TypeRefGenerics",
+            lowercase: "type_ref_generics",
             kind: "TypeRefGenerics",
             children: [],
         ),
         (
             name: "LangItem",
+            lowercase: "lang_item",
             kind: "LangItem",
             children: [
                 Optional("Statement", "statement"),
@@ -310,6 +338,7 @@
         ),
         (
             name: "Root",
+            lowercase: "root",
             kind: "ROOT",
             children: [
                 Multiple("LangItem", "lang_items"),

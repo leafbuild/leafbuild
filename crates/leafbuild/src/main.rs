@@ -1,6 +1,7 @@
 use clap::Clap;
 use leafbuild::cli::Cli;
 use leafbuild::trc::{Config, LeafbuildTrcLayer};
+use tracing::error;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Registry;
@@ -15,5 +16,9 @@ fn main() {
     ));
     subscriber.init();
 
-    leafbuild::run(cli);
+    leafbuild::panic_hook::init();
+
+    if let Err(e) = leafbuild::run(cli) {
+        error!("cli error: {}", e)
+    }
 }

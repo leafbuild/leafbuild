@@ -260,7 +260,7 @@ where
         let name = md.name();
 
         format!(
-            "  {} {}::{}, location={}:{}\n",
+            "  {} {}::{}, at {}:{}\n",
             "in".format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Cyan)),
             rs_mod_path.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Green)),
             name.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Purple)),
@@ -276,7 +276,7 @@ where
         let rs_mod_path = md.module_path().unwrap_or_default();
 
         format!(
-            "  {}: location={}:{}, rust module path={}\n",
+            "  {}: {}:{}, in rust module {}\n",
             "at".format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Cyan)),
             file.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Yellow)),
             line.format_with_style_if(self.cfg.ansi, |s| s.fg(Color::Yellow)),
@@ -325,7 +325,7 @@ where
         self.format_event_and_write(event, ctx).unwrap();
     }
 
-    fn on_enter(&self, id: &tracing::Id, ctx: Context<S>) {
+    fn on_enter(&self, id: &Id, ctx: Context<S>) {
         let span = ctx.span(id).unwrap();
         let mut ext = span.extensions_mut();
         let data = ext.get_mut::<Data>().unwrap();

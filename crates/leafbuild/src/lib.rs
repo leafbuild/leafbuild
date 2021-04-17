@@ -58,6 +58,7 @@ extern crate codespan_reporting;
 extern crate tracing;
 extern crate leafbuild_derive;
 extern crate term;
+#[macro_use]
 extern crate thiserror;
 
 pub use cli::run;
@@ -66,4 +67,5 @@ pub use cli::run;
 pub mod buildsys_utils;
 pub mod cli;
 pub mod docs;
+pub mod panic_hook;
 pub mod trc;

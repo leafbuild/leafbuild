@@ -23,7 +23,7 @@ use self::{
     token_source::TokenSource,
 };
 
-mod error;
+pub mod error;
 mod event;
 mod marker;
 pub mod text_tree_sink;
@@ -192,9 +192,9 @@ impl<'ts> Parser<'ts> {
     }
 
     #[inline(always)]
-    fn bump_to_if_next_non_newline_is_any<const KindsSize: usize>(
+    fn bump_to_if_next_non_newline_is_any<const KINDS_SIZE: usize>(
         &mut self,
-        kinds: [SyntaxKind; KindsSize],
+        kinds: [SyntaxKind; KINDS_SIZE],
     ) -> bool {
         let mut tk = ForwardToken::default();
         let k = self.next_not_newline().copy_to(&mut tk).kind;
@@ -503,13 +503,12 @@ fn is_kexpr_start(p: &mut Parser) -> bool {
 }
 
 fn parse_index_expr(p: &mut Parser, marker: Marker) -> CompletedMarker {
-    let expr_marker = p.start();
     let brackets_marker = p.start();
     p.bump(T!['[']);
     parse_expr(p); // expr
     p.expect(T![']']);
     brackets_marker.complete(p, IndexExprBrackets);
-    expr_marker.complete(p, IndexExpr)
+    marker.complete(p, IndexExpr)
 }
 
 fn parse_precedence_2_expr(p: &mut Parser) -> CompletedMarker {
@@ -705,15 +704,35 @@ fn is_control_stmt(p: &mut Parser) -> bool {
 }
 
 fn parse_control_stmt(p: &mut Parser) {
+    // test continue_test
+    // continue
+
+    // test break_without_value
+    // break
+
+    // test break_with_value
+    // break 1
+
+    // test break_with_value_on_new_line
+    // break
+    //        1
+
+    // test return_without_value
+    // return
+
+    // test return_with_value
+    // return 1
+
+    // test return_with_value_on_new_line
+    // return
+    //         1
     p.skip_newlines();
     assert!(is_control_stmt(p));
 
     let marker = p.start();
     if p.eat(T![continue]) {
-    } else if p.eat(T![return]) || p.eat(T![break]) {
-        if !p.at(NEWLINE) {
-            parse_expr(p)
-        }
+    } else if (p.eat(T![return]) || p.eat(T![break])) && !p.at(NEWLINE) {
+        parse_expr(p);
     }
     p.require_newline();
 

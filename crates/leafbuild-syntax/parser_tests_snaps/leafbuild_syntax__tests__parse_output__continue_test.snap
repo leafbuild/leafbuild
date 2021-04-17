@@ -1,0 +1,10 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "continue\n"
+
+---
+- ROOT 0..9
+  - ControlStatement 0..9
+    - "continue" CONTINUE_KW 0..8
+    - "\n" NEWLINE 8..9
+

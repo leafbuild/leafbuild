@@ -2,15 +2,10 @@
     html_favicon_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg",
     html_logo_url = "https://raw.githubusercontent.com/leafbuild/leafbuild/master/leaf_icon.svg"
 )]
-#![forbid(
-    unsafe_code,
-    unused_allocation,
-    coherence_leak_check,
-    confusable_idents,
-    trivial_bounds
-)]
+#![forbid(unsafe_code, coherence_leak_check, confusable_idents, trivial_bounds)]
 #![deny(
     missing_docs,
+    unused_allocation,
     missing_crate_level_docs,
     missing_copy_implementations,
     missing_debug_implementations,

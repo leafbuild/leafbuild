@@ -1,0 +1,10 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "return\n"
+
+---
+- ROOT 0..7
+  - ControlStatement 0..7
+    - "return" RETURN_KW 0..6
+    - "\n" NEWLINE 6..7
+

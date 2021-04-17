@@ -1,3 +1,5 @@
+//! FIXME: docs
+/// A parse error.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParseError(pub Box<String>);
 

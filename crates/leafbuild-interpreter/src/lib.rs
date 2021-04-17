@@ -53,14 +53,12 @@ use tracing::{span, Level};
 
 use crate::diagnostics::errors::LeafParseError;
 use leafbuild_core::lf_buildsys::{ConfigurationError, WriteResultsError};
-use leafbuild_parser::parse;
 
 use crate::handle::Handle;
 
 mod diagnostics;
 pub mod env;
 pub mod handle;
-mod internal;
 
 include!("mod_name.rs");
 
@@ -84,11 +82,11 @@ pub enum InterpretFailure {
 /// and [`Handle::write_results`] after calling this.
 /// # Errors
 /// See [`InterpretFailure`]
-pub fn execute_on<'a>(
-    handle: &'a mut Handle<'a>,
+pub fn execute_on(
+    handle: &mut Handle,
     root_path: &PathBuf,
     mod_path: LfModName,
-) -> Result<&'a mut Handle<'a>, InterpretFailure> {
+) -> Result<(), InterpretFailure> {
     let span = span!(Level::TRACE, "execute_on", path = %mod_path.0.as_str());
     let _span_guard = span.enter();
     info!("Entered {}", mod_path.0.as_str());
@@ -96,37 +94,27 @@ pub fn execute_on<'a>(
     let build_decl_file = root_path.join("build.leaf");
     let content = std::fs::read_to_string(build_decl_file)
         .map_err(|err| InterpretFailure::CannotReadFile(root_path.join("build.leaf"), err))?;
-    let mut errors = vec![];
-    let result = parse(&content, &mut errors);
+    let (node, errors) = leafbuild_syntax::parser::parse(&content);
 
-    handle.buildsys.register_file_and_report_chain(
-        &root_path.to_string_lossy().to_string(),
-        &content,
-        |fid| {
-            errors
-                .into_iter()
-                .map(move |err| LeafParseError::from((fid, err.error)))
-        },
-    );
-
-    match result {
-        Ok(build_definition) => {
-            let fid = handle
-                .buildsys
-                .register_new_file(root_path.to_string_lossy().to_string(), content);
-            let mut frame = env::FileFrame::new(fid, mod_path);
-            internal::run_build_def(&mut frame, build_definition);
-        }
-        Err(error) => {
-            handle.buildsys.register_file_and_report(
-                &root_path.to_string_lossy().to_string(),
-                &content,
-                |fid| LeafParseError::from((fid, error)),
-            );
-        }
+    if errors.is_empty() {
+        let fid = handle
+            .buildsys
+            .register_new_file(root_path.to_string_lossy().to_string(), content);
+        let mut _frame = env::FileFrame::new(fid, mod_path);
+        // internal::run_build_def(&mut frame, build_definition);
+    } else {
+        handle.buildsys.register_file_and_report_chain(
+            &root_path.to_string_lossy().to_string(),
+            &content,
+            |fid| {
+                errors
+                    .into_iter()
+                    .map(move |err| LeafParseError::from((fid, err)))
+            },
+        );
     }
 
     info!("Leaving folder {:?}", root_path);
 
-    Ok(&mut *handle)
+    Ok(())
 }

@@ -6,7 +6,7 @@ use codespan_reporting::files::{Files, Location, SimpleFile};
 use codespan_reporting::term::termcolor::{ColorChoice, StandardStream};
 use std::borrow::Borrow;
 use std::cmp::Ordering;
-use std::ops::{Range, RangeInclusive};
+use std::ops::Range;
 use std::path::PathBuf;
 
 /// The index of a file in the file database
@@ -305,23 +305,36 @@ pub trait LeafLabelLocation {
     }
 }
 
-impl LeafLabelLocation for Range<usize> {
+// impl LeafLabelLocation for Range<usize> {
+//     fn get_start(&self) -> usize {
+//         self.start
+//     }
+
+//     fn get_end(&self) -> usize {
+//         self.end
+//     }
+// }
+
+// impl LeafLabelLocation for RangeInclusive<usize> {
+//     fn get_start(&self) -> usize {
+//         *self.start()
+//     }
+
+//     fn get_end(&self) -> usize {
+//         *self.end() + 1
+//     }
+// }
+
+impl<T> LeafLabelLocation for T
+where
+    T: Into<Range<usize>> + Clone,
+{
     fn get_start(&self) -> usize {
-        self.start
+        self.clone().into().start
     }
 
     fn get_end(&self) -> usize {
-        self.end
-    }
-}
-
-impl LeafLabelLocation for RangeInclusive<usize> {
-    fn get_start(&self) -> usize {
-        *self.start()
-    }
-
-    fn get_end(&self) -> usize {
-        *self.end() + 1
+        self.clone().into().end
     }
 }
 

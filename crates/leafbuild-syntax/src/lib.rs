@@ -34,6 +34,9 @@
 //! The syntax of `build.leaf` files, along with the lexer and parser.
 //! This uses [rowan](https://github.com/rust-analyzer/rowan).
 
+///
+pub use rowan::TextSize;
+
 use rowan::Language;
 
 pub(crate) mod lexer;

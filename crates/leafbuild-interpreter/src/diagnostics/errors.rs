@@ -1,10 +1,6 @@
-use itertools::Itertools;
 use leafbuild_core::diagnostics::{
     DiagConfig, FileId, LeafDiagnostic, LeafDiagnosticTrait, LeafLabel,
 };
-use leafbuild_parser::lalrpop_util::ParseError;
-use leafbuild_parser::GrmError;
-use leafbuild_parser::Token;
 macro_rules! error_codes {
     ($([$name:ident, $file:expr]),* $(,)?) => {
         error_codes!(1, $([$name, $file])*);

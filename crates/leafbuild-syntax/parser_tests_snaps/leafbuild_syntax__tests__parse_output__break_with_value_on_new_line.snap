@@ -1,0 +1,15 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "break\n       1\n"
+
+---
+- ROOT 0..15
+  - ControlStatement 0..6
+    - "break" BREAK_KW 0..5
+    - "\n" NEWLINE 5..6
+  - "       " WHITESPACE 6..13
+  - Expr 13..14
+    - PrimaryExpr 13..14
+      - "1" NUM 13..14
+  - "\n" NEWLINE 14..15
+

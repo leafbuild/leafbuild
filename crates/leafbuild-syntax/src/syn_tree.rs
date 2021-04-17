@@ -109,6 +109,8 @@ impl CastToToken for SyntaxToken {
 mod implementation;
 pub use implementation::*;
 
+pub mod visitor;
+
 fn get_single_tok<T: AstToken>(syntax: &SyntaxNode) -> T {
     get_first_tok(syntax)
 }

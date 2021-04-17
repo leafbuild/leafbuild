@@ -18,8 +18,11 @@ pub struct LfBuildsys<'buildsys> {
 /// Error while writing results (makefiles/`build.ninja` files ...).
 #[derive(Debug, Error)]
 pub enum WriteResultsError {
+    /// The build system was not validated.
+    #[error("Not validated")]
+    NotValidated,
     /// An IO error occurred.
-    #[error("IO: {0}")]
+    #[error("IO error")]
     IoError(#[from] std::io::Error),
 }
 

@@ -1,8 +1,3 @@
-/*
- *   Copyright (c) 2021 Dinu Blanovschi
- *   All rights reserved.
- *   Licensed under the terms of the BSD-3 Clause license, see LICENSE for more.
- */
 //! A handle.
 //! Explained in simple terms, this is a wrapper over all the structures the buildsystem uses internally.
 
@@ -32,12 +27,12 @@ impl<'a> Handle<'a> {
     /// Validates the handle.
     /// # Errors
     /// See errors section of [`LfBuildsys::validate`]
-    pub fn validate(&mut self) -> Result<&mut Self, ConfigurationError> {
+    pub fn validate(&mut self) -> Result<(), ConfigurationError> {
         self.buildsys.validate()?;
 
         self.validated = true;
 
-        Ok(self)
+        Ok(())
     }
 
     /// Writes the results stored in the environment
@@ -48,9 +43,12 @@ impl<'a> Handle<'a> {
     /// Any kind of error that can happen while writing, or if the buildsystem was not [`validate`][handle_validate]d yet.
     ///
     /// [handle_validate]: Handle::validate
-    pub fn write_results(&self) -> Result<&Self, WriteResultsError> {
+    pub fn write_results(&self) -> Result<(), WriteResultsError> {
+        if !self.validated {
+            return Err(WriteResultsError::NotValidated);
+        }
         self.buildsys.write_results()?;
 
-        Ok(self)
+        Ok(())
     }
 }

@@ -1,8 +1,9 @@
 //! Definition and parsing of Cli.
 use clap::{AppSettings, Clap};
 use leafbuild_core::lf_buildsys::config::Config;
+use leafbuild_core::lf_buildsys::WriteResultsError;
 use leafbuild_interpreter::handle::Handle;
-use leafbuild_interpreter::LfModName;
+use leafbuild_interpreter::{InterpretFailure, LfModName};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
@@ -116,9 +117,20 @@ pub struct Cli {
     #[clap(subcommand)]
     pub subcommand: Subcommand,
 }
+/// Any error that we can get from running the cli.
+#[derive(Debug, Error)]
+pub enum CliError {
+    /// Failure interpreting some code.
+    #[error("interpret failure: {0}")]
+    InterpretFailure(#[from] InterpretFailure),
+
+    /// Cannot write the results.
+    #[error("write results: {0}")]
+    WriteResults(#[from] WriteResultsError),
+}
 
 /// Runs the given cli
-pub fn run(cli: Cli) {
+pub fn run(cli: Cli) -> Result<(), CliError> {
     match cli.subcommand {
         Subcommand::Build { build_command } => {
             let _wd = std::env::current_dir().unwrap();
@@ -132,32 +144,23 @@ pub fn run(cli: Cli) {
 
             let mut handle = Handle::new(config);
             let path_buf = proj_path.to_path_buf();
-            leafbuild_interpreter::execute_on(
-                &mut handle,
-                &path_buf,
-                LfModName::new(
-                    path_buf
-                        .file_name()
-                        .map(|it| it.to_string_lossy().to_string())
-                        .or_else(|| {
-                            Some(
-                                std::env::current_dir()
-                                    .ok()?
-                                    .file_name()
-                                    .map(|it| it.to_string_lossy().to_string())?,
-                            )
-                        })
-                        .unwrap_or_else(|| ".".into()),
-                ),
-            )
-            .and_then(|h| Ok(h.validate()?))
-            .and_then(|h| Ok(h.write_results()?))
-            .map_or_else(
-                |error| {
-                    error!("An error occurred: {}", error);
-                },
-                |_| (),
+            let mod_name = LfModName::new(
+                path_buf
+                    .file_name()
+                    .map(|it| it.to_string_lossy().to_string())
+                    .or_else(|| {
+                        Some(
+                            std::env::current_dir()
+                                .ok()?
+                                .file_name()
+                                .map(|it| it.to_string_lossy().to_string())?,
+                        )
+                    })
+                    .unwrap_or_else(|| ".".into()),
             );
+            leafbuild_interpreter::execute_on(&mut handle, &path_buf, mod_name)?;
+            let handle = handle;
+            handle.write_results()?;
         }
         Subcommand::Internal {
             internal_subcommand,
@@ -188,4 +191,6 @@ pub fn run(cli: Cli) {
             }
         },
     }
+
+    Ok(())
 }
