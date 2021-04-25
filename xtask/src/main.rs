@@ -36,6 +36,12 @@ enum Xtask {
 
     #[clap(name = "build")]
     Build,
+
+    #[clap(name = "build-docs")]
+    BuildDocs,
+
+    #[clap(name = "serve-docs")]
+    ServeDocs,
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -52,6 +58,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         Xtask::FmtCheck => xtask::format::format_check()?,
         Xtask::Lint => xtask::lint::lint()?,
         Xtask::Build => xtask::build::build()?,
+        Xtask::BuildDocs => xtask::docs::build()?,
+        Xtask::ServeDocs => xtask::docs::serve()?,
     }
 
     Ok(())

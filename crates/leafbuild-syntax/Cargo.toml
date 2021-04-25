@@ -7,7 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rowan = "0.12"
+rowan = "=0.13.0-pre.3"
 drop_bomb = "0.1.4"
 logos = "0.12"
 itertools = "0.10"

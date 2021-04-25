@@ -3,9 +3,9 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "1\n"
 
 ---
-- ROOT 0..2
-  - Expr 0..1
-    - PrimaryExpr 0..1
-      - "1" NUM 0..1
-  - "\n" NEWLINE 1..2
+- BUILD_DEFINITION 0..2
+  - EXPR_EVAL_STMT 0..2
+    - PRIMARY_EXPR 0..1
+      - "1" INT_NUMBER 0..1
+    - "\n" NEWLINE 1..2
 

@@ -3,32 +3,32 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "struct test {\n    i: i32<a, b>\n}\n"
 
 ---
-- ROOT 0..33
-  - StructDecl 0..32
+- BUILD_DEFINITION 0..33
+  - STRUCT_DECL 0..32
     - "struct" STRUCT_KW 0..6
     - " " WHITESPACE 6..7
-    - "test" ID 7..11
+    - "test" IDENT 7..11
     - " " WHITESPACE 11..12
-    - StructFieldList 12..32
-      - "{" L_BRACE 12..13
+    - STRUCT_FIELD_LIST 12..32
+      - "{" L_CURLY 12..13
       - "\n" NEWLINE 13..14
       - "    " WHITESPACE 14..18
-      - StructField 18..31
-        - "i" ID 18..19
+      - STRUCT_FIELD 18..31
+        - "i" IDENT 18..19
         - ":" COLON 19..20
         - " " WHITESPACE 20..21
-        - TypeRef 21..30
-          - "i32" ID 21..24
-          - TypeRefGenerics 24..30
-            - "<" LESS 24..25
-            - TypeRef 25..26
-              - "a" ID 25..26
+        - TYPE_REF 21..30
+          - "i32" IDENT 21..24
+          - GENERIC_PARAMS 24..30
+            - "<" L_ANGLE 24..25
+            - TYPE_REF 25..26
+              - "a" IDENT 25..26
             - "," COMMA 26..27
             - " " WHITESPACE 27..28
-            - TypeRef 28..29
-              - "b" ID 28..29
-            - ">" GREATER 29..30
+            - TYPE_REF 28..29
+              - "b" IDENT 28..29
+            - ">" R_ANGLE 29..30
         - "\n" NEWLINE 30..31
-      - "}" R_BRACE 31..32
+      - "}" R_CURLY 31..32
   - "\n" NEWLINE 32..33
 

@@ -1,8 +1,7 @@
 use itertools::Itertools;
 use path_calculate::Calculate;
-use proc_macro2::{Ident, Span};
-use quote::__private::TokenStream;
-use quote::{ToTokens, TokenStreamExt};
+use proc_macro2::TokenStream;
+use quote::{format_ident, ToTokens, TokenStreamExt};
 use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 use std::{io, mem};
@@ -74,7 +73,7 @@ pub fn install_tests(tests: Vec<ParseTest>) -> anyhow::Result<()> {
 
     impl ToTokens for ParseTest {
         fn to_tokens(&self, tokens: &mut TokenStream) {
-            let name = Ident::new(self.name.as_str(), Span::call_site());
+            let name = format_ident!("{}", self.name.as_str());
             let code: TokenStream = raw_str_literal(self.input.as_str(), 8);
             let file = self.file.as_path().to_str().unwrap();
             let line = self.line;
@@ -131,7 +130,7 @@ pub fn install_tests(tests: Vec<ParseTest>) -> anyhow::Result<()> {
                 #[allow(clippy::unseparated_literal_suffix)]
                 mod parse_output {
                     use crate::parser::parse;
-                    use crate::syn_tree::{self, AstNode, Root, SyntaxElement};
+                    use crate::ast::{self, AstNode, BuildDefinition, SyntaxElement};
                     use crate::LeafbuildLanguage;
 
                     use indoc::indoc;
@@ -142,8 +141,8 @@ pub fn install_tests(tests: Vec<ParseTest>) -> anyhow::Result<()> {
                             let (node, errors) = parse($s);
                             assert_eq!(errors, vec![]);
                             let node = rowan::SyntaxNode::<LeafbuildLanguage>::new_root(node);
-                            let node: Root = Root::cast(node).unwrap();
-                            syn_tree::test_dbg(0, SyntaxElement::Node(node.syntax().clone()), &mut s);
+                            let node: BuildDefinition = BuildDefinition::cast(node).unwrap();
+                            ast::test_dbg(0, SyntaxElement::Node(node.syntax().clone()), &mut s);
 
                             let mut settings = insta::Settings::clone_current();
                             settings.set_snapshot_path(#parser_tests_snap_path);

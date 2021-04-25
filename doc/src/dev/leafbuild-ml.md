@@ -32,7 +32,7 @@ a little linker magic to make `leafbuild-ml` aware of those implementations.
 The `MiddleLayer` trait is pretty simple:
 
 ```rust,norun,noplayground
-{{#include ../../../leafbuild-ml/src/ml.rs}}
+{{#include ../../../crates/leafbuild-ml/src/ml.rs}}
 ```
 
 [build_system_boundary]: terminology.md#build-system-boundary

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 pub mod build;
+pub mod docs;
 pub mod format;
 pub mod git_hooks;
 pub mod grammar;

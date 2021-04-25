@@ -39,9 +39,10 @@ pub use rowan::TextSize;
 
 use rowan::Language;
 
+pub mod ast;
 pub(crate) mod lexer;
 pub mod parser;
-pub mod syn_tree;
+#[path = "syntax_kind_new.rs"]
 pub mod syntax_kind;
 
 use syntax_kind::SyntaxKind;
@@ -59,6 +60,39 @@ impl Language for LeafbuildLanguage {
 
     fn kind_to_raw(kind: Self::Kind) -> rowan::SyntaxKind {
         rowan::SyntaxKind(kind.into())
+    }
+}
+
+#[allow(clippy::fallible_impl_from)]
+impl From<u16> for SyntaxKind {
+    fn from(i: u16) -> Self {
+        assert!(i < Self::__LAST as u16);
+        #[allow(unsafe_code)]
+        unsafe {
+            std::mem::transmute::<u16, Self>(i)
+        }
+    }
+}
+impl From<SyntaxKind> for u16 {
+    fn from(kind: SyntaxKind) -> Self {
+        kind as Self
+    }
+}
+impl From<&SyntaxKind> for u16 {
+    fn from(kind: &SyntaxKind) -> Self {
+        (*kind).into()
+    }
+}
+
+impl From<SyntaxKind> for rowan::SyntaxKind {
+    fn from(kind: SyntaxKind) -> Self {
+        Self(kind.into())
+    }
+}
+
+impl From<rowan::SyntaxKind> for SyntaxKind {
+    fn from(kind: rowan::SyntaxKind) -> Self {
+        kind.0.into()
     }
 }
 

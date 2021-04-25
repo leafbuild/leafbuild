@@ -3,16 +3,15 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "let a = b\n"
 
 ---
-- ROOT 0..10
-  - Declaration 0..10
+- BUILD_DEFINITION 0..10
+  - DECLARATION_STMT 0..10
     - "let" LET_KW 0..3
     - " " WHITESPACE 3..4
-    - "a" ID 4..5
+    - "a" IDENT 4..5
     - " " WHITESPACE 5..6
     - "=" EQ 6..7
     - " " WHITESPACE 7..8
-    - Expr 8..9
-      - PrimaryExpr 8..9
-        - "b" ID 8..9
+    - PRIMARY_EXPR 8..9
+      - "b" IDENT 8..9
     - "\n" NEWLINE 9..10
 

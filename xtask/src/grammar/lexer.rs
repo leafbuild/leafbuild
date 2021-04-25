@@ -1,5 +1,5 @@
 use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
+use quote::{format_ident, quote, ToTokens, TokenStreamExt};
 use syn::Ident;
 
 use super::{ConstToken, Token};
@@ -118,8 +118,9 @@ impl<'a> ToTokens for MatchTokens<'a> {
             self.0
                 .iter()
                 .map(|it| {
-                    let name = Ident::new(&it.name, Span::call_site());
-                    quote! {Tk::#name => T![#name],}
+                    let name = format_ident!("{}", &it.name);
+                    let lwc_name = format_ident!("{}", &it.lowercased_name);
+                    quote! {Tk::#name => T![#lwc_name],}
                 })
                 .flatten(),
         )
@@ -137,7 +138,7 @@ impl<'a> ToTokens for MatchConstTokens<'a> {
                     let matcher: TokenStream = if it.text.chars().any(|it| "([{)]}".contains(it)) {
                         format!(r#"'{}'"#, it.text).parse().unwrap()
                     } else if it.text == "\n" {
-                        r#"'\n'"#.parse().unwrap()
+                        quote! {newline}
                     } else {
                         it.text.parse().unwrap()
                     };

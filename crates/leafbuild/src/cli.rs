@@ -1,9 +1,9 @@
 //! Definition and parsing of Cli.
 use clap::{AppSettings, Clap};
 use leafbuild_core::lf_buildsys::config::Config;
-use leafbuild_core::lf_buildsys::WriteResultsError;
+use leafbuild_core::lf_buildsys::{ConfigurationError, WriteResultsError};
 use leafbuild_interpreter::handle::Handle;
-use leafbuild_interpreter::{InterpretFailure, LfModName};
+use leafbuild_interpreter::{interpret::InterpretFailure, LfModName};
 use std::path::{Path, PathBuf};
 use std::process::exit;
 
@@ -121,11 +121,15 @@ pub struct Cli {
 #[derive(Debug, Error)]
 pub enum CliError {
     /// Failure interpreting some code.
-    #[error("interpret failure: {0}")]
+    #[error("interpret failure")]
     InterpretFailure(#[from] InterpretFailure),
 
+    /// Failed validation
+    #[error("configuration error")]
+    Validate(#[from] ConfigurationError),
+
     /// Cannot write the results.
-    #[error("write results: {0}")]
+    #[error("write results")]
     WriteResults(#[from] WriteResultsError),
 }
 
@@ -159,6 +163,7 @@ pub fn run(cli: Cli) -> Result<(), CliError> {
                     .unwrap_or_else(|| ".".into()),
             );
             leafbuild_interpreter::execute_on(&mut handle, &path_buf, mod_name)?;
+            handle.validate()?;
             let handle = handle;
             handle.write_results()?;
         }

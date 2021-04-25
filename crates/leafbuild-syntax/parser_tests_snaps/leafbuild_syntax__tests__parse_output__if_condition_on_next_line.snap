@@ -3,20 +3,18 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "if\n     1\n{}\n"
 
 ---
-- ROOT 0..13
-  - Expr 0..12
-    - PrimaryExpr 0..12
-      - Conditional 0..12
-        - ConditionalBranch 0..12
-          - "if" IF_KW 0..2
-          - "\n" NEWLINE 2..3
-          - "     " WHITESPACE 3..8
-          - Expr 8..9
-            - PrimaryExpr 8..9
-              - "1" NUM 8..9
-          - "\n" NEWLINE 9..10
-          - ExprBlock 10..12
-            - "{" L_BRACE 10..11
-            - "}" R_BRACE 11..12
-  - "\n" NEWLINE 12..13
+- BUILD_DEFINITION 0..13
+  - EXPR_EVAL_STMT 0..13
+    - PRIMARY_EXPR 0..12
+      - CONDITIONAL 0..12
+        - "if" IF_KW 0..2
+        - "\n" NEWLINE 2..3
+        - "     " WHITESPACE 3..8
+        - PRIMARY_EXPR 8..9
+          - "1" INT_NUMBER 8..9
+        - "\n" NEWLINE 9..10
+        - BLOCK 10..12
+          - "{" L_CURLY 10..11
+          - "}" R_CURLY 11..12
+    - "\n" NEWLINE 12..13
 

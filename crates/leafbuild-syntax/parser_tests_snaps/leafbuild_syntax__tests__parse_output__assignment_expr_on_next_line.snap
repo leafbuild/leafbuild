@@ -3,17 +3,15 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "x =\n    1\n"
 
 ---
-- ROOT 0..10
-  - Assignment 0..10
-    - Expr 0..1
-      - PrimaryExpr 0..1
-        - "x" ID 0..1
+- BUILD_DEFINITION 0..10
+  - ASSIGNMENT_STMT 0..10
+    - PRIMARY_EXPR 0..1
+      - "x" IDENT 0..1
     - " " WHITESPACE 1..2
     - "=" EQ 2..3
     - "\n" NEWLINE 3..4
     - "    " WHITESPACE 4..8
-    - Expr 8..9
-      - PrimaryExpr 8..9
-        - "1" NUM 8..9
+    - PRIMARY_EXPR 8..9
+      - "1" INT_NUMBER 8..9
     - "\n" NEWLINE 9..10
 

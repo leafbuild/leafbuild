@@ -651,6 +651,7 @@ dependencies = [
  "leafbuild-core",
  "leafbuild-syntax",
  "linkme",
+ "smallvec",
  "thiserror",
  "tracing",
 ]
@@ -1046,9 +1047,9 @@ dependencies = [
 
 [[package]]
 name = "rowan"
-version = "0.12.6"
+version = "0.13.0-pre.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a1b36e449f3702f3b0c821411db1cbdf30fb451726a9456dce5dabcd44420043"
+checksum = "77d315d6f2e33f294412faa47f41b56bdb3fce72c999d384b5e78c8d21551b13"
 dependencies = [
  "countme",
  "hashbrown",
@@ -1399,6 +1400,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "ungrammar"
+version = "1.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "76760314176cc2b94047af2f921b92c39f11a34dc05c43a3c2b0fc91cb22959f"
+
+[[package]]
 name = "unicode-segmentation"
 version = "1.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1586,6 +1593,7 @@ dependencies = [
  "serde",
  "syn",
  "thiserror",
+ "ungrammar",
  "walkdir",
 ]
 

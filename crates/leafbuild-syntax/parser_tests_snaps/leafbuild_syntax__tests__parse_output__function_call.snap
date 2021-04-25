@@ -3,38 +3,33 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "x = f(1, 2, a = b)\n"
 
 ---
-- ROOT 0..19
-  - Assignment 0..19
-    - Expr 0..1
-      - PrimaryExpr 0..1
-        - "x" ID 0..1
+- BUILD_DEFINITION 0..19
+  - ASSIGNMENT_STMT 0..19
+    - PRIMARY_EXPR 0..1
+      - "x" IDENT 0..1
     - " " WHITESPACE 1..2
     - "=" EQ 2..3
     - " " WHITESPACE 3..4
-    - Expr 4..18
-      - FnCallExpr 4..18
-        - PrimaryExpr 4..5
-          - "f" ID 4..5
-        - FnCallArgsList 5..18
-          - "(" L_PAREN 5..6
-          - Expr 6..7
-            - PrimaryExpr 6..7
-              - "1" NUM 6..7
-          - "," COMMA 7..8
-          - " " WHITESPACE 8..9
-          - Expr 9..10
-            - PrimaryExpr 9..10
-              - "2" NUM 9..10
-          - "," COMMA 10..11
-          - " " WHITESPACE 11..12
-          - KExpr 12..17
-            - "a" ID 12..13
-            - " " WHITESPACE 13..14
-            - "=" EQ 14..15
-            - " " WHITESPACE 15..16
-            - Expr 16..17
-              - PrimaryExpr 16..17
-                - "b" ID 16..17
-          - ")" R_PAREN 17..18
+    - FN_CALL_EXPR 4..18
+      - PRIMARY_EXPR 4..5
+        - "f" IDENT 4..5
+      - FN_CALL_ARGS 5..18
+        - "(" L_PAREN 5..6
+        - PRIMARY_EXPR 6..7
+          - "1" INT_NUMBER 6..7
+        - "," COMMA 7..8
+        - " " WHITESPACE 8..9
+        - PRIMARY_EXPR 9..10
+          - "2" INT_NUMBER 9..10
+        - "," COMMA 10..11
+        - " " WHITESPACE 11..12
+        - K_EXPR 12..17
+          - "a" IDENT 12..13
+          - " " WHITESPACE 13..14
+          - "=" EQ 14..15
+          - " " WHITESPACE 15..16
+          - PRIMARY_EXPR 16..17
+            - "b" IDENT 16..17
+        - ")" R_PAREN 17..18
     - "\n" NEWLINE 18..19
 

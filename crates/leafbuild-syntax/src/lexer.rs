@@ -9,15 +9,15 @@ use std::ops::Range;
 #[derive(Logos, Copy, Clone, Debug, PartialEq, PartialOrd, Eq)]
 pub enum Tk {
     #[regex(r#"[a-zA-Z_][a-zA-Z0-9_]*"#)]
-    Id,
+    Ident,
     #[regex(r#"([1-9][0-9]*|0x[0-9a-fA-F]+|0b[01]+|0[0-7]+|0)[uU]?[lL]?"#)]
-    NumLit,
+    IntNumber,
     #[regex(r#"'(\\['nt\\]|[^'\\])+'"#)]
     Str,
     #[regex(r#"'''([^']*|'[^']|''[^'])*'''"#)]
     MultilineStr,
     #[regex(r#"//[^\n]*"#)]
-    SingleLineComment,
+    Comment,
     #[regex(r#"/\*([^*]|\**[^*/])*\*+/"#)]
     BlockComment,
     #[regex(r#"[ \t\r]+"#)]
@@ -118,13 +118,13 @@ impl From<Tk> for SyntaxKind {
     fn from(tk: Tk) -> Self {
         use SyntaxKind::*;
         match tk {
-            Tk::Id => T![Id],
-            Tk::NumLit => T![NumLit],
-            Tk::Str => T![Str],
-            Tk::MultilineStr => T![MultilineStr],
-            Tk::SingleLineComment => T![SingleLineComment],
-            Tk::BlockComment => T![BlockComment],
-            Tk::Whitespace => T![Whitespace],
+            Tk::Ident => T![ident],
+            Tk::IntNumber => T![int_number],
+            Tk::Str => T![str],
+            Tk::MultilineStr => T![multiline_str],
+            Tk::Comment => T![comment],
+            Tk::BlockComment => T![block_comment],
+            Tk::Whitespace => T![whitespace],
             Tk::PlusEq => T ! [+=],
             Tk::MinusEq => T ! [-=],
             Tk::MulEq => T ! [*=],
@@ -168,7 +168,7 @@ impl From<Tk> for SyntaxKind {
             Tk::FalseKw => T![false],
             Tk::FnKw => T![fn],
             Tk::StructKw => T![struct],
-            Tk::Newline => T!['\n'],
+            Tk::Newline => T![newline],
             Tk::Error => ERROR,
         }
     }

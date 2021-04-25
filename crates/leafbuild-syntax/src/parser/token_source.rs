@@ -3,8 +3,6 @@ use rowan::TextSize;
 
 use crate::syntax_kind::SyntaxKind;
 
-pub mod token_source_from_lexer;
-
 /// A structure to hold data about a forward token,
 /// resulted from a query like "find the next token that is not a newline".
 #[derive(Copy, Clone, Debug)]
@@ -21,7 +19,7 @@ pub struct ForwardToken {
     /// to bump.
     /// For example, the index of the current token
     /// in the stream, or something like that.
-    state: usize,
+    pub(crate) state: usize,
 }
 
 impl Default for ForwardToken {

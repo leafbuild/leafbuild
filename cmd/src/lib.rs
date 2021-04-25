@@ -14,12 +14,33 @@ macro_rules! cmd_process {
 
         cmd
     }};
+
+    ($s:expr, workdir = $wd:expr) => {{
+        let mut cmd: ::std::process::Command;
+        if cfg!(target_os = "windows") {
+            cmd = ::std::process::Command::new("cmd");
+            cmd.args(&["/C", $s]);
+        } else {
+            cmd = ::std::process::Command::new("sh");
+            cmd.arg("-c").arg($s);
+        }
+
+        cmd.current_dir($wd);
+
+        cmd
+    }};
 }
 
 #[macro_export]
 macro_rules! cmd {
     ($s:expr) => {{
         $crate::cmd_process!($s)
+            .output()
+            .expect("failed to execute process")
+    }};
+
+    ($s:expr, workdir = $wd:expr) => {{
+        $crate::cmd_process!($s, workdir = $wd)
             .output()
             .expect("failed to execute process")
     }};
@@ -30,6 +51,17 @@ macro_rules! cmd_call {
     ($s:expr) => {
         (|| -> $crate::CmdResult {
             let exit_status = $crate::cmd_process!($s).spawn()?.wait()?;
+            if exit_status.success() {
+                Ok(())
+            } else {
+                Err($crate::CmdError::NotSuccess(exit_status))
+            }
+        })()
+    };
+
+    ($s:expr, workdir = $wd:expr) => {
+        (|| -> $crate::CmdResult {
+            let exit_status = $crate::cmd_process!($s, workdir = $wd).spawn()?.wait()?;
             if exit_status.success() {
                 Ok(())
             } else {

@@ -3,8 +3,8 @@ source: crates/leafbuild-syntax/src/parser/mod.rs
 expression: "break\n"
 
 ---
-- ROOT 0..6
-  - ControlStatement 0..6
+- BUILD_DEFINITION 0..6
+  - BREAK_STMT 0..6
     - "break" BREAK_KW 0..5
     - "\n" NEWLINE 5..6
 

@@ -5,7 +5,7 @@ use std::fmt;
 use std::ops::Range;
 
 use rowan::{TextRange, TextSize};
-use token_source::token_source_from_lexer::LexerWrap;
+use text_token_source::LexerWrap;
 
 use leafbuild_stdx::CopyTo;
 
@@ -26,6 +26,7 @@ use self::{
 pub mod error;
 mod event;
 mod marker;
+pub mod text_token_source;
 pub mod text_tree_sink;
 pub mod token_source;
 pub mod tree_sink;
@@ -36,7 +37,7 @@ trait IsTrivia: Copy {
 
 impl IsTrivia for SyntaxKind {
     fn is_trivia(self) -> bool {
-        self == Self::WHITESPACE || self == Self::SINGLE_LINE_COMMENT || self == Self::BLOCK_COMMENT
+        self == Self::WHITESPACE || self == Self::COMMENT || self == Self::BLOCK_COMMENT
     }
 }
 
@@ -87,7 +88,7 @@ impl<'ts> Parser<'ts> {
             parse_lang_item(self);
         }
 
-        marker.complete(self, ROOT);
+        marker.complete(self, BUILD_DEFINITION);
     }
 
     #[inline(always)]
@@ -158,12 +159,12 @@ impl<'ts> Parser<'ts> {
 
     #[inline(always)]
     fn require_newline(&mut self) {
-        self.expect(NEWLINE);
+        self.expect(T![newline]);
     }
 
     #[inline(always)]
     fn has_newline(&self) -> bool {
-        self.at(NEWLINE)
+        self.at(T![newline])
     }
 
     #[inline(always)]
@@ -176,7 +177,7 @@ impl<'ts> Parser<'ts> {
 
     #[inline(always)]
     fn next_not_newline(&self) -> ForwardToken {
-        self.source.find(FindProperty::KindIsNot(NEWLINE))
+        self.source.find(FindProperty::KindIsNot(T![newline]))
     }
 
     #[inline(always)]
@@ -208,8 +209,8 @@ impl<'ts> Parser<'ts> {
 
     #[inline(always)]
     fn skip_newlines(&mut self) {
-        while self.at(NEWLINE) {
-            self.do_bump(NEWLINE, 1);
+        while self.at(T![newline]) {
+            self.do_bump(T![newline], 1);
         }
     }
 
@@ -272,6 +273,7 @@ fn parse_lang_item(p: &mut Parser) {
 
 fn parse_statement(p: &mut Parser) {
     let tok = p.current();
+
     match tok {
         T!['(']
         | T!['[']
@@ -281,12 +283,13 @@ fn parse_statement(p: &mut Parser) {
         | T![not]
         | T![true]
         | T![false]
-        | T![NumLit]
-        | T![Id]
-        | T![Str]
-        | T![MultilineStr]
+        | T![int_number]
+        | T![float_number]
+        | T![ident]
+        | T![str]
+        | T![multiline_str]
         | T![if] => {
-            let assingment_marker = p.start();
+            let statement_marker = p.start();
             parse_expr(p);
             // test assignment
             // a = b
@@ -304,18 +307,24 @@ fn parse_statement(p: &mut Parser) {
                 parse_expr(p);
 
                 p.require_newline();
-                assingment_marker.complete(p, Assignment);
+                statement_marker.complete(p, ASSIGNMENT_STMT);
             } else {
                 // test freestanding_expr
                 // 1
 
                 p.require_newline();
-                assingment_marker.abandon(p);
+                statement_marker.complete(p, EXPR_EVAL_STMT);
             }
         }
-        T![let] => parse_declaration(p),
-        T![foreach] => parse_foreach(p),
-        T![continue] | T![break] | T![return] => parse_control_stmt(p),
+        T![let] => {
+            parse_declaration(p);
+        }
+        T![foreach] => {
+            parse_foreach(p);
+        }
+        T![continue] | T![break] | T![return] => {
+            parse_control_stmt(p);
+        }
         _ => {
             p.unexpected();
         }
@@ -323,32 +332,28 @@ fn parse_statement(p: &mut Parser) {
 }
 
 fn parse_expr(p: &mut Parser) {
-    p.skip_newlines();
-
     // test precedence_parsing
     // x = 1 + 2 * 3 % - 4 ( 5 )
 
-    let marker = p.start();
     parse_precedence_8_expr(p);
-    marker.complete(p, Expr);
 }
 
-fn parse_tuple_expr(p: &mut Parser) {
+fn parse_tuple_expr(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
     assert!(is_tuple_expr_start(p));
 
-    parse_tt(p, TupleExpr, T!['('], Some(T![,]), T![')'], parse_expr)
+    parse_tt(p, TUPLE_EXPR, T!['('], Some(T![,]), T![')'], parse_expr)
 }
 
 fn is_tuple_expr_start(p: &mut Parser) -> bool {
     p.at(T!['('])
 }
 
-fn parse_array_expr(p: &mut Parser) {
+fn parse_array_expr(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
     assert!(is_array_expr_start(p));
 
-    parse_tt(p, ArrayLitExpr, T!['['], Some(T![,]), T![']'], parse_expr)
+    parse_tt(p, ARRAY_LIT_EXPR, T!['['], Some(T![,]), T![']'], parse_expr)
 }
 
 fn is_array_expr_start(p: &mut Parser) -> bool {
@@ -357,12 +362,13 @@ fn is_array_expr_start(p: &mut Parser) -> bool {
 
 fn parse_primary(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
-    let marker = p.start();
+
+    let mk = p.start();
 
     if is_array_expr_start(p) {
-        parse_array_expr(p)
+        parse_array_expr(p);
     } else if is_tuple_expr_start(p) {
-        parse_tuple_expr(p)
+        parse_tuple_expr(p);
     } else if is_conditional_start(p) {
         // test if_condition_in_expr
         // a = if b {} else {}
@@ -378,26 +384,27 @@ fn parse_primary(p: &mut Parser) -> CompletedMarker {
         //
         //
         // }
-        parse_conditional(p)
+        parse_conditional(p);
     } else if is_expr_block_start(p) {
-        parse_expr_block(p)
-    } else if p.at_any([T![NumLit], T![Id]]) {
+        parse_expr_block(p);
+    } else if p.at_any([T![int_number], T![float_number], T![ident]]) {
         p.bump_any();
     } else if is_string_lit(p) {
-        parse_string(p)
+        parse_string(p);
     } else {
         p.unexpected();
     }
-    marker.complete(p, PrimaryExpr)
+
+    mk.complete(p, PRIMARY_EXPR)
 }
 
 fn is_string_lit(p: &mut Parser) -> bool {
-    p.at_any([T![Str], T![MultilineStr]])
+    p.at_any([T![str], T![multiline_str]])
 }
 
 fn parse_string(p: &mut Parser) {
     assert!(is_string_lit(p));
-    p.bump_any()
+    p.bump_any();
 }
 
 fn parse_tt(
@@ -407,12 +414,9 @@ fn parse_tt(
     separator: Option<SyntaxKind>,
     end_tok: SyntaxKind,
     mut f: impl FnMut(&mut Parser),
-) {
+) -> CompletedMarker {
     let marker = p.start();
-    if !p.expect(start_tok) {
-        marker.abandon(p);
-        return;
-    }
+    p.bump(start_tok);
 
     p.skip_newlines();
     while !p.at_any([EOF, end_tok]) {
@@ -434,7 +438,7 @@ fn parse_tt(
     }
 
     p.expect(end_tok);
-    marker.complete(p, outer_kind);
+    marker.complete(p, outer_kind)
 }
 
 fn parse_precedence_1_expr(p: &mut Parser) -> CompletedMarker {
@@ -472,8 +476,8 @@ fn parse_f_call(p: &mut Parser, marker: Marker) -> CompletedMarker {
     // x = f
     // (1, 2, a = b)
 
-    parse_tt(p, FnCallArgsList, T!['('], Some(T![,]), T![')'], parse_farg);
-    marker.complete(p, FnCallExpr)
+    parse_tt(p, FN_CALL_ARGS, T!['('], Some(T![,]), T![')'], parse_farg);
+    marker.complete(p, FN_CALL_EXPR)
 }
 
 fn parse_farg(p: &mut Parser) {
@@ -490,16 +494,16 @@ fn parse_kexpr(p: &mut Parser) {
     assert!(is_kexpr_start(p));
     let marker = p.start();
 
-    p.bump(T![Id]);
+    p.bump(T![ident]);
     p.bump(T![=]);
 
     parse_expr(p);
 
-    marker.complete(p, KExpr);
+    marker.complete(p, K_EXPR);
 }
 
 fn is_kexpr_start(p: &mut Parser) -> bool {
-    p.at(T![Id]) && p.nth(1) == T![=]
+    p.at(T![ident]) && p.nth(1) == T![=]
 }
 
 fn parse_index_expr(p: &mut Parser, marker: Marker) -> CompletedMarker {
@@ -507,8 +511,8 @@ fn parse_index_expr(p: &mut Parser, marker: Marker) -> CompletedMarker {
     p.bump(T!['[']);
     parse_expr(p); // expr
     p.expect(T![']']);
-    brackets_marker.complete(p, IndexExprBrackets);
-    marker.complete(p, IndexExpr)
+    brackets_marker.complete(p, INDEX_EXPR_BRACKETS);
+    marker.complete(p, INDEX_EXPR)
 }
 
 fn parse_precedence_2_expr(p: &mut Parser) -> CompletedMarker {
@@ -517,7 +521,7 @@ fn parse_precedence_2_expr(p: &mut Parser) -> CompletedMarker {
         let marker = p.start();
         p.bump_any();
         parse_precedence_2_expr(p);
-        marker.complete(p, PrefixUnaryOpExpr)
+        marker.complete(p, PREFIX_UNARY_EXPR)
     } else {
         parse_precedence_1_expr(p)
     }
@@ -556,7 +560,7 @@ fn parse_infix_binop<const N: usize>(
         p.bump_any();
         lower(p);
 
-        completed = prec.complete(p, InfixBinOpExpr);
+        completed = prec.complete(p, BIN_EXPR);
     }
 
     completed
@@ -579,23 +583,23 @@ fn parse_precedence_6_expr(p: &mut Parser) -> CompletedMarker {
 }
 
 fn parse_precedence_7_expr(p: &mut Parser) -> CompletedMarker {
-    parse_infix_binop(p, [T![and]], parse_precedence_6_expr)
+    parse_infix_binop(p, [T![&&]], parse_precedence_6_expr)
 }
 
 fn parse_precedence_8_expr(p: &mut Parser) -> CompletedMarker {
-    parse_infix_binop(p, [T![or]], parse_precedence_7_expr)
+    parse_infix_binop(p, [T![||]], parse_precedence_7_expr)
 }
 
-fn parse_expr_block(p: &mut Parser) {
+fn parse_expr_block(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
-    parse_tt(p, ExprBlock, T!['{'], None, T!['}'], parse_statement)
+    parse_tt(p, BLOCK, T!['{'], None, T!['}'], parse_statement)
 }
 
 fn is_expr_block_start(p: &mut Parser) -> bool {
     p.at(T!['{'])
 }
 
-fn parse_declaration(p: &mut Parser) {
+fn parse_declaration(p: &mut Parser) -> CompletedMarker {
     // test declaration
     // let a = b
 
@@ -604,7 +608,7 @@ fn parse_declaration(p: &mut Parser) {
     p.skip_newlines();
     let mk = p.start();
     p.expect(T![let]);
-    p.expect(T![Id]);
+    p.expect(T![ident]);
 
     p.expect(T![=]);
 
@@ -612,14 +616,14 @@ fn parse_declaration(p: &mut Parser) {
 
     p.require_newline();
 
-    mk.complete(p, Declaration);
+    mk.complete(p, DECLARATION_STMT)
 }
 
 fn is_conditional_start(p: &mut Parser) -> bool {
     p.at(T![if])
 }
 
-fn parse_conditional(p: &mut Parser) {
+fn parse_conditional(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
 
     // test if_else_condition
@@ -664,23 +668,20 @@ fn parse_conditional(p: &mut Parser) {
         }
     }
 
-    marker.complete(p, Conditional);
+    marker.complete(p, CONDITIONAL)
 }
 
 fn parse_conditional_branch(p: &mut Parser) {
     p.skip_newlines();
-    let marker = p.start();
 
-    // consume the IF_KW
     p.bump(T![if]);
 
     parse_expr(p);
 
     parse_expr_block(p);
-    marker.complete(p, ConditionalBranch);
 }
 
-fn parse_foreach(p: &mut Parser) {
+fn parse_foreach(p: &mut Parser) -> CompletedMarker {
     p.skip_newlines();
 
     // test foreach_basic
@@ -689,21 +690,27 @@ fn parse_foreach(p: &mut Parser) {
     let marker = p.start();
 
     p.bump(T![foreach]);
+    parse_for_in_expr(p);
+    parse_expr_block(p);
+
+    p.require_newline();
+
+    marker.complete(p, FOREACH_STMT)
+}
+
+fn parse_for_in_expr(p: &mut Parser) -> CompletedMarker {
+    let marker = p.start();
     parse_expr(p);
     p.expect(T![in]);
     parse_expr(p);
-    parse_expr_block(p);
-
-    marker.complete(p, Foreach);
-
-    p.require_newline();
+    marker.complete(p, FOREACH_IN_EXPR)
 }
 
 fn is_control_stmt(p: &mut Parser) -> bool {
     p.at_any([T![continue], T![break], T![return]])
 }
 
-fn parse_control_stmt(p: &mut Parser) {
+fn parse_control_stmt(p: &mut Parser) -> CompletedMarker {
     // test continue_test
     // continue
 
@@ -731,12 +738,23 @@ fn parse_control_stmt(p: &mut Parser) {
 
     let marker = p.start();
     if p.eat(T![continue]) {
-    } else if (p.eat(T![return]) || p.eat(T![break])) && !p.at(NEWLINE) {
-        parse_expr(p);
+        p.require_newline();
+        marker.complete(p, CONTINUE_STMT)
+    } else if p.eat(T![return]) {
+        if !p.at(T![newline]) {
+            parse_expr(p);
+        }
+        p.require_newline();
+        marker.complete(p, RETURN_STMT)
+    } else if p.eat(T![break]) {
+        if !p.at(T![newline]) {
+            parse_expr(p);
+        }
+        p.require_newline();
+        marker.complete(p, BREAK_STMT)
+    } else {
+        unreachable!()
     }
-    p.require_newline();
-
-    marker.complete(p, ControlStatement);
 }
 
 fn parse_struct_decl(p: &mut Parser) {
@@ -762,45 +780,43 @@ fn parse_struct_decl(p: &mut Parser) {
 
     let marker = p.start();
     p.bump(T![struct]);
-    p.expect(T![Id]);
+    p.expect(T![ident]);
     p.skip_newlines();
     parse_tt(
         p,
-        StructFieldList,
+        STRUCT_FIELD_LIST,
         T!['{'],
         None,
         T!['}'],
         parse_struct_field,
     );
-    marker.complete(p, StructDecl);
+    marker.complete(p, STRUCT_DECL);
     p.require_newline();
 }
 
 fn parse_struct_field(p: &mut Parser) {
     let marker = p.start();
-    p.expect(T![Id]);
+    p.expect(T![ident]);
     p.expect(T![:]);
     parse_type_ref(p);
     p.require_newline();
-    marker.complete(p, StructField);
+    marker.complete(p, STRUCT_FIELD);
 }
 
-fn parse_type_ref(p: &mut Parser) {
+fn parse_type_ref(p: &mut Parser) -> CompletedMarker {
     let marker = p.start();
-    p.expect(T![Id]);
+    p.expect(T![ident]);
     if p.at(T![<]) {
         parse_type_ref_generics(p);
     }
-    marker.complete(p, TypeRef);
+    marker.complete(p, TYPE_REF)
 }
 
 fn parse_type_ref_generics(p: &mut Parser) {
-    parse_tt(
-        p,
-        TypeRefGenerics,
-        T![<],
-        Some(T![,]),
-        T![>],
-        parse_type_ref,
-    )
+    if !p.at(T![<]) {
+        return;
+    }
+    parse_tt(p, GENERIC_PARAMS, T![<], Some(T![,]), T![>], |p| {
+        parse_type_ref(p);
+    });
 }

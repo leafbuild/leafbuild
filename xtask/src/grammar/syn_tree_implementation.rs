@@ -1,162 +1,191 @@
-use proc_macro2::{Span, TokenStream};
-use quote::{quote, ToTokens, TokenStreamExt};
-use syn::Ident;
+use std::collections::HashSet;
 
-use super::{Child, ElementType, Grammar, Node};
+use proc_macro2::TokenStream;
+use quote::{format_ident, quote};
+
+use super::ast_src::{AstSrc, KindsSrc};
+use super::{to_pascal_case, to_upper_snake_case};
 use log::error;
-pub fn syn_tree_implementation(grammar: &Grammar) -> TokenStream {
-    let mut stream = quote! {};
-
-    fn mark_section(stream: &mut TokenStream, section: &str) {
-        let ts = format!("//\n// {}\n//", section)
-            .parse::<TokenStream>()
-            .unwrap();
-        stream.append_all(ts);
-    }
-
-    stream.append_all(quote! {
-        #![allow(missing_docs)]
-        use super::{
-            AstNode, AstToken, SyntaxKind, SyntaxNode, SyntaxToken,
-        };
-    });
-
-    mark_section(&mut stream, "Const tokens");
-    grammar
-        .const_tokens
-        .iter()
-        .for_each(|it| append_for_token(&mut stream, &it.name, &it.kind));
-
-    mark_section(&mut stream, "Tokens");
-    grammar
-        .tokens
-        .iter()
-        .for_each(|it| append_for_token(&mut stream, &it.name, &it.kind));
-
-    mark_section(&mut stream, "Nodes");
-    grammar
+pub(crate) fn generate_nodes(kinds: KindsSrc<'_>, grammar: &AstSrc) -> TokenStream {
+    let (node_defs, node_boilerplate_impls): (Vec<_>, Vec<_>) = grammar
         .nodes
         .iter()
-        .for_each(|node| append_for_node(&mut stream, grammar, node));
-    stream
-}
+        .map(|node| {
+            let name = format_ident!("{}", node.name);
+            let kind = format_ident!("{}", to_upper_snake_case(&node.name));
+            let traits = node.traits.iter().map(|trait_name| {
+                let trait_name = format_ident!("{}", trait_name);
+                quote!(impl ast::#trait_name for #name {})
+            });
 
-fn append_for_token(stream: &mut TokenStream, name: &str, kind: &str) {
-    let name = Ident::new(name, Span::call_site());
-    let kind = Ident::new(kind, Span::call_site());
+            let methods = node.fields.iter().map(|field| {
+                let method_name = field.method_name();
+                let ty = field.ty();
 
-    stream.append_all(quote! {
-        #[derive(Clone, Debug)]
-        #[repr(transparent)]
-        pub struct #name {
-            syntax: SyntaxToken,
-        }
-
-        impl AstToken for #name {
-            const KIND: SyntaxKind = SyntaxKind::#kind;
-
-            #[allow(unsafe_code)]
-            unsafe fn new(syntax: SyntaxToken) -> Self {
-                Self { syntax }
-            }
-
-            fn get_text(&self) -> &str {
-                self.syntax.text()
-            }
-        }
-    });
-}
-
-fn append_for_node(stream: &mut TokenStream, grammar: &Grammar, node: &Node) {
-    let name = Ident::new(&node.name, Span::call_site());
-    let kind = Ident::new(&node.kind, Span::call_site());
-    let children = Children(grammar, &node.children, &node.name);
-
-    stream.append_all(quote! {
-        #[derive(Debug, Clone)]
-        pub struct #name {
-            syntax: SyntaxNode,
-        }
-
-        impl AstNode for #name {
-            const KIND: SyntaxKind = SyntaxKind::#kind;
-
-            #[allow(unsafe_code)]
-            unsafe fn new(syntax: SyntaxNode) -> Self {
-                Self { syntax }
-            }
-
-            fn syntax(&self) -> &SyntaxNode {
-                &self.syntax
-            }
-        }
-
-        impl #name {
-            #children
-        }
-    })
-}
-
-struct Children<'a>(&'a Grammar, &'a [Child], &'a str);
-
-impl<'a> ToTokens for Children<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.1.iter().for_each(|child| {
-            let name = child.get_sytax_element_name();
-            let name_ident = Ident::new(name, Span::call_site());
-            let element_type = self.0.element_type(name);
-            let is_tok = match element_type {
-                Some(ElementType::Token) => true,
-                Some(ElementType::Node) => false,
-                None => {
-                    error!(
-                        "Cannot find child element of name '{}', in '{}'",
-                        name, self.2,
-                    );
-                    panic!("Unknown reference")
+                if field.is_many() {
+                    quote! {
+                        pub fn #method_name(&self) -> AstChildren<#ty> {
+                            support::children(&self.syntax)
+                        }
+                    }
+                } else {
+                    if let Some(token_kind) = field.token_kind() {
+                        quote! {
+                            pub fn #method_name(&self) -> Option<#ty> {
+                                support::token(&self.syntax, #token_kind)
+                            }
+                        }
+                    } else {
+                        quote! {
+                            pub fn #method_name(&self) -> Option<#ty> {
+                                support::child(&self.syntax)
+                            }
+                        }
+                    }
                 }
-            };
+            });
+            (
+                quote! {
+                    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+                    pub struct #name {
+                        pub(crate) syntax: SyntaxNode,
+                    }
 
-            let (fn_name, return_type, helper_function) = match child {
-                Child::Single(_, fn_name_fragment) => (
-                    format!("get_{}", fn_name_fragment),
-                    quote! {#name_ident},
-                    "get_single",
-                ),
-                Child::Multiple(_, fn_name_fragment) => (
-                    format!("get_{}_iter", fn_name_fragment),
-                    quote! {impl Iterator<Item=#name_ident>},
-                    "get_multiple",
-                ),
-                Child::First(_, fn_name_fragment) => (
-                    format!("get_{}", fn_name_fragment),
-                    quote! {#name_ident},
-                    "get_first",
-                ),
-                Child::Last(_, fn_name_fragment) => (
-                    format!("get_{}", fn_name_fragment),
-                    quote! {#name_ident},
-                    "get_last",
-                ),
-                Child::Optional(_, fn_name_fragment) => (
-                    format!("get_{}_opt", fn_name_fragment),
-                    quote! {Option<#name_ident>},
-                    "get_opt",
-                ),
-            };
+                    #(#traits)*
 
-            let fn_name = Ident::new(&fn_name, Span::call_site());
-            let helper_function = if is_tok {
-                Ident::new(&format!("{}_tok", helper_function), Span::call_site())
+                    impl #name {
+                        #(#methods)*
+                    }
+                },
+                quote! {
+                    impl AstNode for #name {
+                        fn can_cast(kind: SyntaxKind) -> bool {
+                            kind == #kind
+                        }
+                        fn cast(syntax: SyntaxNode) -> Option<Self> {
+                            if Self::can_cast(syntax.kind()) { Some(Self { syntax }) } else { None }
+                        }
+                        fn syntax(&self) -> &SyntaxNode { &self.syntax }
+                    }
+                },
+            )
+        })
+        .unzip();
+
+    let (enum_defs, enum_boilerplate_impls): (Vec<_>, Vec<_>) = grammar
+        .enums
+        .iter()
+        .map(|en| {
+            let variants: Vec<_> = en
+                .variants
+                .iter()
+                .map(|var| format_ident!("{}", var))
+                .collect();
+            let name = format_ident!("{}", en.name);
+            let kinds: Vec<_> = variants
+                .iter()
+                .map(|name| format_ident!("{}", to_upper_snake_case(&name.to_string())))
+                .collect();
+            let traits = en.traits.iter().map(|trait_name| {
+                let trait_name = format_ident!("{}", trait_name);
+                quote!(impl ast::#trait_name for #name {})
+            });
+
+            let ast_node = if en.name == "Stmt" {
+                quote! {}
             } else {
-                Ident::new(helper_function, Span::call_site())
+                quote! {
+                    impl AstNode for #name {
+                        fn can_cast(kind: SyntaxKind) -> bool {
+                            match kind {
+                                #(#kinds)|* => true,
+                                _ => false,
+                            }
+                        }
+                        fn cast(syntax: SyntaxNode) -> Option<Self> {
+                            let res = match syntax.kind() {
+                                #(
+                                #kinds => #name::#variants(#variants { syntax }),
+                                )*
+                                _ => return None,
+                            };
+                            Some(res)
+                        }
+                        fn syntax(&self) -> &SyntaxNode {
+                            match self {
+                                #(
+                                #name::#variants(it) => &it.syntax,
+                                )*
+                            }
+                        }
+                    }
+                }
             };
 
-            tokens.append_all(quote! {
-                pub fn #fn_name (&self) -> #return_type {
-                    super::#helper_function(&self.syntax)
+            (
+                quote! {
+                    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+                    pub enum #name {
+                        #(#variants(#variants),)*
+                    }
+
+                    #(#traits)*
+                },
+                quote! {
+                    #(
+                        impl From<#variants> for #name {
+                            fn from(node: #variants) -> #name {
+                                #name::#variants(node)
+                            }
+                        }
+                    )*
+                    #ast_node
+                },
+            )
+        })
+        .unzip();
+
+    let enum_names = grammar.enums.iter().map(|it| &it.name);
+    let node_names = grammar.nodes.iter().map(|it| &it.name);
+
+    let display_impls = enum_names
+        .chain(node_names.clone())
+        .map(|it| format_ident!("{}", it))
+        .map(|name| {
+            quote! {
+                impl std::fmt::Display for #name {
+                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                        std::fmt::Display::fmt(self.syntax(), f)
+                    }
                 }
-            })
+            }
         });
+
+    let defined_nodes: HashSet<_> = node_names.collect();
+
+    for node in kinds
+        .nodes
+        .iter()
+        .map(|kind| to_pascal_case(kind))
+        .filter(|name| !defined_nodes.iter().any(|&it| it == name))
+    {
+        error!("Warning: node {} not defined in ast source", &node);
+        drop(node);
     }
+
+    let ast = quote! {
+        #![allow(missing_docs)]
+        use crate::{
+            ast::{support, AstChildren, AstNode, SyntaxNode, SyntaxToken},
+            syntax_kind::SyntaxKind::{self, *},
+            T,
+        };
+        #(#node_defs)*
+        #(#enum_defs)*
+        #(#node_boilerplate_impls)*
+        #(#enum_boilerplate_impls)*
+        #(#display_impls)*
+    };
+
+    ast
 }
