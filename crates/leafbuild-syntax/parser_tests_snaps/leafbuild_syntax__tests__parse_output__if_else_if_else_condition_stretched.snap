@@ -1,0 +1,50 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "if ()\n\n{\n\n}\n\nelse if\n()\n\n{\n\n}\n\nelse {\n\n}\n"
+
+---
+- BUILD_DEFINITION 0..41
+  - EXPR_EVAL_STMT 0..41
+    - PRIMARY_EXPR 0..40
+      - CONDITIONAL 0..40
+        - "if" IF_KW 0..2
+        - " " WHITESPACE 2..3
+        - PRIMARY_EXPR 3..5
+          - TUPLE_EXPR 3..5
+            - "(" L_PAREN 3..4
+            - ")" R_PAREN 4..5
+        - "\n" NEWLINE 5..6
+        - "\n" NEWLINE 6..7
+        - BLOCK 7..11
+          - "{" L_CURLY 7..8
+          - "\n" NEWLINE 8..9
+          - "\n" NEWLINE 9..10
+          - "}" R_CURLY 10..11
+        - "\n" NEWLINE 11..12
+        - "\n" NEWLINE 12..13
+        - "else" ELSE_KW 13..17
+        - " " WHITESPACE 17..18
+        - "if" IF_KW 18..20
+        - "\n" NEWLINE 20..21
+        - PRIMARY_EXPR 21..23
+          - TUPLE_EXPR 21..23
+            - "(" L_PAREN 21..22
+            - ")" R_PAREN 22..23
+        - "\n" NEWLINE 23..24
+        - "\n" NEWLINE 24..25
+        - BLOCK 25..29
+          - "{" L_CURLY 25..26
+          - "\n" NEWLINE 26..27
+          - "\n" NEWLINE 27..28
+          - "}" R_CURLY 28..29
+        - "\n" NEWLINE 29..30
+        - "\n" NEWLINE 30..31
+        - "else" ELSE_KW 31..35
+        - " " WHITESPACE 35..36
+        - BLOCK 36..40
+          - "{" L_CURLY 36..37
+          - "\n" NEWLINE 37..38
+          - "\n" NEWLINE 38..39
+          - "}" R_CURLY 39..40
+    - "\n" NEWLINE 40..41
+

@@ -1,0 +1,23 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "foreach a in b {}\n"
+
+---
+- BUILD_DEFINITION 0..18
+  - FOREACH_STMT 0..18
+    - "foreach" FOREACH_KW 0..7
+    - " " WHITESPACE 7..8
+    - FOREACH_IN_EXPR 8..14
+      - PRIMARY_EXPR 8..9
+        - "a" IDENT 8..9
+      - " " WHITESPACE 9..10
+      - "in" IN_KW 10..12
+      - " " WHITESPACE 12..13
+      - PRIMARY_EXPR 13..14
+        - "b" IDENT 13..14
+    - " " WHITESPACE 14..15
+    - BLOCK 15..17
+      - "{" L_CURLY 15..16
+      - "}" R_CURLY 16..17
+    - "\n" NEWLINE 17..18
+

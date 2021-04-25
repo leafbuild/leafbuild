@@ -1,0 +1,16 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "struct test {}\n"
+
+---
+- BUILD_DEFINITION 0..15
+  - STRUCT_DECL 0..14
+    - "struct" STRUCT_KW 0..6
+    - " " WHITESPACE 6..7
+    - "test" IDENT 7..11
+    - " " WHITESPACE 11..12
+    - STRUCT_FIELD_LIST 12..14
+      - "{" L_CURLY 12..13
+      - "}" R_CURLY 13..14
+  - "\n" NEWLINE 14..15
+

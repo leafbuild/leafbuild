@@ -8,10 +8,10 @@
 
 # Developer resources
 - [Setting up for development](dev/setup.md)
+- [Syntax reference](dev/syntax_ref.md)
 - [Terminology](dev/terminology.md)
 - [Architecture](dev/architecture-overview.md)
-  - [`leafbuild-ast`](dev/leafbuild-ast.md)
-  - [`leafbuild-parser`](dev/leafbuild-parser.md)
+  - [`leafbuild-syntax`](dev/leafbuild-syntax.md)
   - [`leafbuild-interpreter`](dev/leafbuild-interpreter.md)
   - [`leafbuild-ninja-be`](dev/leafbuild-ninja-be.md)
   - [`leafbuild-make-be`](dev/leafbuild-make-be.md)

@@ -1,0 +1,20 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "() = ()\n"
+
+---
+- BUILD_DEFINITION 0..8
+  - ASSIGNMENT_STMT 0..8
+    - PRIMARY_EXPR 0..2
+      - TUPLE_EXPR 0..2
+        - "(" L_PAREN 0..1
+        - ")" R_PAREN 1..2
+    - " " WHITESPACE 2..3
+    - "=" EQ 3..4
+    - " " WHITESPACE 4..5
+    - PRIMARY_EXPR 5..7
+      - TUPLE_EXPR 5..7
+        - "(" L_PAREN 5..6
+        - ")" R_PAREN 6..7
+    - "\n" NEWLINE 7..8
+

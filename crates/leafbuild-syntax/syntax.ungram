@@ -1,0 +1,115 @@
+BuildDefinition =
+  LangItem*
+
+LangItem =
+  StmtWrap
+| StructDecl
+
+KExpr =
+  'ident' '=' Expr
+
+StmtWrap = Stmt
+
+Stmt =
+  ExprEvalStmt
+| DeclarationStmt
+| AssignmentStmt
+| ForeachStmt
+| ConditionalStmt
+| ControlStmt
+
+Expr =
+  PrimaryExpr
+| BinExpr
+| FnCallExpr
+| IndexExpr
+
+FnCallExpr =
+  Expr FnCallArgs
+
+IndexExpr =
+  Expr IndexExprBrackets
+
+StrLit =
+  'str'
+| 'multiline_str'
+
+PrimaryExpr =
+  StrLit
+| 'int_number'
+| 'float_number'
+| 'ident'
+| PrefixUnaryExpr
+| BoolLit
+| ArrayLitExpr
+| MapLitExpr
+| TupleExpr
+| Conditional
+
+PrefixUnaryExpr = op:('-'|'!') Expr
+
+ArrayLitExpr =
+  '[' (Expr (',' Expr)* ','?)? ']'
+
+MapLitExpr =
+  '{' (KExpr (',' KExpr)* ','?)? '}'
+
+TupleExpr =
+  '(' fields:(Expr (',' Expr)* ','?)? ')'
+
+BoolLit =
+  'true'
+| 'false'
+
+FnArg = 
+  KExpr
+| FnArgExpr
+
+FnArgExpr = Expr
+
+FnCallArgs =
+  '('
+  args:(FnArg (',' FnArg)* ','?)?
+  ')'
+
+IndexExprBrackets = '[' Expr ']'
+
+BinExpr =
+  lhs:Expr
+  op:(
+    'or' | 'and'
+    | '==' | '!=' | '<=' | '>=' | '<' | '>'
+    | '+' | '*' | '-' | '/' | '%'
+  )
+  rhs:Expr
+
+Conditional = 'if' Expr Block 'else' (Conditional | Block)
+
+ConditionalStmt = Conditional 'newline'
+
+Block =
+  '{' statements:Stmt* '}'
+
+ExprEvalStmt = Expr 'newline'
+
+AssignmentStmt = lhs:Expr op:('=' | '+=' | '/=' | '*=' | '%=') rhs:Expr
+
+DeclarationStmt = 'let' 'ident' '=' value:Expr 'newline'
+
+ControlStmt = ContinueStmt | BreakStmt | ReturnStmt
+
+ContinueStmt = 'continue' 'newline'
+BreakStmt = 'break' Expr? 'newline'
+ReturnStmt = 'return' Expr? 'newline'
+
+ForeachStmt = 'foreach' ForeachInExpr Block
+
+ForeachInExpr = Expr 'in' Expr
+
+StructDecl = 'struct' 'ident' StructFieldList
+StructFieldList = '{' StructField* '}'
+StructField = 'ident' ':' TypeRef
+
+TypeRef = 'ident' GenericParams?
+GenericParams = '<' generic_params:(TypeRef (',' TypeRef)* ','?)? '>'
+

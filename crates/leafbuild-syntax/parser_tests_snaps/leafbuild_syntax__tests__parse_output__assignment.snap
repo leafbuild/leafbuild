@@ -1,0 +1,16 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "a = b\n"
+
+---
+- BUILD_DEFINITION 0..6
+  - ASSIGNMENT_STMT 0..6
+    - PRIMARY_EXPR 0..1
+      - "a" IDENT 0..1
+    - " " WHITESPACE 1..2
+    - "=" EQ 2..3
+    - " " WHITESPACE 3..4
+    - PRIMARY_EXPR 4..5
+      - "b" IDENT 4..5
+    - "\n" NEWLINE 5..6
+

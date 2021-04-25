@@ -1,0 +1,35 @@
+{
+    "rust-analyzer.procMacro.enable": true,
+    "rust-analyzer.checkOnSave.enable": true,
+    //
+    "rust-analyzer.completion.addCallParenthesis": true,
+    "rust-analyzer.completion.addCallArgumentSnippets": true,
+    "rust-analyzer.completion.autoimport.enable": true,
+    "rust-analyzer.completion.postfix.enable": true,
+    //
+    "rust-analyzer.assist.importMergeBehavior": "last",
+    "rust-analyzer.assist.importGroup": true,
+    "rust-analyzer.assist.importPrefix": "plain",
+    //
+    "rust-analyzer.callInfo.full": true,
+    //
+    "rust-analyzer.hoverActions.enable": true,
+    "rust-analyzer.hoverActions.gotoTypeDef": true,
+    "rust-analyzer.hoverActions.implementations": true,
+    "rust-analyzer.hoverActions.linksInHover": true,
+    //
+    "rust-analyzer.diagnostics.enable": true,
+    "rust-analyzer.notifications.cargoTomlNotFound": true,
+    //
+    "rust-analyzer.debug.engine": "vadimcn.vscode-lldb",
+    //
+    "rust-analyzer.lens.enable": true,
+    "rust-analyzer.lens.implementations": true,
+    "rust-analyzer.lens.debug": true,
+    "rust-analyzer.lens.methodReferences": true,
+    "rust-analyzer.lens.references": true,
+    "rust-analyzer.lens.run": true,
+    "rust-analyzer.rustfmt.extraArgs": [
+        "+stable"
+    ],
+}

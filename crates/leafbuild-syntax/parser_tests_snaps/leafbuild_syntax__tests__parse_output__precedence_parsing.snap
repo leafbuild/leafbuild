@@ -1,0 +1,46 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "x = 1 + 2 * 3 % - 4 ( 5 )\n"
+
+---
+- BUILD_DEFINITION 0..26
+  - ASSIGNMENT_STMT 0..26
+    - PRIMARY_EXPR 0..1
+      - "x" IDENT 0..1
+    - " " WHITESPACE 1..2
+    - "=" EQ 2..3
+    - " " WHITESPACE 3..4
+    - BIN_EXPR 4..25
+      - PRIMARY_EXPR 4..5
+        - "1" INT_NUMBER 4..5
+      - " " WHITESPACE 5..6
+      - "+" PLUS 6..7
+      - " " WHITESPACE 7..8
+      - BIN_EXPR 8..25
+        - BIN_EXPR 8..13
+          - PRIMARY_EXPR 8..9
+            - "2" INT_NUMBER 8..9
+          - " " WHITESPACE 9..10
+          - "*" STAR 10..11
+          - " " WHITESPACE 11..12
+          - PRIMARY_EXPR 12..13
+            - "3" INT_NUMBER 12..13
+        - " " WHITESPACE 13..14
+        - "%" PERCENT 14..15
+        - " " WHITESPACE 15..16
+        - PREFIX_UNARY_EXPR 16..25
+          - "-" MINUS 16..17
+          - " " WHITESPACE 17..18
+          - FN_CALL_EXPR 18..25
+            - PRIMARY_EXPR 18..19
+              - "4" INT_NUMBER 18..19
+            - " " WHITESPACE 19..20
+            - FN_CALL_ARGS 20..25
+              - "(" L_PAREN 20..21
+              - " " WHITESPACE 21..22
+              - PRIMARY_EXPR 22..23
+                - "5" INT_NUMBER 22..23
+              - " " WHITESPACE 23..24
+              - ")" R_PAREN 24..25
+    - "\n" NEWLINE 25..26
+

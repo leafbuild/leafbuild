@@ -1,0 +1,58 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "x = 1\n+ 2\n+ f(\n     4\n)\ny = 3\n* 6\n% 78\n"
+
+---
+- BUILD_DEFINITION 0..39
+  - ASSIGNMENT_STMT 0..24
+    - PRIMARY_EXPR 0..1
+      - "x" IDENT 0..1
+    - " " WHITESPACE 1..2
+    - "=" EQ 2..3
+    - " " WHITESPACE 3..4
+    - BIN_EXPR 4..23
+      - BIN_EXPR 4..9
+        - PRIMARY_EXPR 4..5
+          - "1" INT_NUMBER 4..5
+        - "\n" NEWLINE 5..6
+        - "+" PLUS 6..7
+        - " " WHITESPACE 7..8
+        - PRIMARY_EXPR 8..9
+          - "2" INT_NUMBER 8..9
+      - "\n" NEWLINE 9..10
+      - "+" PLUS 10..11
+      - " " WHITESPACE 11..12
+      - FN_CALL_EXPR 12..23
+        - PRIMARY_EXPR 12..13
+          - "f" IDENT 12..13
+        - FN_CALL_ARGS 13..23
+          - "(" L_PAREN 13..14
+          - "\n" NEWLINE 14..15
+          - "     " WHITESPACE 15..20
+          - PRIMARY_EXPR 20..21
+            - "4" INT_NUMBER 20..21
+          - "\n" NEWLINE 21..22
+          - ")" R_PAREN 22..23
+    - "\n" NEWLINE 23..24
+  - ASSIGNMENT_STMT 24..39
+    - PRIMARY_EXPR 24..25
+      - "y" IDENT 24..25
+    - " " WHITESPACE 25..26
+    - "=" EQ 26..27
+    - " " WHITESPACE 27..28
+    - BIN_EXPR 28..38
+      - BIN_EXPR 28..33
+        - PRIMARY_EXPR 28..29
+          - "3" INT_NUMBER 28..29
+        - "\n" NEWLINE 29..30
+        - "*" STAR 30..31
+        - " " WHITESPACE 31..32
+        - PRIMARY_EXPR 32..33
+          - "6" INT_NUMBER 32..33
+      - "\n" NEWLINE 33..34
+      - "%" PERCENT 34..35
+      - " " WHITESPACE 35..36
+      - PRIMARY_EXPR 36..38
+        - "78" INT_NUMBER 36..38
+    - "\n" NEWLINE 38..39
+

@@ -1,0 +1,24 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "x = a\n[1]\n"
+
+---
+- BUILD_DEFINITION 0..10
+  - ASSIGNMENT_STMT 0..6
+    - PRIMARY_EXPR 0..1
+      - "x" IDENT 0..1
+    - " " WHITESPACE 1..2
+    - "=" EQ 2..3
+    - " " WHITESPACE 3..4
+    - PRIMARY_EXPR 4..5
+      - "a" IDENT 4..5
+    - "\n" NEWLINE 5..6
+  - EXPR_EVAL_STMT 6..10
+    - PRIMARY_EXPR 6..9
+      - ARRAY_LIT_EXPR 6..9
+        - "[" L_BRACKET 6..7
+        - PRIMARY_EXPR 7..8
+          - "1" INT_NUMBER 7..8
+        - "]" R_BRACKET 8..9
+    - "\n" NEWLINE 9..10
+

@@ -1,0 +1,25 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "struct test {\n    i: i32\n}\n"
+
+---
+- BUILD_DEFINITION 0..27
+  - STRUCT_DECL 0..26
+    - "struct" STRUCT_KW 0..6
+    - " " WHITESPACE 6..7
+    - "test" IDENT 7..11
+    - " " WHITESPACE 11..12
+    - STRUCT_FIELD_LIST 12..26
+      - "{" L_CURLY 12..13
+      - "\n" NEWLINE 13..14
+      - "    " WHITESPACE 14..18
+      - STRUCT_FIELD 18..25
+        - "i" IDENT 18..19
+        - ":" COLON 19..20
+        - " " WHITESPACE 20..21
+        - TYPE_REF 21..24
+          - "i32" IDENT 21..24
+        - "\n" NEWLINE 24..25
+      - "}" R_CURLY 25..26
+  - "\n" NEWLINE 26..27
+

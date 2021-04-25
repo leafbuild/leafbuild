@@ -1,0 +1,19 @@
+[package]
+name = "leafbuild-interpreter"
+version = "0.1.0"
+authors = ["Dinu Blanovschi <dinu.blanovschi@criptext.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+derivative = "2.1"
+codespan-reporting = "0.11"
+thiserror = "1.0"
+tracing = "0.1"
+itertools = "0.10"
+linkme = "0.2"
+smallvec = "1.6"
+
+leafbuild-core = { path = "../leafbuild-core", version = "0.1.0" }
+leafbuild-syntax = { path = "../leafbuild-syntax", version = "0.1.0" }

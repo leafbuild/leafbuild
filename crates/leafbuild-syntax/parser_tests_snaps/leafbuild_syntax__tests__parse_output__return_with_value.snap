@@ -1,0 +1,13 @@
+---
+source: crates/leafbuild-syntax/src/parser/mod.rs
+expression: "return 1\n"
+
+---
+- BUILD_DEFINITION 0..9
+  - RETURN_STMT 0..9
+    - "return" RETURN_KW 0..6
+    - " " WHITESPACE 6..7
+    - PRIMARY_EXPR 7..8
+      - "1" INT_NUMBER 7..8
+    - "\n" NEWLINE 8..9
+
