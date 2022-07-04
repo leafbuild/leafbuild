@@ -43,7 +43,7 @@ derive-new = "0.5"
 lalrpop-util = "0.19"
 
 tracing = "0.1"
-tracing-subscriber = "0.2"
+tracing-subscriber = "0.3"
 
 leafbuild-core = { path = "leafbuild-core", version = "0.1.0" }
 leafbuild-derive = { path = "leafbuild-derive", version = "0.1.0" }
